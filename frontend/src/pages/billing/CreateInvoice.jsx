@@ -275,7 +275,7 @@ export default function CreateInvoice() {
           mode: payMode,
           amount: payType === 'partial'
             ? (parseFloat(partialAmount) || 0)
-            : netPayable,
+            : grandTotal,
           reference_no: payMode === 'card'
             ? (cardLast4 ? `XXXX-${cardLast4}` : null)
             : (payRef || null),

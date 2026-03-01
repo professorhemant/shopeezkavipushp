@@ -172,23 +172,22 @@ const create = async (req, res, next) => {
     let customerPhone = null;
     let customerGstin = null;
     let previousBalance = 0;
-    let customerObj = null;
     if (customer_id) {
-      customerObj = await Customer.findByPk(customer_id, { transaction: t });
-      if (customerObj) {
-        customerName = customerObj.name;
-        customerPhone = customerObj.phone;
-        customerGstin = customerObj.gstin;
+      const customer = await Customer.findByPk(customer_id, { transaction: t });
+      if (customer) {
+        customerName = customer.name;
+        customerPhone = customer.phone;
+        customerGstin = customer.gstin;
         // Outstanding = opening balance + all previous unpaid invoice balances
         const prevSalesBalance = await Sale.sum('balance', {
           where: {
-            customer_id: customerObj.id,
+            customer_id: customer.id,
             firm_id: firmId,
             status: { [Op.notIn]: ['cancelled', 'returned'] },
           },
           transaction: t,
         }) || 0;
-        previousBalance = parseFloat(customerObj.opening_balance || 0) + parseFloat(prevSalesBalance || 0);
+        previousBalance = parseFloat(customer.opening_balance || 0) + parseFloat(prevSalesBalance || 0);
       }
     }
 
@@ -239,51 +238,6 @@ const create = async (req, res, next) => {
         notes: payment?.notes || null,
         created_by: req.userId,
       }, { transaction: t });
-    }
-
-    // If customer paid more than the current invoice (i.e., included previous balance),
-    // apply excess to previous unpaid invoices then reduce opening_balance.
-    if (customerObj && paidAmount > grandTotal) {
-      let excess = parseFloat((paidAmount - grandTotal).toFixed(2));
-
-      // Apply excess to oldest unpaid invoices first
-      if (excess > 0) {
-        const prevSales = await Sale.findAll({
-          where: {
-            customer_id,
-            firm_id: firmId,
-            id: { [Op.ne]: sale.id },
-            balance: { [Op.gt]: 0 },
-            status: { [Op.notIn]: ['cancelled', 'returned'] },
-          },
-          order: [['invoice_date', 'ASC']],
-          transaction: t,
-        });
-        for (const prevSale of prevSales) {
-          if (excess <= 0) break;
-          const saleBalance = parseFloat(prevSale.balance);
-          const applied = Math.min(saleBalance, excess);
-          const newBalance = parseFloat((saleBalance - applied).toFixed(2));
-          const newPaid = parseFloat((parseFloat(prevSale.paid_amount) + applied).toFixed(2));
-          await prevSale.update({
-            paid_amount: newPaid,
-            balance: newBalance,
-            payment_status: newBalance <= 0 ? 'paid' : 'partial',
-          }, { transaction: t });
-          excess = parseFloat((excess - applied).toFixed(2));
-        }
-      }
-
-      // Apply remaining excess to customer opening_balance
-      if (excess > 0) {
-        const openingBal = parseFloat(customerObj.opening_balance || 0);
-        const reduction = Math.min(openingBal, excess);
-        if (reduction > 0) {
-          await customerObj.update({
-            opening_balance: parseFloat((openingBal - reduction).toFixed(2)),
-          }, { transaction: t });
-        }
-      }
     }
 
     await t.commit();
