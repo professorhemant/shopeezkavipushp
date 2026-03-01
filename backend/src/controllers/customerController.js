@@ -22,10 +22,14 @@ const getAll = async (req, res, next) => {
     else where.is_active = true;
 
     if (search) {
+      // Normalize Indian phone: strip +91 or 91 prefix to match numbers stored as 0XXXXXXXXXX or 10-digit
+      const phoneSearch = search.replace(/^\+91/, '').replace(/^91(?=\d{10}$)/, '');
+      const phoneConditions = [{ phone: { [Op.like]: `%${search}%` } }];
+      if (phoneSearch !== search) phoneConditions.push({ phone: { [Op.like]: `%${phoneSearch}%` } });
       where[Op.or] = [
         { name: { [Op.like]: `%${search}%` } },
         { email: { [Op.like]: `%${search}%` } },
-        { phone: { [Op.like]: `%${search}%` } },
+        ...phoneConditions,
         { gstin: { [Op.like]: `%${search}%` } },
       ];
     }

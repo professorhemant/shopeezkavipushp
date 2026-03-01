@@ -415,6 +415,25 @@ export default function CreateInvoice() {
           type="text"
           value={mobile}
           onChange={(e) => setMobile(e.target.value)}
+          onBlur={(e) => {
+            const val = e.target.value.trim()
+            if (!val || selectedCust) return
+            // Auto-lookup customer by mobile when not already selected
+            customerAPI.getAll({ search: val, limit: 1 })
+              .then(({ data }) => {
+                const found = (data.data || data.customers || [])[0]
+                if (!found) return
+                setMobile(found.mobile || found.phone || val)
+                setCustName(found.name)
+                customerAPI.getOne(found.id)
+                  .then(({ data: d }) => {
+                    const full = d.data || d.customer || d
+                    setSelectedCust({ ...found, ...full })
+                  })
+                  .catch(() => setSelectedCust(found))
+              })
+              .catch(() => {})
+          }}
           placeholder="Mobile number(Alt+M)"
           className="flex-1 min-w-[150px] border-2 border-emerald-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 bg-white"
         />
