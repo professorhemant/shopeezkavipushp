@@ -3,7 +3,6 @@ dist/
 build/
 .env
 .env.local
-.env.production
 uploads/*
 !uploads/.gitkeep
 *.log
