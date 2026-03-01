@@ -87,7 +87,7 @@ function ImportModal({ onClose, onSuccess }) {
   }
 
   const handleImport = async () => {
-    if (!rows.length) return
+    if (!rows.length) return toast.error('No valid product rows found in the CSV')
     if (errors.length) return toast.error('Fix errors before importing')
     setImporting(true)
     try {
@@ -649,7 +649,7 @@ export default function Products() {
       {showImport && (
         <ImportModal
           onClose={() => setShowImport(false)}
-          onSuccess={() => { fetchProducts(); setShowImport(false) }}
+          onSuccess={() => { fetchProducts() }}
         />
       )}
 
