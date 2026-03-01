@@ -72,7 +72,7 @@ export default function Invoices() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Permanently delete this cancelled invoice? This cannot be undone.')) return
+    if (!window.confirm('Permanently delete this invoice? This cannot be undone.')) return
     try {
       await saleAPI.delete(id)
       toast.success('Invoice deleted')
@@ -187,11 +187,9 @@ export default function Invoices() {
                             <XCircle className="h-4 w-4" />
                           </button>
                         )}
-                        {inv.status === 'cancelled' && (
-                          <button onClick={() => handleDelete(inv.id)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-400 hover:text-red-700" title="Delete permanently">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
+                        <button onClick={() => handleDelete(inv.id)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-400 hover:text-red-700" title="Delete permanently">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>

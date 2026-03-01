@@ -489,7 +489,6 @@ const deleteSale = async (req, res, next) => {
   try {
     const sale = await Sale.findOne({ where: { id: req.params.id, firm_id: req.firmId }, transaction: t });
     if (!sale) { await t.rollback(); return res.status(404).json({ success: false, message: 'Sale not found.' }); }
-    if (sale.status !== 'cancelled') { await t.rollback(); return res.status(400).json({ success: false, message: 'Only cancelled invoices can be deleted.' }); }
     await SaleItem.destroy({ where: { sale_id: sale.id }, transaction: t });
     await Payment.destroy({ where: { sale_id: sale.id }, transaction: t });
     await sale.destroy({ transaction: t });
