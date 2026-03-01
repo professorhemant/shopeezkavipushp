@@ -1,0 +1,53 @@
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const Sale = sequelize.define('Sale', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  firm_id: { type: DataTypes.UUID },
+  invoice_no: { type: DataTypes.STRING(50), allowNull: false },
+  invoice_date: { type: DataTypes.DATEONLY, allowNull: false },
+  due_date: { type: DataTypes.DATEONLY },
+  customer_id: { type: DataTypes.UUID },
+  customer_name: { type: DataTypes.STRING(200) },
+  customer_phone: { type: DataTypes.STRING(20) },
+  customer_gstin: { type: DataTypes.STRING(20) },
+  billing_address: { type: DataTypes.TEXT },
+  shipping_address: { type: DataTypes.TEXT },
+  sale_type: { type: DataTypes.ENUM('retail', 'wholesale', 'online'), defaultValue: 'retail' },
+  payment_mode: { type: DataTypes.STRING(50), defaultValue: 'cash' },
+  payment_status: { type: DataTypes.ENUM('unpaid', 'partial', 'paid'), defaultValue: 'unpaid' },
+  status: { type: DataTypes.ENUM('draft', 'confirmed', 'cancelled', 'returned'), defaultValue: 'confirmed' },
+  subtotal: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  discount_type: { type: DataTypes.ENUM('percent', 'amount'), defaultValue: 'percent' },
+  discount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  discount_amount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  taxable_amount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  cgst: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  sgst: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  igst: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  cess: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  tcs_rate: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
+  tcs_amount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  total: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  paid_amount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  balance: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  previous_balance: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  shipping_charges: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  other_charges: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  notes: { type: DataTypes.TEXT },
+  terms: { type: DataTypes.TEXT },
+  is_interstate: { type: DataTypes.BOOLEAN, defaultValue: false },
+  einvoice_irn: { type: DataTypes.STRING(200) },
+  eway_bill_no: { type: DataTypes.STRING(100) },
+  created_by: { type: DataTypes.UUID },
+  pos_session: { type: DataTypes.STRING(100) },
+}, {
+  tableName: 'sales',
+  indexes: [
+    { fields: ['firm_id', 'invoice_no'], unique: true },
+    { fields: ['firm_id', 'invoice_date'] },
+    { fields: ['customer_id'] },
+  ],
+});
+
+module.exports = Sale;
