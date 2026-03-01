@@ -14,7 +14,6 @@
  */
 
 require('dotenv').config();
-const bcrypt = require('bcryptjs');
 
 // Adjust path if your models index is elsewhere
 const db = require('../../models');
@@ -203,13 +202,12 @@ async function seedFirmAndAdmin() {
   console.log('  Creating admin user...');
   let adminUser = await User.findOne({ where: { email: 'admin@demo.com' } });
   if (!adminUser) {
-    const passwordHash = await bcrypt.hash('Admin@123', 12);
     adminUser = await User.create({
       firm_id: firm.id,
       name: 'Demo Admin',
       email: 'admin@demo.com',
       phone: '9876543210',
-      password: passwordHash,
+      password: 'Admin@123',
       role_name: 'admin',
       is_active: true,
     });
