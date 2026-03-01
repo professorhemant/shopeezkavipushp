@@ -79,7 +79,7 @@ export default function CreateInvoice() {
   const [coupon,          setCoupon]          = useState('')
 
   // payment
-  const [payMode,         setPayMode]         = useState('cash')
+  const [payMode,         setPayMode]         = useState('')
   const [payType,         setPayType]         = useState('full')   // 'full' | 'partial'
   const [partialAmount,   setPartialAmount]   = useState('')
   const [showPayPopup,    setShowPayPopup]    = useState(false)
@@ -246,6 +246,7 @@ export default function CreateInvoice() {
   const handlePlaceOrder = async () => {
     const validRows = rows.filter((r) => r.product_id)
     if (!validRows.length) { toast.error('Add at least one product'); return }
+    if (!payMode) { toast.error('Select a payment mode first'); return }
     setSaving(true)
     try {
       const payload = {
@@ -787,7 +788,7 @@ export default function CreateInvoice() {
           <div className="fixed bottom-16 left-0 lg:left-64 z-50 w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl overflow-hidden">
             <div className="bg-gray-700 px-4 py-2.5 flex items-center justify-between">
               <span className="text-white text-sm font-bold capitalize">
-                {payMode} Payment
+                {payMode || 'Select'} Payment
               </span>
               <button onClick={() => setShowPayPopup(false)} className="text-gray-400 hover:text-white">
                 <X className="h-4 w-4" />
@@ -920,9 +921,13 @@ export default function CreateInvoice() {
 
         {/* Active mode indicator pill */}
         <div className="ml-3 flex items-center gap-1.5">
-          <span className={`text-xs px-2 py-0.5 rounded font-semibold ${payType === 'partial' ? 'bg-yellow-500 text-white' : 'bg-green-600 text-white'}`}>
-            {payType === 'partial' ? `Partial ₹${(parseFloat(partialAmount)||0).toFixed(0)}` : 'Full'}
-          </span>
+          {payMode ? (
+            <span className={`text-xs px-2 py-0.5 rounded font-semibold ${payType === 'partial' ? 'bg-yellow-500 text-white' : 'bg-green-600 text-white'}`}>
+              {payType === 'partial' ? `Partial ₹${(parseFloat(partialAmount)||0).toFixed(0)}` : 'Full'}
+            </span>
+          ) : (
+            <span className="text-xs px-2 py-0.5 rounded font-semibold bg-red-500 text-white">Select Mode</span>
+          )}
         </div>
 
         {/* Total amount */}
