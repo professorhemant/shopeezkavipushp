@@ -46,11 +46,16 @@ export default function Customers() {
     if (!form.name.trim()) return toast.error('Name is required')
     setSaving(true)
     try {
+      const payload = {
+        ...form,
+        credit_limit: form.credit_limit === '' ? 0 : form.credit_limit,
+        opening_balance: form.opening_balance === '' ? 0 : form.opening_balance,
+      }
       if (editing) {
-        await customerAPI.update(editing, form)
+        await customerAPI.update(editing, payload)
         toast.success('Customer updated')
       } else {
-        await customerAPI.create(form)
+        await customerAPI.create(payload)
         toast.success('Customer added')
       }
       setShowModal(false)
