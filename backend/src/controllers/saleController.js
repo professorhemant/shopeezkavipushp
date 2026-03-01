@@ -175,8 +175,9 @@ const create = async (req, res, next) => {
     let customerPhone = null;
     let customerGstin = null;
     let previousBalance = 0;
+    let customer = null;
     if (customer_id) {
-      const customer = await Customer.findByPk(customer_id, { transaction: t });
+      customer = await Customer.findByPk(customer_id, { transaction: t });
       if (customer) {
         customerName = customer.name;
         customerPhone = customer.phone;
