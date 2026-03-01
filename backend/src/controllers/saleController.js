@@ -165,7 +165,10 @@ const create = async (req, res, next) => {
     const taxTotal = totalCGST + totalSGST + totalIGST;
     const grandTotal = subtotal + taxTotal - discountAmt;
     const paidAmount = payment ? parseFloat(payment.amount || 0) : 0;
-    const balance = Math.max(0, grandTotal - paidAmount);
+    // directPayment = what goes to this invoice; excessPayment = clears old dues
+    const directPayment = Math.min(paidAmount, grandTotal);
+    const excessPayment = Math.max(0, paidAmount - grandTotal);
+    const balance = Math.max(0, grandTotal - directPayment);
 
     // Fetch customer snapshot
     let customerName = null;
@@ -206,12 +209,12 @@ const create = async (req, res, next) => {
       sgst: totalSGST,
       igst: totalIGST,
       total: grandTotal,
-      paid_amount: paidAmount,
+      paid_amount: directPayment,
       balance,
       previous_balance: previousBalance,
       is_interstate: is_interstate || false,
       payment_mode: payment?.mode || 'cash',
-      payment_status: paidAmount >= grandTotal ? 'paid' : paidAmount > 0 ? 'partial' : 'unpaid',
+      payment_status: directPayment >= grandTotal ? 'paid' : directPayment > 0 ? 'partial' : 'unpaid',
       status: 'confirmed',
       notes: notes || null,
       created_by: req.userId,
@@ -238,6 +241,42 @@ const create = async (req, res, next) => {
         notes: payment?.notes || null,
         created_by: req.userId,
       }, { transaction: t });
+    }
+
+    // Apply excess payment to previous balances (opening_balance + old unpaid invoices)
+    if (excessPayment > 0 && customer_id && customer) {
+      let remaining = excessPayment;
+
+      // 1. Clear oldest unpaid/partial previous invoices first
+      const oldSales = await Sale.findAll({
+        where: {
+          customer_id,
+          firm_id: firmId,
+          balance: { [Op.gt]: 0 },
+          status: { [Op.notIn]: ['cancelled', 'returned'] },
+        },
+        order: [['invoice_date', 'ASC']],
+        transaction: t,
+      });
+      for (const oldSale of oldSales) {
+        if (remaining <= 0) break;
+        const oldBal = parseFloat(oldSale.balance);
+        const apply = Math.min(remaining, oldBal);
+        const newBal = parseFloat((oldBal - apply).toFixed(2));
+        await oldSale.update({
+          balance: newBal,
+          paid_amount: parseFloat((parseFloat(oldSale.paid_amount) + apply).toFixed(2)),
+          payment_status: newBal <= 0 ? 'paid' : 'partial',
+        }, { transaction: t });
+        remaining -= apply;
+      }
+
+      // 2. Reduce opening_balance with any remaining excess
+      if (remaining > 0) {
+        const openingBal = parseFloat(customer.opening_balance || 0);
+        const newOpeningBal = Math.max(0, parseFloat((openingBal - remaining).toFixed(2)));
+        await customer.update({ opening_balance: newOpeningBal }, { transaction: t });
+      }
     }
 
     await t.commit();
