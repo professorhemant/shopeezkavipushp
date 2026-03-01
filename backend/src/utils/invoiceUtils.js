@@ -313,7 +313,7 @@ const generatePDF = (sale, firm, items) => {
       const netBalAmt = prevBal > 0 ? (grandTot + prevBal - paidAmt) : balAmt;
       if (balAmt > 0 || prevBal > 0) {
         drawSumRow('Paid', paidAmt.toFixed(0), false, false, '#16a34a');
-        drawSumRow('Net Balance', netBalAmt.toFixed(0), true, false, '#dc2626');
+        drawSumRow('Unpaid Balance', netBalAmt.toFixed(0), true, false, '#dc2626');
       }
 
       // Amount in words (italic, small, teal)
