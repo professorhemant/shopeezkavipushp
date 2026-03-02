@@ -34,7 +34,7 @@ function calcRow(r) {
 const PAYMENT_MODES = [
   { key: 'cash',   label: 'CASH',   shortcut: 'F11', Icon: Banknote },
   { key: 'card',   label: 'CARD',   shortcut: 'F4',  Icon: CreditCard },
-  { key: 'online', label: 'ONLINE', shortcut: 'F8',  Icon: Smartphone },
+  { key: 'upi',    label: 'ONLINE', shortcut: 'F8',  Icon: Smartphone },
   { key: 'cheque', label: 'CHEQUE', shortcut: '',     Icon: FileText },
 ]
 
@@ -281,7 +281,7 @@ export default function CreateInvoice() {
             ? (cardLast4 ? `XXXX-${cardLast4}` : null)
             : (payRef || null),
           bank_name: payMode === 'card' ? (cardBank || null)
-            : payMode === 'online' ? (onlineBank || null)
+            : payMode === 'upi' ? (onlineBank || null)
             : payMode === 'cheque' ? (chequeBank || null)
             : null,
           cheque_date: payMode === 'cheque' ? (chequeDate || null) : null,
@@ -853,7 +853,7 @@ export default function CreateInvoice() {
                     className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
                 </div>
               )}
-              {payMode === 'online' && (
+              {payMode === 'upi' && (
                 <div className="space-y-2">
                   <input type="text" value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="UPI / Transaction Ref"
                     className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />

@@ -12,7 +12,7 @@ const PAYMENT_MODES = [
   { id: 'cash', label: 'Cash', icon: Banknote },
   { id: 'upi', label: 'UPI', icon: Smartphone },
   { id: 'card', label: 'Card', icon: CreditCard },
-  { id: 'bank', label: 'Bank', icon: Building2 },
+  { id: 'netbanking', label: 'Bank', icon: Building2 },
 ]
 
 const CASH_DENOMS = [100, 200, 500, 1000, 2000]
