@@ -61,11 +61,11 @@ const register = async (req, res, next) => {
       email,
       phone: phone || null,
       password: passwordHash,
-      role: 'admin',
+      role_name: 'admin',
       is_active: true,
     });
 
-    const token = signToken({ id: user.id, firm_id: firm.id, role: user.role });
+    const token = signToken({ id: user.id, firm_id: firm.id, role: user.role_name });
 
     return res.status(201).json({
       success: true,
@@ -116,7 +116,7 @@ const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }
 
-    const token = signToken({ id: user.id, firm_id: user.firm_id, role: user.role });
+    const token = signToken({ id: user.id, firm_id: user.firm_id, role: user.role_name });
 
     return res.status(200).json({
       success: true,
