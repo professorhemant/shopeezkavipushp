@@ -7,7 +7,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saleAPI, customerAPI, productAPI } from '../../api'
+import { saleAPI, customerAPI, productAPI, whatsappAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 // ── helpers ───────────────────────────────────────────────────────
@@ -292,8 +292,25 @@ export default function CreateInvoice() {
         await saleAPI.update(id, payload)
         toast.success('Invoice updated')
       } else {
-        await saleAPI.create(payload)
+        const { data: saleRes } = await saleAPI.create(payload)
         toast.success('Order placed!')
+        // Auto-send WhatsApp invoice to customer
+        const saleId    = saleRes?.data?.id || saleRes?.id
+        const custPhone = selectedCust?.phone || selectedCust?.mobile
+        if (saleId && custPhone) {
+          try {
+            const { data: waRes } = await whatsappAPI.sendInvoice(saleId)
+            if (waRes?.message_text && waRes?.phone) {
+              const digits    = waRes.phone.replace(/\D/g, '')
+              const intlPhone = digits.startsWith('91') ? digits : `91${digits.replace(/^0/, '')}`
+              const waUrl     = `https://wa.me/${intlPhone}?text=${encodeURIComponent(waRes.message_text)}`
+              const opened    = window.open(waUrl, '_blank')
+              if (!opened) toast('📱 WhatsApp blocked — click the button below to send', { duration: 6000 })
+            }
+          } catch {
+            // non-critical — don't block navigation
+          }
+        }
       }
       navigate('/billing/invoices')
     } catch (err) {

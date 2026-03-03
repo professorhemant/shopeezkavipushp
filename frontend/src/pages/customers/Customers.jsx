@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Edit2, Trash2, Users, Phone, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Users, Phone, ChevronLeft, ChevronRight, MessageCircle, X, Send, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { customerAPI } from '../../api'
+import { customerAPI, whatsappAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
@@ -21,6 +21,10 @@ export default function Customers() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
+  const [waCustomer,  setWaCustomer]  = useState(null)   // customer whose history is shown
+  const [waMessages,  setWaMessages]  = useState([])
+  const [waLoading,   setWaLoading]   = useState(false)
+  const [expandedMsg, setExpandedMsg] = useState(null)
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true)
@@ -78,6 +82,30 @@ export default function Customers() {
     }
   }
 
+  const openWaModal = async (customer) => {
+    setWaCustomer(customer)
+    setWaMessages([])
+    setExpandedMsg(null)
+    setWaLoading(true)
+    try {
+      const { data } = await whatsappAPI.getCustomerMessages(customer.id)
+      setWaMessages(data.data || [])
+    } catch {
+      setWaMessages([])
+    } finally {
+      setWaLoading(false)
+    }
+  }
+
+  const openWaLink = (phone, text = '') => {
+    const digits    = (phone || '').replace(/\D/g, '')
+    const intlPhone = digits.startsWith('91') ? digits : `91${digits.replace(/^0/, '')}`
+    const url       = text
+      ? `https://wa.me/${intlPhone}?text=${encodeURIComponent(text)}`
+      : `https://wa.me/${intlPhone}`
+    window.open(url, '_blank')
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -128,7 +156,21 @@ export default function Customers() {
                       <button onClick={() => navigate(`/customers/${c.id}`)} className="font-medium text-amber-600 hover:underline text-left">{c.name}</button>
                       {c.email && <p className="text-xs text-gray-400">{c.email}</p>}
                     </td>
-                    <td className="px-4 py-3 text-gray-600 flex items-center gap-1"><Phone className="h-3.5 w-3.5 text-gray-400" />{c.phone || '-'}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                        <span>{c.phone || '-'}</span>
+                        {c.phone && (
+                          <button
+                            onClick={() => openWaModal(c)}
+                            title="WhatsApp history"
+                            className="ml-0.5 text-green-500 hover:text-green-600 transition-colors"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-gray-600 font-mono text-xs">{c.gstin || '-'}</td>
                     <td className="px-4 py-3 text-gray-600">{c.city || '-'}</td>
                     <td className="px-4 py-3 text-right font-medium text-red-600">{formatCurrency(c.outstanding_balance || 0)}</td>
@@ -214,6 +256,88 @@ export default function Customers() {
                 <button type="submit" disabled={saving} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp History Modal */}
+      {waCustomer && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-green-500" />
+                <div>
+                  <h2 className="text-base font-semibold text-slate-800">{waCustomer.name}</h2>
+                  <p className="text-xs text-slate-500">{waCustomer.phone}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openWaLink(waCustomer.phone)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg font-medium"
+                >
+                  <Send className="h-3.5 w-3.5" /> Open WhatsApp
+                </button>
+                <button onClick={() => setWaCustomer(null)} className="text-gray-400 hover:text-gray-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Message list */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {waLoading ? (
+                <div className="flex justify-center py-10 text-slate-400 text-sm">Loading messages...</div>
+              ) : waMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <MessageCircle className="h-10 w-10 text-gray-200 mb-3" />
+                  <p className="text-sm text-slate-500">No messages sent yet</p>
+                  <p className="text-xs text-slate-400 mt-1">Messages appear here after an invoice is placed for this customer</p>
+                </div>
+              ) : (
+                waMessages.map((msg) => (
+                  <div key={msg.id} className="border border-slate-100 rounded-xl p-3 bg-slate-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${msg.status === 'sent' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {msg.status === 'sent' ? '✓ Sent' : '✗ Failed'}
+                        </span>
+                        {msg.sale_id && <span className="text-xs text-amber-600 font-mono">Invoice</span>}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-slate-400 shrink-0">
+                        <Clock className="h-3 w-3" />
+                        {msg.sent_at ? new Date(msg.sent_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </div>
+                    </div>
+
+                    <div className="mt-2">
+                      <p className="text-xs text-slate-600 whitespace-pre-wrap line-clamp-3">
+                        {expandedMsg === msg.id ? msg.message : (msg.message || '').slice(0, 120) + ((msg.message || '').length > 120 ? '…' : '')}
+                      </p>
+                      {(msg.message || '').length > 120 && (
+                        <button
+                          onClick={() => setExpandedMsg(expandedMsg === msg.id ? null : msg.id)}
+                          className="text-xs text-amber-600 hover:underline mt-1"
+                        >
+                          {expandedMsg === msg.id ? 'Show less' : 'Show full message'}
+                        </button>
+                      )}
+                    </div>
+
+                    {msg.message && (
+                      <button
+                        onClick={() => openWaLink(waCustomer.phone, msg.message)}
+                        className="mt-2 flex items-center gap-1 text-xs text-green-600 hover:underline"
+                      >
+                        <Send className="h-3 w-3" /> Resend this message
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}

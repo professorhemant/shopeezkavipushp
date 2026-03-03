@@ -23,6 +23,7 @@ const ExpenseCategory = require('./ExpenseCategory');
 const FixedAsset = require('./FixedAsset');
 const Appointment = require('./Appointment');
 const WhatsAppCampaign = require('./WhatsAppCampaign');
+const WhatsappMessage  = require('./WhatsappMessage');
 const EWayBill = require('./EWayBill');
 const EInvoice = require('./EInvoice');
 const StockAlert = require('./StockAlert');
@@ -111,6 +112,7 @@ module.exports = {
   FixedAsset,
   Appointment,
   WhatsAppCampaign,
+  WhatsappMessage,
   EWayBill,
   EInvoice,
   StockAlert,
