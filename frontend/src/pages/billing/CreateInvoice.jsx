@@ -7,7 +7,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saleAPI, customerAPI, productAPI, whatsappAPI } from '../../api'
+import { saleAPI, customerAPI, productAPI, whatsappAPI, settingsAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 // ── helpers ───────────────────────────────────────────────────────
@@ -95,12 +95,21 @@ export default function CreateInvoice() {
   const [chequeDate,      setChequeDate]      = useState('')
   const [saving,          setSaving]          = useState(false)
   const [loading,         setLoading]         = useState(isEdit)
+  const [showUpiOptions,  setShowUpiOptions]  = useState(false)  // UPI selector panel
+  const [showQrModal,     setShowQrModal]     = useState(false)  // QR code modal
+  const [upiIds,          setUpiIds]          = useState({ upi1: 'kavipushpjewels@oksbi', upi2: 'Kavipushpbank@okhdfcbank' })
 
   // ── load master data ─────────────────────────────────────────
   useEffect(() => {
     productAPI.getAll({ limit: 1000 })
       .then(({ data }) => setAllProducts(data.data || data.products || data.results || []))
       .catch(() => {})
+    settingsAPI.getSettings()
+      .then(({ data }) => {
+        const s = data.data || data.settings || data
+        if (s.payment_upi_id || s.payment_upi_id_2)
+          setUpiIds({ upi1: s.payment_upi_id || '', upi2: s.payment_upi_id_2 || '' })
+      }).catch(() => {})
     if (!isEdit) {
       saleAPI.getNextInvoiceNo()
         .then(({ data }) => setInvoiceNo(data.invoice_no || data.next_number || 'KPJ-/0001'))
@@ -797,6 +806,99 @@ export default function CreateInvoice() {
         </div>
       </div>
 
+      {/* ── UPI Options panel (shown when ONLINE is clicked) ──── */}
+      {showUpiOptions && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowUpiOptions(false)} />
+          <div className="fixed bottom-16 left-0 lg:left-64 z-50 w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl overflow-hidden">
+            <div className="bg-gray-700 px-4 py-2.5 flex items-center justify-between">
+              <span className="text-white text-sm font-bold">Select UPI Option</span>
+              <button onClick={() => setShowUpiOptions(false)} className="text-gray-400 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-3 space-y-2">
+              {/* UPI ID 1 */}
+              {upiIds.upi1 && (
+                <button
+                  onClick={() => { setOnlineBank('GPay/PhonePe'); setPayRef(upiIds.upi1); setShowUpiOptions(false); setShowPayPopup(true) }}
+                  className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
+                >
+                  <div className="w-9 h-9 bg-green-500/20 rounded-full flex items-center justify-center shrink-0">
+                    <Smartphone className="h-4 w-4 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">UPI ID 1</p>
+                    <p className="text-sm text-white font-mono font-medium">{upiIds.upi1}</p>
+                  </div>
+                </button>
+              )}
+              {/* UPI ID 2 */}
+              {upiIds.upi2 && (
+                <button
+                  onClick={() => { setOnlineBank('GPay/PhonePe'); setPayRef(upiIds.upi2); setShowUpiOptions(false); setShowPayPopup(true) }}
+                  className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
+                >
+                  <div className="w-9 h-9 bg-blue-500/20 rounded-full flex items-center justify-center shrink-0">
+                    <Smartphone className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">UPI ID 2</p>
+                    <p className="text-sm text-white font-mono font-medium">{upiIds.upi2}</p>
+                  </div>
+                </button>
+              )}
+              {/* QR Code */}
+              <button
+                onClick={() => { setShowUpiOptions(false); setShowQrModal(true) }}
+                className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
+              >
+                <div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center shrink-0">
+                  <span className="text-amber-400 text-lg leading-none">⊞</span>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Business QR Code</p>
+                  <p className="text-sm text-white font-medium">Show QR for customer to scan</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── QR Code Modal ─────────────────────────────────────── */}
+      {showQrModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-slate-800">Scan to Pay</h3>
+              <button onClick={() => { setShowQrModal(false); setShowPayPopup(true) }} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4 mb-4 flex flex-col items-center gap-3">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`upi://pay?pa=${upiIds.upi1}&pn=Kavipushp+Jewels&am=${netPayable.toFixed(2)}&cu=INR`)}`}
+                alt="UPI QR Code"
+                className="w-52 h-52 rounded-lg"
+              />
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Kavipushp Jewels</p>
+                <p className="text-sm font-mono text-slate-700 mt-0.5">{upiIds.upi1}</p>
+                <p className="text-lg font-bold text-green-600 mt-1">₹{netPayable.toFixed(2)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 mb-4">GPay · PhonePe · Paytm · Any UPI App</p>
+            <button
+              onClick={() => { setShowQrModal(false); setOnlineBank('QR Scan'); setShowPayPopup(true) }}
+              className="w-full bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl text-sm font-semibold"
+            >
+              Customer Paid ✓
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Payment popup — shared for all modes ─────────────── */}
       {showPayPopup && (
         <>
@@ -911,12 +1013,18 @@ export default function CreateInvoice() {
               <button
                 key={pm.key}
                 onClick={() => {
-                  if (payMode === pm.key) {
+                  if (pm.key === 'upi') {
+                    // ONLINE → show UPI options first
+                    setPayMode('upi')
+                    setPayType('full'); setPartialAmount('')
+                    setPayRef(''); setCardLast4(''); setCardBank(''); setOnlineBank(''); setChequeBank(''); setChequeDate('')
+                    setShowPayPopup(false)
+                    setShowUpiOptions(true)
+                  } else if (payMode === pm.key) {
                     setShowPayPopup((prev) => !prev)
                   } else {
                     setPayMode(pm.key)
-                    setPayType('full')
-                    setPartialAmount('')
+                    setPayType('full'); setPartialAmount('')
                     setPayRef(''); setCardLast4(''); setCardBank(''); setOnlineBank(''); setChequeBank(''); setChequeDate('')
                     setShowPayPopup(true)
                   }
