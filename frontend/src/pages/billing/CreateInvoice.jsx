@@ -153,13 +153,13 @@ export default function CreateInvoice() {
 
   // ── row product search ───────────────────────────────────────
   useEffect(() => {
-    if (!rowSearch.trim()) { setRowResults(allProducts.slice(0, 8)); return }
+    if (!rowSearch.trim()) { setRowResults(allProducts); return }
     const q = rowSearch.toLowerCase()
     setRowResults(allProducts.filter((p) =>
       p.name?.toLowerCase().includes(q) ||
       p.barcode?.toLowerCase().includes(q) ||
       p.sku?.toLowerCase().includes(q)
-    ).slice(0, 10))
+    ))
   }, [rowSearch, allProducts])
 
   // ── barcode scan ─────────────────────────────────────────────
@@ -543,7 +543,7 @@ export default function CreateInvoice() {
                           className="w-full border-2 border-amber-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
                         />
                         {activeRowSearch === idx && rowResults.length > 0 && (
-                          <div className="absolute top-full left-0 bg-white border border-slate-200 rounded shadow-lg z-40 max-h-36 overflow-y-auto min-w-[200px]">
+                          <div className="absolute top-full left-0 bg-white border border-slate-200 rounded shadow-lg z-40 max-h-72 overflow-y-auto min-w-[260px]">
                             {rowResults.map((p) => (
                               <button key={p.id}
                                 onMouseDown={() => {
