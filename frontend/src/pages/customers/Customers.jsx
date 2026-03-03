@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Edit2, Trash2, Users, Phone, ChevronLeft, ChevronRight, MessageCircle, X, Send, Clock } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Users, Phone, ChevronLeft, ChevronRight, MessageCircle, X, Send, Clock, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { customerAPI, whatsappAPI } from '../../api'
+import { customerAPI, whatsappAPI, saleAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
@@ -24,6 +24,7 @@ export default function Customers() {
   const [waCustomer,  setWaCustomer]  = useState(null)   // customer whose history is shown
   const [waMessages,  setWaMessages]  = useState([])
   const [waLoading,   setWaLoading]   = useState(false)
+  const [waSending,   setWaSending]   = useState(false)  // loading state for Send Latest Invoice
   const [expandedMsg, setExpandedMsg] = useState(null)
 
   const fetchCustomers = useCallback(async () => {
@@ -95,6 +96,31 @@ export default function Customers() {
     } finally {
       setWaLoading(false)
     }
+  }
+
+  const sendLatestInvoice = async () => {
+    if (!waCustomer) return
+    setWaSending(true)
+    try {
+      const { data: salesRes } = await saleAPI.getAll({ customer_id: waCustomer.id, limit: 1, sort: 'created_at', order: 'desc' })
+      const sales = salesRes?.data || salesRes?.sales || []
+      if (!sales.length) { toast.error('No invoice found for this customer'); return }
+      const { data: waRes } = await whatsappAPI.sendInvoice(sales[0].id)
+      if (waRes?.message_text && waRes?.phone) {
+        const digits    = String(waRes.phone).replace(/\D/g, '')
+        const intlPhone = digits.startsWith('91') ? digits : `91${digits.replace(/^0/, '')}`
+        // Refresh messages list
+        const { data } = await whatsappAPI.getCustomerMessages(waCustomer.id)
+        setWaMessages(data.data || [])
+        // Return the wa.me URL — caller opens it via the anchor ref
+        return `https://wa.me/${intlPhone}?text=${encodeURIComponent(waRes.message_text)}`
+      }
+    } catch {
+      toast.error('Could not prepare invoice message')
+    } finally {
+      setWaSending(false)
+    }
+    return null
   }
 
   const openWaLink = (phone, text = '') => {
@@ -274,11 +300,13 @@ export default function Customers() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => openWaLink(waCustomer.phone)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg font-medium"
-                >
-                  <Send className="h-3.5 w-3.5" /> Open WhatsApp
+                {/* Send Latest Invoice — uses data-href trick so click is synchronous (never popup-blocked) */}
+                <SendInvoiceBtn
+                  disabled={waSending}
+                  onPrepare={sendLatestInvoice}
+                />
+                <button onClick={() => openWaLink(waCustomer.phone)} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-lg font-medium">
+                  <MessageCircle className="h-3.5 w-3.5" /> Open Chat
                 </button>
                 <button onClick={() => setWaCustomer(null)} className="text-gray-400 hover:text-gray-600">
                   <X className="h-5 w-5" />
@@ -356,5 +384,37 @@ export default function Customers() {
         </div>
       )}
     </div>
+  )
+}
+
+// Button that fetches the invoice URL then opens WhatsApp — works because
+// we store the URL and open it via a hidden anchor clicked in the same handler
+function SendInvoiceBtn({ onPrepare, disabled }) {
+  const [loading, setLoading] = useState(false)
+  const anchorRef = useRef(null)
+
+  const handleClick = async () => {
+    if (loading || disabled) return
+    setLoading(true)
+    const url = await onPrepare()
+    setLoading(false)
+    if (url && anchorRef.current) {
+      anchorRef.current.href = url
+      anchorRef.current.click()
+    }
+  }
+
+  return (
+    <>
+      <a ref={anchorRef} href="#" target="_blank" rel="noreferrer" className="hidden" aria-hidden="true">wa</a>
+      <button
+        onClick={handleClick}
+        disabled={loading || disabled}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white text-xs rounded-lg font-medium"
+      >
+        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+        {loading ? 'Preparing…' : 'Send Invoice'}
+      </button>
+    </>
   )
 }
