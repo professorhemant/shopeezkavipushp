@@ -294,7 +294,7 @@ export default function CreateInvoice() {
       } else {
         const { data: saleRes } = await saleAPI.create(payload)
         toast.success('Order placed!')
-        // Open WhatsApp with pre-filled invoice message (also saves to history)
+        // Build WhatsApp link and show as tappable toast (anchor tags are never popup-blocked)
         const saleId    = saleRes?.data?.id || saleRes?.id
         const custPhone = selectedCust?.phone || selectedCust?.mobile
         if (saleId && custPhone) {
@@ -303,11 +303,26 @@ export default function CreateInvoice() {
             const msgText = waRes?.message_text
             const phone   = waRes?.phone || custPhone
             if (msgText && phone) {
-              // Format phone for wa.me: digits only, add 91 if 10-digit Indian number
-              const digits = String(phone).replace(/\D/g, '')
+              const digits    = String(phone).replace(/\D/g, '')
               const intlPhone = digits.length === 10 ? `91${digits}` : digits
-              window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msgText)}`, '_blank')
-              toast('📱 WhatsApp opened — tap Send to deliver invoice', { icon: '✅', duration: 5000 })
+              const waUrl     = `https://wa.me/${intlPhone}?text=${encodeURIComponent(msgText)}`
+              toast(
+                (t) => (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm">📱 Invoice ready for WhatsApp</span>
+                    <a
+                      href={waUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => toast.dismiss(t.id)}
+                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap"
+                    >
+                      Send Now →
+                    </a>
+                  </div>
+                ),
+                { duration: 20000, id: 'wa-send' }
+              )
             }
           } catch {
             // non-critical — don't block navigation
