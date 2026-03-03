@@ -224,9 +224,10 @@ export default function CreatePurchase() {
                     <div className="relative">
                       <input
                         value={activeItemSearch === idx ? productSearch : item.product_name}
-                        onChange={(e) => { setProductSearch(e.target.value); setActiveItemSearch(idx) }}
-                        onFocus={() => setActiveItemSearch(idx)}
-                        placeholder="Search..."
+                        onChange={(e) => { setProductSearch(e.target.value); setActiveItemSearch(idx); updateItem(idx, 'product_name', e.target.value) }}
+                        onFocus={() => { setActiveItemSearch(idx); setProductSearch(item.product_name) }}
+                        onBlur={() => setTimeout(() => setActiveItemSearch(null), 200)}
+                        placeholder="Search or type name..."
                         className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" />
                       {activeItemSearch === idx && productSearch && filteredProducts.length > 0 && (
                         <div className="absolute top-full left-0 bg-white border border-slate-200 rounded-lg shadow-lg z-30 max-h-40 overflow-y-auto min-w-[180px]">
