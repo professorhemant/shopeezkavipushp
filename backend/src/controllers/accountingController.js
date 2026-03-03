@@ -99,36 +99,49 @@ const getLedger = async (req, res, next) => {
  */
 const getReceivables = async (req, res, next) => {
   try {
-    const result = await Sale.findAll({
+    // Fetch raw sales with balance, then group in JS to avoid MySQL GROUP BY + JOIN ambiguity
+    const sales = await Sale.findAll({
       where: {
         firm_id: req.firmId,
         status: { [Op.notIn]: ['cancelled', 'draft'] },
-        balance:  { [Op.gt]: 0 },
+        balance: { [Op.gt]: 0 },
       },
-      attributes: [
-        'customer_id', 'customer_name',
-        [fn('SUM', col('Sale.balance')),  'total_balance'],
-        [fn('COUNT', col('Sale.id')),     'invoice_count'],
-      ],
-      include: [{
-        model: Customer,
-        as: 'customer',
-        attributes: ['id', 'name', 'phone', 'email'],
-        required: false,
-      }],
-      group: [
-        literal('`Sale`.`customer_id`'),
-        literal('`Sale`.`customer_name`'),
-        literal('`customer`.`id`'),
-        literal('`customer`.`name`'),
-        literal('`customer`.`phone`'),
-        literal('`customer`.`email`'),
-      ],
-      order: [[fn('SUM', col('Sale.balance')), 'DESC']],
-      subQuery: false,
+      attributes: ['id', 'customer_id', 'customer_name', 'balance'],
+      raw: true,
     });
 
-    const total = result.reduce((s, r) => s + parseFloat(r.dataValues.total_balance || 0), 0);
+    // Group by customer_id (or customer_name for walk-in)
+    const map = {};
+    for (const s of sales) {
+      const key = s.customer_id || `name:${s.customer_name}`;
+      if (!map[key]) {
+        map[key] = {
+          customer_id: s.customer_id,
+          customer_name: s.customer_name || 'Walk-in',
+          total_balance: 0,
+          invoice_count: 0,
+        };
+      }
+      map[key].total_balance += parseFloat(s.balance || 0);
+      map[key].invoice_count += 1;
+    }
+
+    // Fetch customer details for known customer_ids
+    const customerIds = [...new Set(sales.map((s) => s.customer_id).filter(Boolean))];
+    const customers = customerIds.length
+      ? await Customer.findAll({ where: { id: customerIds }, attributes: ['id', 'name', 'phone', 'email'], raw: true })
+      : [];
+    const custMap = Object.fromEntries(customers.map((c) => [c.id, c]));
+
+    const result = Object.values(map)
+      .map((r) => ({
+        ...r,
+        total_balance: parseFloat(r.total_balance.toFixed(2)),
+        customer: r.customer_id ? (custMap[r.customer_id] || null) : null,
+      }))
+      .sort((a, b) => b.total_balance - a.total_balance);
+
+    const total = result.reduce((s, r) => s + r.total_balance, 0);
     return res.status(200).json({ success: true, data: result, total_receivables: parseFloat(total.toFixed(2)) });
   } catch (err) {
     next(err);
