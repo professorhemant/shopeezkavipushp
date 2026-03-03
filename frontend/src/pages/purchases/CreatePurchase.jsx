@@ -121,15 +121,23 @@ export default function CreatePurchase() {
     setSaving(true)
     try {
       const payload = {
-        supplier: selectedSupplier?.id, bill_no: billNo,
-        bill_date: billDate, due_date: dueDate,
-        items: validItems.map(({ _id, ...rest }) => rest),
-        subtotal: totals.subtotal, discount: totals.discount,
-        taxable_amount: totals.taxable,
-        cgst: totals.cgst, sgst: totals.sgst,
+        supplier_id: selectedSupplier?.id || null,
+        bill_no: billNo, bill_date: billDate, due_date: dueDate || null,
+        items: validItems.map((it) => ({
+          product_id:   it.product   || null,
+          product_name: it.product_name || '',
+          hsn_code:     it.hsn_code  || null,
+          quantity:     it.qty,
+          rate:         it.price,
+          discount_amount: (it.qty * it.price * (it.discount_pct || 0)) / 100,
+          tax_rate:     it.tax_rate,
+          batch_no:     it.batch_no  || null,
+          expiry_date:  it.expiry_date || null,
+        })),
+        discount_amount: totals.discount,
         shipping_charges: shipping,
-        total_amount: grandTotal, paid_amount: paidAmount,
-        balance_amount: balance, payment_mode: paymentMode, notes,
+        notes,
+        payment: parseFloat(paidAmount) > 0 ? { amount: paidAmount, mode: paymentMode } : null,
       }
       if (isEdit) { await purchaseAPI.update(id, payload); toast.success('Purchase updated') }
       else { await purchaseAPI.create(payload); toast.success('Purchase created') }

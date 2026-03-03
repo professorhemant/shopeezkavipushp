@@ -89,14 +89,26 @@ const create = async (req, res, next) => {
     const processedItems = [];
 
     for (const item of items) {
-      const product = await Product.findOne({ where: { id: item.product_id, firm_id: firmId }, transaction: t });
-      if (!product) throw new Error(`Product ${item.product_id} not found.`);
-
-      const qty = parseFloat(item.quantity);
-      const rate = parseFloat(item.rate || item.unit_price || product.purchase_price || 0);
+      const qty = parseFloat(item.quantity || item.qty || 1);
+      const rate = parseFloat(item.rate || item.unit_price || 0);
       const itemDiscount = parseFloat(item.discount_amount || 0);
-      const taxRate = parseFloat(item.tax_rate || product.tax_rate || 0);
-      const isInclusive = product.tax_type === 'inclusive';
+
+      // Look up product only if product_id provided
+      let product = null;
+      let taxRate = parseFloat(item.tax_rate || 0);
+      let isInclusive = false;
+
+      if (item.product_id) {
+        product = await Product.findOne({ where: { id: item.product_id, firm_id: firmId }, transaction: t });
+        if (!product) throw new Error(`Product ${item.product_id} not found.`);
+        taxRate = parseFloat(item.tax_rate ?? product.tax_rate ?? 0);
+        isInclusive = product.tax_type === 'inclusive';
+        // Update stock and purchase price
+        if (product.track_inventory) {
+          await product.update({ stock: parseFloat(product.stock || 0) + qty }, { transaction: t });
+        }
+        await product.update({ purchase_price: rate }, { transaction: t });
+      }
 
       const baseAmount = qty * rate - itemDiscount;
       const gst = calculateGST(baseAmount, taxRate, isInclusive, is_interstate || false);
@@ -107,33 +119,24 @@ const create = async (req, res, next) => {
       totalIGST += gst.igst;
 
       processedItems.push({
-        product_id: product.id,
-        product_name: product.name,
-        hsn_code: product.hsn_code || null,
-        quantity: qty,
-        unit_price: rate,
-        discount_amount: itemDiscount,
-        taxable_amount: gst.taxableAmount,
-        tax_rate: taxRate,
-        cgst_rate: is_interstate ? 0 : taxRate / 2,
-        sgst_rate: is_interstate ? 0 : taxRate / 2,
-        igst_rate: is_interstate ? taxRate : 0,
-        cgst: gst.cgst,
-        sgst: gst.sgst,
-        igst: gst.igst,
-        total: gst.total,
-        batch_no: item.batch_no || null,
-        expiry_date: item.expiry_date || null,
+        product_id:       product ? product.id : null,
+        product_name:     product ? product.name : (item.product_name || 'Item'),
+        hsn_code:         product ? (product.hsn_code || null) : (item.hsn_code || null),
+        quantity:         qty,
+        unit_price:       rate,
+        discount_amount:  itemDiscount,
+        taxable_amount:   gst.taxableAmount,
+        tax_rate:         taxRate,
+        cgst_rate:        is_interstate ? 0 : taxRate / 2,
+        sgst_rate:        is_interstate ? 0 : taxRate / 2,
+        igst_rate:        is_interstate ? taxRate : 0,
+        cgst:             gst.cgst,
+        sgst:             gst.sgst,
+        igst:             gst.igst,
+        total:            gst.total,
+        batch_no:         item.batch_no || null,
+        expiry_date:      item.expiry_date || null,
       });
-
-      // Increase stock
-      if (product.track_inventory) {
-        const newStock = parseFloat(product.stock || 0) + qty;
-        await product.update({ stock: newStock }, { transaction: t });
-      }
-
-      // Update purchase price
-      await product.update({ purchase_price: rate }, { transaction: t });
     }
 
     const discountAmt = parseFloat(discount_amount || 0);
