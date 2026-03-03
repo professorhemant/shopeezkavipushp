@@ -294,18 +294,16 @@ export default function CreateInvoice() {
       } else {
         const { data: saleRes } = await saleAPI.create(payload)
         toast.success('Order placed!')
-        // Auto-send WhatsApp invoice to customer
+        // Auto-send WhatsApp invoice to customer (fully automatic — no manual step)
         const saleId    = saleRes?.data?.id || saleRes?.id
         const custPhone = selectedCust?.phone || selectedCust?.mobile
         if (saleId && custPhone) {
           try {
             const { data: waRes } = await whatsappAPI.sendInvoice(saleId)
-            if (waRes?.message_text && waRes?.phone) {
-              const digits    = waRes.phone.replace(/\D/g, '')
-              const intlPhone = digits.startsWith('91') ? digits : `91${digits.replace(/^0/, '')}`
-              const waUrl     = `https://wa.me/${intlPhone}?text=${encodeURIComponent(waRes.message_text)}`
-              const opened    = window.open(waUrl, '_blank')
-              if (!opened) toast('📱 WhatsApp blocked — click the button below to send', { duration: 6000 })
+            if (waRes?.mock) {
+              toast('📱 WhatsApp API not configured — message saved to history', { icon: 'ℹ️', duration: 4000 })
+            } else if (waRes?.success) {
+              toast.success('📱 WhatsApp message sent to customer!')
             }
           } catch {
             // non-critical — don't block navigation
