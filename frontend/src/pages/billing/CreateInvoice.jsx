@@ -294,16 +294,20 @@ export default function CreateInvoice() {
       } else {
         const { data: saleRes } = await saleAPI.create(payload)
         toast.success('Order placed!')
-        // Auto-send WhatsApp invoice to customer (fully automatic — no manual step)
+        // Open WhatsApp with pre-filled invoice message (also saves to history)
         const saleId    = saleRes?.data?.id || saleRes?.id
         const custPhone = selectedCust?.phone || selectedCust?.mobile
         if (saleId && custPhone) {
           try {
             const { data: waRes } = await whatsappAPI.sendInvoice(saleId)
-            if (waRes?.mock) {
-              toast('📱 WhatsApp API not configured — message saved to history', { icon: 'ℹ️', duration: 4000 })
-            } else if (waRes?.success) {
-              toast.success('📱 WhatsApp message sent to customer!')
+            const msgText = waRes?.message_text
+            const phone   = waRes?.phone || custPhone
+            if (msgText && phone) {
+              // Format phone for wa.me: digits only, add 91 if 10-digit Indian number
+              const digits = String(phone).replace(/\D/g, '')
+              const intlPhone = digits.length === 10 ? `91${digits}` : digits
+              window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msgText)}`, '_blank')
+              toast('📱 WhatsApp opened — tap Send to deliver invoice', { icon: '✅', duration: 5000 })
             }
           } catch {
             // non-critical — don't block navigation
