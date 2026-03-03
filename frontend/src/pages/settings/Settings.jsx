@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Save, Settings as SettingsIcon, Bell, Printer, CreditCard, Globe } from 'lucide-react'
+import { Save, Settings as SettingsIcon, Bell, Printer, CreditCard, Globe, Smartphone, Building2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { settingsAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 const TABS = [
-  { key: 'general', label: 'General', icon: SettingsIcon },
-  { key: 'invoice', label: 'Invoice', icon: Printer },
-  { key: 'tax', label: 'Tax & GST', icon: CreditCard },
-  { key: 'notifications', label: 'Notifications', icon: Bell },
+  { key: 'general',      label: 'General',         icon: SettingsIcon },
+  { key: 'invoice',      label: 'Invoice',          icon: Printer },
+  { key: 'tax',          label: 'Tax & GST',        icon: CreditCard },
+  { key: 'payment',      label: 'Payment Details',  icon: Smartphone },
+  { key: 'notifications',label: 'Notifications',    icon: Bell },
 ]
 
 export default function Settings() {
@@ -118,6 +119,75 @@ export default function Settings() {
                   <input type="checkbox" id="tds" checked={!!s.enable_tds} onChange={(e) => updateSetting('enable_tds', e.target.checked)} className="rounded text-amber-600" />
                   <label htmlFor="tds" className="text-sm text-slate-700">Enable TDS (Tax Deducted at Source)</label>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'payment' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-base font-semibold text-slate-800">Payment Details</h2>
+                <p className="text-xs text-slate-500 mt-0.5">These details appear in every WhatsApp invoice message sent to customers.</p>
+              </div>
+
+              {/* UPI Section */}
+              <div className="border border-slate-100 rounded-xl p-5 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Smartphone className="h-4 w-4 text-green-600" />
+                  <h3 className="text-sm font-semibold text-slate-700">UPI Details</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-slate-700 mb-1">UPI ID <span className="text-slate-400">(e.g. kavipushp@okaxis)</span></label>
+                    <input
+                      type="text"
+                      value={s.payment_upi_id || ''}
+                      onChange={(e) => updateSetting('payment_upi_id', e.target.value)}
+                      placeholder="yourname@bankname"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bank Section */}
+              <div className="border border-slate-100 rounded-xl p-5 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-sm font-semibold text-slate-700">Bank Account Details</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Setting label="Account Holder Name" value={s.payment_bank_holder} onChange={(v) => updateSetting('payment_bank_holder', v)} />
+                  </div>
+                  <Setting label="Account Number" value={s.payment_bank_account} onChange={(v) => updateSetting('payment_bank_account', v)} mono />
+                  <Setting label="IFSC Code" value={s.payment_bank_ifsc} onChange={(v) => updateSetting('payment_bank_ifsc', v)} mono />
+                  <Setting label="Bank Name" value={s.payment_bank_name} onChange={(v) => updateSetting('payment_bank_name', v)} />
+                </div>
+              </div>
+
+              {/* Live Preview */}
+              <div className="border border-green-100 rounded-xl p-5 bg-green-50/40">
+                <p className="text-xs font-semibold text-slate-600 mb-3">📱 WhatsApp Message Preview</p>
+                <pre className="text-xs text-slate-700 whitespace-pre-wrap font-sans leading-relaxed bg-white rounded-lg p-4 border border-green-100">
+{`🧿 *Your Shop Name*
+━━━━━━━━━━━━━━━━
+📋 *Invoice: INV-2026-0001*
+📅 Date: 03 Mar 2026
+👤 Dear Customer Name,
+
+*Items Purchased:*
+  • Product × 1 — ₹4,500.00
+━━━━━━━━━━━━━━━━
+💰 *Grand Total: ₹4,500.00*
+🔴 *Balance Due: ₹3,500.00*
+━━━━━━━━━━━━━━━━
+💳 *Payment Options:*
+📱 *UPI ID:* ${s.payment_upi_id || '— not set —'}
+   (GPay / PhonePe / Paytm)${(s.payment_bank_account) ? `\n🏦 *Bank Transfer:*\n   A/C: ${s.payment_bank_account}\n   IFSC: ${s.payment_bank_ifsc || '—'}\n   Bank: ${s.payment_bank_name || '—'}\n   Name: ${s.payment_bank_holder || '—'}` : ''}
+
+Thank you for shopping with us! 🙏`}
+                </pre>
               </div>
             </div>
           )}
