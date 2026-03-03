@@ -86,28 +86,28 @@ export default function Invoices() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sales Invoices</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{summary.count} invoices</p>
+          <h1 className="text-2xl font-bold text-slate-800">Sales Invoices</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{summary.count} invoices</p>
         </div>
-        <Link to="/billing/invoices/create" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+        <Link to="/billing/invoices/create" className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
           <Plus className="h-4 w-4" /> New Invoice
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input type="text" placeholder="Search invoice no, customer..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           </div>
           <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
             <option value="">All Status</option>
             <option value="paid">Paid</option>
             <option value="partial">Partial</option>
@@ -116,25 +116,25 @@ export default function Invoices() {
           </select>
           {(search || startDate || endDate || statusFilter) && (
             <button onClick={() => { setSearch(''); setStartDate(''); setEndDate(''); setStatusFilter(''); setPage(1) }}
-              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">Clear</button>
+              className="text-sm text-slate-500 hover:text-slate-700 px-3 py-2">Clear</button>
           )}
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
         ) : invoices.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <FileText className="h-12 w-12 mb-3 text-gray-300" />
-            <p className="text-base font-medium text-gray-500">No invoices found</p>
-            <Link to="/billing/invoices/create" className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Create First Invoice</Link>
+            <p className="text-base font-medium text-slate-500">No invoices found</p>
+            <Link to="/billing/invoices/create" className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Create First Invoice</Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+              <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Invoice No</th>
                   <th className="px-4 py-3 text-left">Date</th>
@@ -151,16 +151,16 @@ export default function Invoices() {
                 {invoices.map((inv) => {
                   const isCancelled = inv.status === 'cancelled'
                   return (
-                  <tr key={inv.id} className={`border-b ${isCancelled ? 'bg-red-50' : 'hover:bg-gray-50'}`}>
+                  <tr key={inv.id} className={`border-b ${isCancelled ? 'bg-red-50' : 'hover:bg-slate-50'}`}>
                     <td className="px-4 py-3">
-                      <Link to={`/billing/invoices/${inv.id}`} className={`font-medium hover:underline ${isCancelled ? 'text-red-500 line-through' : 'text-blue-600'}`}>
+                      <Link to={`/billing/invoices/${inv.id}`} className={`font-medium hover:underline ${isCancelled ? 'text-red-500 line-through' : 'text-amber-600'}`}>
                         {inv.invoice_no || inv.invoice_number}
                       </Link>
                     </td>
                     <td className={`px-4 py-3 ${isCancelled ? 'text-red-400 line-through' : 'text-gray-600'}`}>{formatDate(inv.invoice_date || inv.date)}</td>
-                    <td className={`px-4 py-3 ${isCancelled ? 'text-red-500' : 'text-gray-900'}`}>{inv.customer_name || inv.customer?.name || 'Walk-in'}</td>
+                    <td className={`px-4 py-3 ${isCancelled ? 'text-red-500' : 'text-slate-800'}`}>{inv.customer_name || inv.customer?.name || 'Walk-in'}</td>
                     <td className={`px-4 py-3 text-right ${isCancelled ? 'text-red-400' : 'text-gray-600'}`}>{inv.items_count ?? '-'}</td>
-                    <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-500 line-through' : 'text-gray-900'}`}>{formatCurrency(inv.total)}</td>
+                    <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-500 line-through' : 'text-slate-800'}`}>{formatCurrency(inv.total)}</td>
                     <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-400 line-through' : 'text-green-700'}`}>{formatCurrency(inv.paid_amount)}</td>
                     <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-400 line-through' : 'text-red-600'}`}>{formatCurrency(inv.balance)}</td>
                     <td className="px-4 py-3 text-center">
@@ -170,16 +170,16 @@ export default function Invoices() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1.5">
-                        <button onClick={() => navigate(`/billing/invoices/${inv.id}`)} className="p-1.5 rounded-lg hover:bg-indigo-50 text-gray-400 hover:text-indigo-600" title="View Invoice">
+                        <button onClick={() => navigate(`/billing/invoices/${inv.id}`)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="View Invoice">
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button onClick={() => handleDownloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600" title="Print PDF">
+                        <button onClick={() => handleDownloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="Print PDF">
                           <Printer className="h-4 w-4" />
                         </button>
                         <button onClick={() => handleDownloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600" title="Download">
                           <Download className="h-4 w-4" />
                         </button>
-                        <button onClick={() => navigate(`/billing/invoices/${inv.id}/edit`)} className="p-1.5 rounded-lg hover:bg-violet-50 text-gray-400 hover:text-violet-600" title="Edit">
+                        <button onClick={() => navigate(`/billing/invoices/${inv.id}/edit`)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="Edit">
                           <Edit2 className="h-4 w-4" />
                         </button>
                         {inv.status !== 'cancelled' && (
@@ -201,23 +201,23 @@ export default function Invoices() {
 
         {/* Summary */}
         {!loading && invoices.length > 0 && (
-          <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
+          <div className="border-t border-slate-100 px-4 py-3 bg-slate-50">
             <div className="flex flex-wrap gap-6 text-sm">
-              <div><span className="text-gray-500">Total Invoices:</span> <span className="font-semibold text-gray-900">{summary.count}</span></div>
-              <div><span className="text-gray-500">Total Amount:</span> <span className="font-semibold text-gray-900">{formatCurrency(summary.total)}</span></div>
-              <div><span className="text-gray-500">Received:</span> <span className="font-semibold text-green-700">{formatCurrency(summary.received)}</span></div>
-              <div><span className="text-gray-500">Balance:</span> <span className="font-semibold text-red-600">{formatCurrency(summary.balance)}</span></div>
+              <div><span className="text-slate-500">Total Invoices:</span> <span className="font-semibold text-slate-800">{summary.count}</span></div>
+              <div><span className="text-slate-500">Total Amount:</span> <span className="font-semibold text-slate-800">{formatCurrency(summary.total)}</span></div>
+              <div><span className="text-slate-500">Received:</span> <span className="font-semibold text-green-700">{formatCurrency(summary.received)}</span></div>
+              <div><span className="text-slate-500">Balance:</span> <span className="font-semibold text-red-600">{formatCurrency(summary.balance)}</span></div>
             </div>
           </div>
         )}
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-            <p className="text-sm text-gray-500">Page {page} of {totalPages}</p>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+            <p className="text-sm text-slate-500">Page {page} of {totalPages}</p>
             <div className="flex gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50"><ChevronLeft className="h-4 w-4" /></button>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50"><ChevronRight className="h-4 w-4" /></button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronLeft className="h-4 w-4" /></button>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronRight className="h-4 w-4" /></button>
             </div>
           </div>
         )}

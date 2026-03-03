@@ -39,39 +39,39 @@ export default function CreditNotes() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Credit Notes</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Sales returns and credit notes</p>
+          <h1 className="text-2xl font-bold text-slate-800">Credit Notes</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Sales returns and credit notes</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input type="text" placeholder="Search credit note no, customer..." value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           </div>
           <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
         ) : notes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <FileText className="h-12 w-12 mb-3 text-gray-300" />
-            <p className="text-base font-medium text-gray-500">No credit notes found</p>
+            <p className="text-base font-medium text-slate-500">No credit notes found</p>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                   <tr>
                     <th className="px-4 py-3 text-left">Credit Note No</th>
                     <th className="px-4 py-3 text-left">Original Invoice</th>
@@ -84,12 +84,12 @@ export default function CreditNotes() {
                 </thead>
                 <tbody>
                   {notes.map((note) => (
-                    <tr key={note.id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-blue-600">{note.invoice_no || note.credit_note_no}</td>
+                    <tr key={note.id} className="border-b hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium text-amber-600">{note.invoice_no || note.credit_note_no}</td>
                       <td className="px-4 py-3 text-gray-600">{note.original_invoice_no || '-'}</td>
                       <td className="px-4 py-3 text-gray-600">{formatDate(note.invoice_date || note.date)}</td>
-                      <td className="px-4 py-3 text-gray-900">{note.customer_name || note.customer?.name || 'Walk-in'}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{note.return_reason || note.notes || '-'}</td>
+                      <td className="px-4 py-3 text-slate-800">{note.customer_name || note.customer?.name || 'Walk-in'}</td>
+                      <td className="px-4 py-3 text-slate-500 text-xs">{note.return_reason || note.notes || '-'}</td>
                       <td className="px-4 py-3 text-right font-medium text-red-600">{formatCurrency(note.total_amount)}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPaymentStatusColor(note.status)}`}>
@@ -101,18 +101,18 @@ export default function CreditNotes() {
                 </tbody>
               </table>
             </div>
-            <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
+            <div className="border-t border-slate-100 px-4 py-3 bg-slate-50">
               <div className="flex gap-6 text-sm">
-                <div><span className="text-gray-500">Total Notes:</span> <span className="font-semibold text-gray-900">{summary.count}</span></div>
-                <div><span className="text-gray-500">Total Value:</span> <span className="font-semibold text-red-600">{formatCurrency(summary.total)}</span></div>
+                <div><span className="text-slate-500">Total Notes:</span> <span className="font-semibold text-slate-800">{summary.count}</span></div>
+                <div><span className="text-slate-500">Total Value:</span> <span className="font-semibold text-red-600">{formatCurrency(summary.total)}</span></div>
               </div>
             </div>
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-                <p className="text-sm text-gray-500">Page {page} of {totalPages}</p>
+              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+                <p className="text-sm text-slate-500">Page {page} of {totalPages}</p>
                 <div className="flex gap-2">
-                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50"><ChevronLeft className="h-4 w-4" /></button>
-                  <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50"><ChevronRight className="h-4 w-4" /></button>
+                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronLeft className="h-4 w-4" /></button>
+                  <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronRight className="h-4 w-4" /></button>
                 </div>
               </div>
             )}

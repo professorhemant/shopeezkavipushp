@@ -32,47 +32,47 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-white text-2xl font-bold">S</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Shopeezkavipushp</h1>
-          <p className="text-gray-500 text-sm mt-1">Complete Billing & ERP Software</p>
+          <h1 className="text-2xl font-bold text-slate-800">Shopeezkavipushp</h1>
+          <p className="text-slate-500 text-sm mt-1">Complete Billing & ERP Software</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">Sign in to your account</h2>
+          <h2 className="text-xl font-semibold text-slate-800 mb-6">Sign in to your account</h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Email / Mobile Number
               </label>
               <input
                 {...register('email')}
                 type="text"
                 placeholder="Enter email or mobile number"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
               <div className="relative">
                 <input
                   {...register('password')}
                   type={showPass ? 'text' : 'password'}
                   placeholder="Enter your password"
-                  className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 pr-11 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
                   {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -82,10 +82,10 @@ export default function Login() {
 
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="rounded border-gray-300 text-blue-600" />
-                <span className="text-gray-600">Remember me</span>
+                <input type="checkbox" className="rounded border-slate-300 text-amber-600" />
+                <span className="text-slate-600">Remember me</span>
               </label>
-              <Link to="/forgot-password" className="text-blue-600 hover:underline font-medium">
+              <Link to="/forgot-password" className="text-amber-600 hover:underline font-medium">
                 Forgot password?
               </Link>
             </div>
@@ -93,7 +93,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -106,17 +106,17 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-            <p className="text-sm text-gray-500">
+          <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+            <p className="text-sm text-slate-500">
               Don't have an account?{' '}
-              <Link to="/register" className="text-blue-600 hover:underline font-medium">
+              <Link to="/register" className="text-amber-600 hover:underline font-medium">
                 Create one free
               </Link>
             </p>
           </div>
 
           {/* Demo credentials */}
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-xs text-blue-600">
+          <div className="mt-4 p-3 bg-amber-50 rounded-lg text-xs text-amber-600">
             <strong>Demo:</strong> admin@demo.com / Admin@123
           </div>
         </div>

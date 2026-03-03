@@ -39,15 +39,15 @@ export default function ProfitLoss() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Profit & Loss</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Income statement for the selected period</p>
+          <h1 className="text-2xl font-bold text-slate-800">Profit & Loss</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Income statement for the selected period</p>
         </div>
         <div className="flex items-center gap-2">
           <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <span className="text-gray-400 text-sm">to</span>
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+          <span className="text-slate-400 text-sm">to</span>
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
         </div>
       </div>
 
@@ -58,27 +58,27 @@ export default function ProfitLoss() {
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Revenue', value: formatCurrency(revenue), icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { label: 'Revenue', value: formatCurrency(revenue), icon: TrendingUp, color: 'text-amber-600', bg: 'bg-amber-50' },
               { label: 'Cost of Goods', value: formatCurrency(cogs), icon: TrendingDown, color: 'text-orange-600', bg: 'bg-orange-50' },
               { label: 'Gross Profit', value: formatCurrency(grossProfit), icon: IndianRupee, color: 'text-green-600', bg: 'bg-green-50' },
               { label: 'Net Profit', value: formatCurrency(netProfit), icon: IndianRupee, color: netProfit >= 0 ? 'text-green-600' : 'text-red-600', bg: netProfit >= 0 ? 'bg-green-50' : 'bg-red-50' },
             ].map((s) => (
-              <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
                 <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center mb-3`}>
                   <s.icon className={`h-4 w-4 ${s.color}`} />
                 </div>
-                <p className="text-xs text-gray-500">{s.label}</p>
+                <p className="text-xs text-slate-500">{s.label}</p>
                 <p className={`text-xl font-bold mt-1 ${s.color}`}>{s.value}</p>
               </div>
             ))}
           </div>
 
           {/* Detailed P&L */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-900">Income Statement</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <h2 className="text-base font-semibold text-slate-800">Income Statement</h2>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-slate-50">
               {[
                 { label: 'Sales Revenue', value: revenue, indent: false, bold: false },
                 { label: 'Less: Cost of Goods Sold', value: -cogs, indent: true, bold: false },
@@ -86,9 +86,9 @@ export default function ProfitLoss() {
                 { label: 'Less: Operating Expenses', value: -expenses, indent: true, bold: false },
                 { label: 'Net Profit / (Loss)', value: netProfit, indent: false, bold: true },
               ].map((row, i) => (
-                <div key={i} className={`flex items-center justify-between px-6 py-3 ${row.bold ? 'bg-gray-50' : ''}`}>
-                  <span className={`text-sm ${row.indent ? 'pl-4 text-gray-500' : 'font-medium text-gray-900'}`}>{row.label}</span>
-                  <span className={`text-sm font-${row.bold ? 'bold' : 'medium'} ${row.value >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{formatCurrency(Math.abs(row.value))}{row.value < 0 ? ' (Dr)' : ''}</span>
+                <div key={i} className={`flex items-center justify-between px-6 py-3 ${row.bold ? 'bg-slate-50' : ''}`}>
+                  <span className={`text-sm ${row.indent ? 'pl-4 text-slate-500' : 'font-medium text-slate-800'}`}>{row.label}</span>
+                  <span className={`text-sm font-${row.bold ? 'bold' : 'medium'} ${row.value >= 0 ? 'text-slate-800' : 'text-red-600'}`}>{formatCurrency(Math.abs(row.value))}{row.value < 0 ? ' (Dr)' : ''}</span>
                 </div>
               ))}
             </div>

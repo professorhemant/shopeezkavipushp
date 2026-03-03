@@ -1,27 +1,26 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Printer, Users, ShoppingCart,
-  Settings, FileText, Boxes
+  Settings, FileText, Boxes, Plus
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 
 const TABS = [
-  { label: 'Dashboard',       to: '/dashboard',                icon: LayoutDashboard, color: 'bg-sky-400',      shadow: 'shadow-sky-400/60'      },
-  { label: 'Print Settings',  to: '/settings/print',           icon: Printer,         color: 'bg-purple-400',   shadow: 'shadow-purple-400/60'   },
-  { label: 'Customers',       to: '/customers',                icon: Users,           color: 'bg-emerald-400',  shadow: 'shadow-emerald-400/60'  },
-  { label: 'Orders',          to: '/billing/invoices',         icon: ShoppingCart,    color: 'bg-amber-400',    shadow: 'shadow-amber-400/60'    },
-  { label: 'Purchase Orders', to: '/purchases/orders',         icon: FileText,        color: 'bg-violet-400',   shadow: 'shadow-violet-400/60'   },
-  { label: 'Store Settings',  to: '/settings',                 icon: Settings,        color: 'bg-pink-400',     shadow: 'shadow-pink-400/60'     },
-  { label: 'Create Invoice',  to: '/billing/invoices/create',  icon: FileText,        color: 'bg-rose-400',     shadow: 'shadow-rose-400/60'     },
-  { label: 'Products',        to: '/inventory/products',       icon: Boxes,           color: 'bg-teal-400',     shadow: 'shadow-teal-400/60'     },
+  { label: 'Dashboard',       to: '/dashboard',               icon: LayoutDashboard },
+  { label: 'Customers',       to: '/customers',               icon: Users           },
+  { label: 'Orders',          to: '/billing/invoices',        icon: ShoppingCart    },
+  { label: 'Create Invoice',  to: '/billing/invoices/create', icon: Plus            },
+  { label: 'Products',        to: '/inventory/products',      icon: Boxes           },
+  { label: 'Purchase Orders', to: '/purchases/orders',        icon: FileText        },
+  { label: 'Settings',        to: '/settings',                icon: Settings        },
 ]
 
 export default function QuickNavBar() {
   const { user } = useAuthStore()
 
   return (
-    <div className="shrink-0 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 px-3 overflow-x-auto shadow-lg">
-      <div className="flex items-center min-w-max gap-1.5 py-2">
+    <div className="shrink-0 bg-slate-800 px-3 overflow-x-auto border-b border-slate-700">
+      <div className="flex items-center min-w-max gap-0.5 py-1.5">
         {TABS.map((tab) => {
           const Icon = tab.icon
           return (
@@ -30,10 +29,10 @@ export default function QuickNavBar() {
               to={tab.to}
               end={tab.to === '/dashboard'}
               className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md transition-all duration-200 text-white ${tab.color} ${
+                `flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded transition-colors ${
                   isActive
-                    ? `opacity-100 shadow-lg ${tab.shadow} scale-105`
-                    : `opacity-100 hover:scale-105 hover:shadow-md ${tab.shadow}`
+                    ? 'bg-amber-500 text-white'
+                    : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                 }`
               }
             >
@@ -43,10 +42,9 @@ export default function QuickNavBar() {
           )
         })}
 
-        {/* Logged as Admin */}
-        <div className="ml-auto pl-6 pr-2 text-xs whitespace-nowrap flex items-center gap-1.5">
-          <span className="text-blue-300">Logged as</span>
-          <span className="bg-white/10 text-white font-bold px-2 py-0.5 rounded-full text-xs">
+        <div className="ml-auto pl-4 pr-1 text-xs whitespace-nowrap flex items-center gap-1.5">
+          <span className="text-slate-500">Logged as</span>
+          <span className="bg-amber-500/20 text-amber-400 font-semibold px-2 py-0.5 rounded text-xs">
             {user?.name || 'Admin'}
           </span>
         </div>

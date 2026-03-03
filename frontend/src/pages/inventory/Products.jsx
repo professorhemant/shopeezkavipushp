@@ -115,14 +115,14 @@ function ImportModal({ onClose, onSuccess }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center">
-              <Upload className="h-5 w-5 text-purple-600" />
+            <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+              <Upload className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-900">Import Products</h2>
-              <p className="text-xs text-gray-500">Upload a CSV file to bulk-add products</p>
+              <h2 className="font-semibold text-slate-800">Import Products</h2>
+              <p className="text-xs text-slate-500">Upload a CSV file to bulk-add products</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
@@ -132,13 +132,13 @@ function ImportModal({ onClose, onSuccess }) {
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           {/* Sample download */}
-          <div className="flex items-center justify-between bg-blue-50 rounded-lg px-4 py-3 text-sm">
-            <span className="text-blue-700">
+          <div className="flex items-center justify-between bg-amber-50 rounded-lg px-4 py-3 text-sm">
+            <span className="text-amber-700">
               <strong>Required columns:</strong> name, bar_code, hsn_code, sell_price, mrp, cost_price, stock_qty, tax_type, tax_rate
             </span>
             <button
               onClick={downloadSample}
-              className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap ml-3"
+              className="flex items-center gap-1.5 text-amber-600 hover:text-amber-800 font-medium whitespace-nowrap ml-3"
             >
               <Download className="h-4 w-4" /> Sample CSV
             </button>
@@ -152,7 +152,7 @@ function ImportModal({ onClose, onSuccess }) {
               onDragLeave={() => setDragOver(false)}
               onClick={() => fileRef.current?.click()}
               className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${
-                dragOver ? 'border-purple-400 bg-purple-50' : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                dragOver ? 'border-amber-400 bg-amber-50' : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
               }`}
             >
               <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
@@ -162,10 +162,10 @@ function ImportModal({ onClose, onSuccess }) {
             </div>
           ) : (
             <div className="flex items-center gap-3 bg-gray-50 rounded-lg px-4 py-3">
-              <FileText className="h-5 w-5 text-purple-600 flex-shrink-0" />
+              <FileText className="h-5 w-5 text-amber-600 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                <p className="text-xs text-gray-500">{rows.length} row{rows.length !== 1 ? 's' : ''} parsed</p>
+                <p className="text-sm font-medium text-slate-800 truncate">{file.name}</p>
+                <p className="text-xs text-slate-500">{rows.length} row{rows.length !== 1 ? 's' : ''} parsed</p>
               </div>
               <button
                 onClick={() => { setFile(null); setRows([]); setErrors([]); setResult(null) }}
@@ -199,29 +199,29 @@ function ImportModal({ onClose, onSuccess }) {
           {/* Preview table */}
           {rows.length > 0 && !result && (
             <div>
-              <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">Preview ({rows.length} products)</p>
-              <div className="overflow-x-auto rounded-lg border border-gray-200 max-h-56">
+              <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Preview ({rows.length} products)</p>
+              <div className="overflow-x-auto rounded-lg border border-slate-200 max-h-56">
                 <table className="w-full text-xs">
-                  <thead className="bg-gray-50 sticky top-0">
+                  <thead className="bg-slate-50 sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-left text-gray-500">#</th>
+                      <th className="px-3 py-2 text-left text-slate-500">#</th>
                       {['Name','Barcode','HSN','Cost Price','Sell Price','MRP','Stock','Tax Type'].map((h) => (
-                        <th key={h} className="px-3 py-2 text-left text-gray-500 whitespace-nowrap">{h}</th>
+                        <th key={h} className="px-3 py-2 text-left text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {rows.slice(0, 20).map((row, i) => (
-                      <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
+                      <tr key={i} className="border-t border-slate-100 hover:bg-slate-50">
                         <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
-                        <td className="px-3 py-1.5 font-medium text-gray-900 max-w-[140px] truncate">{row.name || <span className="text-red-400">MISSING</span>}</td>
-                        <td className="px-3 py-1.5 font-mono text-gray-500">{row.barcode || '-'}</td>
-                        <td className="px-3 py-1.5 text-gray-500">{row.hsn_code || '-'}</td>
-                        <td className="px-3 py-1.5 text-gray-700">₹{row.purchase_price ?? '-'}</td>
-                        <td className="px-3 py-1.5 text-gray-700">₹{row.sale_price ?? '-'}</td>
-                        <td className="px-3 py-1.5 text-gray-700">₹{row.mrp ?? '-'}</td>
-                        <td className="px-3 py-1.5 text-gray-600">{row.stock ?? '-'}</td>
-                        <td className="px-3 py-1.5 text-gray-500">{row.tax_type || '-'}</td>
+                        <td className="px-3 py-1.5 font-medium text-slate-800 max-w-[140px] truncate">{row.name || <span className="text-red-400">MISSING</span>}</td>
+                        <td className="px-3 py-1.5 font-mono text-slate-500">{row.barcode || '-'}</td>
+                        <td className="px-3 py-1.5 text-slate-500">{row.hsn_code || '-'}</td>
+                        <td className="px-3 py-1.5 text-slate-700">₹{row.purchase_price ?? '-'}</td>
+                        <td className="px-3 py-1.5 text-slate-700">₹{row.sale_price ?? '-'}</td>
+                        <td className="px-3 py-1.5 text-slate-700">₹{row.mrp ?? '-'}</td>
+                        <td className="px-3 py-1.5 text-slate-600">{row.stock ?? '-'}</td>
+                        <td className="px-3 py-1.5 text-slate-500">{row.tax_type || '-'}</td>
                       </tr>
                     ))}
                     {rows.length > 20 && (
@@ -235,7 +235,7 @@ function ImportModal({ onClose, onSuccess }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
           <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
             {result ? 'Close' : 'Cancel'}
           </button>
@@ -243,7 +243,7 @@ function ImportModal({ onClose, onSuccess }) {
             <button
               onClick={handleImport}
               disabled={!rows.length || importing || errors.length > 0}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {importing ? <LoadingSpinner size="sm" /> : <Upload className="h-4 w-4" />}
               Import {rows.length > 0 ? `${rows.length} Products` : 'Products'}
@@ -363,25 +363,25 @@ export default function Products() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Dashboard / Products</p>
+          <h1 className="text-2xl font-bold text-slate-800">Products</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Dashboard / Products</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <button
             onClick={() => setShowImport(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
+            className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
           >
             <Upload className="h-4 w-4" /> Import Products
           </button>
           <button
             onClick={() => navigate('/tools/barcode')}
-            className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
+            className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
           >
             <Barcode className="h-4 w-4" /> Generate Barcodes
           </button>
           <Link
             to="/inventory/products/add"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5"
+            className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5"
           >
             <Plus className="h-4 w-4" /> Add Product
           </Link>
@@ -389,7 +389,7 @@ export default function Products() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100">
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -398,13 +398,13 @@ export default function Products() {
               placeholder="Enter name, barcode or SKU"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
             />
           </div>
           <select
             value={categoryFilter}
             onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 min-w-[150px]"
           >
             <option value="">Select Category</option>
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -412,14 +412,14 @@ export default function Products() {
           <select
             value={brandFilter}
             onChange={(e) => { setBrandFilter(e.target.value); setPage(1) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[130px]"
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 min-w-[130px]"
           >
             <option value="">All Brands</option>
             {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
           <button
             onClick={() => { setSearch(''); setCategoryFilter(''); setBrandFilter(''); setPage(1) }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
           >
             SEARCH
           </button>
@@ -428,21 +428,21 @@ export default function Products() {
             {/* Print Barcodes */}
             <button
               onClick={handlePrintBarcodes}
-              className="border border-blue-600 text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
+              className="border border-amber-600 text-amber-600 hover:bg-amber-50 px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
             >
               <Printer className="h-4 w-4" /> Print Barcodes
             </button>
             {/* Tabs */}
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm">
               <button
                 onClick={() => { setTab('active'); setPage(1) }}
-                className={`px-3 py-2 flex items-center gap-1.5 ${tab === 'active' ? 'bg-gray-100 text-gray-800 font-medium' : 'text-gray-500 hover:bg-gray-50'}`}
+                className={`px-3 py-2 flex items-center gap-1.5 ${tab === 'active' ? 'bg-gray-100 text-gray-800 font-medium' : 'text-slate-500 hover:bg-slate-50'}`}
               >
                 <ArchiveRestore className="h-3.5 w-3.5" /> Unarchived
               </button>
               <button
                 onClick={() => { setTab('archived'); setPage(1) }}
-                className={`px-3 py-2 flex items-center gap-1.5 border-l border-gray-200 ${tab === 'archived' ? 'bg-blue-600 text-white font-medium' : 'text-gray-500 hover:bg-gray-50'}`}
+                className={`px-3 py-2 flex items-center gap-1.5 border-l border-slate-200 ${tab === 'archived' ? 'bg-amber-600 text-white font-medium' : 'text-slate-500 hover:bg-slate-50'}`}
               >
                 <Archive className="h-3.5 w-3.5" /> Archived
               </button>
@@ -453,7 +453,7 @@ export default function Products() {
 
       {/* Bulk action bar */}
       {selected.length > 0 && (
-        <div className="flex items-center justify-between bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm">
+        <div className="flex items-center justify-between bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm">
           <span className="font-medium">{selected.length} product{selected.length > 1 ? 's' : ''} selected</span>
           <div className="flex items-center gap-2">
             <button
@@ -473,10 +473,10 @@ export default function Products() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {/* Info row */}
         {!loading && total > 0 && (
-          <div className="px-4 py-2 border-b border-gray-100 text-xs text-gray-500">
+          <div className="px-4 py-2 border-b border-slate-100 text-xs text-slate-500">
             Showing {startRow}–{endRow} of {total} products (Page {page} of {totalPages}, {PER_PAGE} per page)
           </div>
         )}
@@ -486,15 +486,15 @@ export default function Products() {
         ) : products.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <Package className="h-12 w-12 mb-3 text-gray-300" />
-            <p className="text-base font-medium text-gray-500">No products found</p>
-            <Link to="/inventory/products/add" className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            <p className="text-base font-medium text-slate-500">No products found</p>
+            <Link to="/inventory/products/add" className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
               Add First Product
             </Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+              <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
                   <th className="px-3 py-3 text-center w-8">
                     <input type="checkbox" checked={selected.length === products.length} onChange={toggleAll} className="rounded" />
@@ -518,13 +518,13 @@ export default function Products() {
                   const isLow = p.stock != null && p.min_stock != null && parseFloat(p.stock) <= parseFloat(p.min_stock)
                   const categoryName = p.Category?.name || p.category_name || '-'
                   return (
-                    <tr key={p.id} className={`border-b hover:bg-gray-50 ${selected.includes(p.id) ? 'bg-blue-50' : ''}`}>
+                    <tr key={p.id} className={`border-b hover:bg-slate-50 ${selected.includes(p.id) ? 'bg-amber-50' : ''}`}>
                       <td className="px-3 py-2 text-center">
                         <input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
                       </td>
                       <td className="px-3 py-2">
                         {p.images?.[0] || p.image ? (
-                          <img src={p.images?.[0] || p.image} alt={p.name} className="h-9 w-9 rounded object-cover border border-gray-200" />
+                          <img src={p.images?.[0] || p.image} alt={p.name} className="h-9 w-9 rounded object-cover border border-slate-200" />
                         ) : (
                           <div className="h-9 w-9 rounded bg-gray-100 flex items-center justify-center">
                             <Package className="h-4 w-4 text-gray-400" />
@@ -534,31 +534,31 @@ export default function Products() {
                       <td className="px-3 py-2 max-w-[180px]">
                         <button
                           onClick={() => navigate(`/inventory/products/${p.id}/edit`)}
-                          className="font-medium text-blue-600 hover:underline text-left truncate block max-w-[180px]"
+                          className="font-medium text-amber-600 hover:underline text-left truncate block max-w-[180px]"
                         >
                           {p.name}
                         </button>
                       </td>
-                      <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(p.purchase_price || 0)}</td>
-                      <td className="px-3 py-2 text-right text-gray-700">{formatCurrency(p.mrp || 0)}</td>
-                      <td className="px-3 py-2 text-right font-medium text-gray-900">{formatCurrency(p.sale_price || 0)}</td>
-                      <td className="px-3 py-2 text-center font-mono text-xs text-gray-600">{p.sku || '-'}</td>
+                      <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(p.purchase_price || 0)}</td>
+                      <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(p.mrp || 0)}</td>
+                      <td className="px-3 py-2 text-right font-medium text-slate-800">{formatCurrency(p.sale_price || 0)}</td>
+                      <td className="px-3 py-2 text-center font-mono text-xs text-slate-600">{p.sku || '-'}</td>
                       <td className="px-3 py-2 text-center">
-                        <span className={`font-semibold ${isLow ? 'text-red-600' : 'text-gray-800'}`}>
+                        <span className={`font-semibold ${isLow ? 'text-red-600' : 'text-slate-800'}`}>
                           {p.stock ?? '-'}
                         </span>
                         {isLow && <AlertTriangle className="h-3 w-3 text-red-500 inline ml-1" />}
                       </td>
-                      <td className="px-3 py-2 text-center font-mono text-xs text-gray-600">{p.barcode || '-'}</td>
-                      <td className="px-3 py-2 text-gray-600 text-xs">{categoryName}</td>
-                      <td className="px-3 py-2 text-center text-gray-600 text-xs">{p.min_stock ?? '-'}</td>
+                      <td className="px-3 py-2 text-center font-mono text-xs text-slate-600">{p.barcode || '-'}</td>
+                      <td className="px-3 py-2 text-slate-600 text-xs">{categoryName}</td>
+                      <td className="px-3 py-2 text-center text-slate-600 text-xs">{p.min_stock ?? '-'}</td>
                       <td className="px-3 py-2 text-center">
                         {p.has_variants ? (
-                          <span className="text-xs text-blue-600 font-medium">Yes</span>
+                          <span className="text-xs text-amber-600 font-medium">Yes</span>
                         ) : (
                           <button
                             onClick={() => navigate(`/inventory/products/${p.id}/edit`)}
-                            className="text-xs text-blue-500 hover:underline"
+                            className="text-xs text-amber-500 hover:underline"
                           >
                             + Add More
                           </button>
@@ -568,7 +568,7 @@ export default function Products() {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => navigate(`/inventory/products/${p.id}/edit`)}
-                            className="p-1.5 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600"
+                            className="p-1.5 rounded hover:bg-amber-50 text-gray-400 hover:text-amber-600"
                             title="Edit"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
@@ -599,29 +599,29 @@ export default function Products() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-1 px-4 py-3 border-t border-gray-100 flex-wrap">
+          <div className="flex items-center justify-center gap-1 px-4 py-3 border-t border-slate-100 flex-wrap">
             <button
               onClick={() => setPage(1)}
               disabled={page === 1}
-              className="px-2 py-1 rounded border border-gray-200 text-sm disabled:opacity-40 hover:bg-gray-50"
+              className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
             >
               «
             </button>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-2 py-1 rounded border border-gray-200 text-sm disabled:opacity-40 hover:bg-gray-50"
+              className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             {pageButtons().map((btn, i) =>
               btn === '...' ? (
-                <span key={`ellipsis-${i}`} className="px-2 py-1 text-sm text-gray-400">...</span>
+                <span key={`ellipsis-${i}`} className="px-2 py-1 text-sm text-slate-400">...</span>
               ) : (
                 <button
                   key={btn}
                   onClick={() => setPage(btn)}
-                  className={`px-3 py-1 rounded border text-sm ${page === btn ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 hover:bg-gray-50'}`}
+                  className={`px-3 py-1 rounded border text-sm ${page === btn ? 'bg-amber-600 text-white border-amber-600' : 'border-slate-200 hover:bg-slate-50'}`}
                 >
                   {btn}
                 </button>
@@ -630,14 +630,14 @@ export default function Products() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-2 py-1 rounded border border-gray-200 text-sm disabled:opacity-40 hover:bg-gray-50"
+              className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
             <button
               onClick={() => setPage(totalPages)}
               disabled={page === totalPages}
-              className="px-2 py-1 rounded border border-gray-200 text-sm disabled:opacity-40 hover:bg-gray-50"
+              className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
             >
               »
             </button>
@@ -662,8 +662,8 @@ export default function Products() {
                 <Trash2 className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Delete {selected.length} Product{selected.length > 1 ? 's' : ''}?</h3>
-                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+                <h3 className="font-semibold text-slate-800">Delete {selected.length} Product{selected.length > 1 ? 's' : ''}?</h3>
+                <p className="text-sm text-slate-500">This action cannot be undone.</p>
               </div>
             </div>
             <div className="flex gap-3 mt-5">
@@ -696,8 +696,8 @@ export default function Products() {
                 <Trash2 className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Delete Product</h3>
-                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+                <h3 className="font-semibold text-slate-800">Delete Product</h3>
+                <p className="text-sm text-slate-500">This action cannot be undone.</p>
               </div>
             </div>
             <div className="flex gap-3 mt-5">

@@ -75,27 +75,27 @@ export default function Units() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Units of Measurement</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{units.length} units</p>
+          <h1 className="text-2xl font-bold text-slate-800">Units of Measurement</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{units.length} units</p>
         </div>
-        <button onClick={openAdd} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+        <button onClick={openAdd} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
           <Plus className="h-4 w-4" /> Add Unit
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
         ) : units.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <Ruler className="h-12 w-12 mb-3 text-gray-300" />
-            <p className="text-base font-medium text-gray-500">No units defined</p>
+            <p className="text-base font-medium text-slate-500">No units defined</p>
             <p className="text-sm mt-1">e.g. Pieces, Kg, Litres, Box...</p>
-            <button onClick={openAdd} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Add First Unit</button>
+            <button onClick={openAdd} className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Add First Unit</button>
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+            <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
               <tr>
                 <th className="px-4 py-3 text-left">Unit Name</th>
                 <th className="px-4 py-3 text-left">Symbol</th>
@@ -106,16 +106,16 @@ export default function Units() {
             </thead>
             <tbody>
               {units.map((unit) => (
-                <tr key={unit.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{unit.name}</td>
+                <tr key={unit.id} className="border-b hover:bg-slate-50">
+                  <td className="px-4 py-3 font-medium text-slate-800">{unit.name}</td>
                   <td className="px-4 py-3">
-                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-mono font-medium">{unit.short_name || unit.name}</span>
+                    <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-xs font-mono font-medium">{unit.short_name || unit.name}</span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{unit.description || '-'}</td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900">{unit.products_count ?? 0}</td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">{unit.description || '-'}</td>
+                  <td className="px-4 py-3 text-right font-medium text-slate-800">{unit.products_count ?? 0}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => openEdit(unit)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600"><Edit2 className="h-4 w-4" /></button>
+                      <button onClick={() => openEdit(unit)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
                       <button onClick={() => setDeleteId(unit.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </td>
@@ -130,27 +130,27 @@ export default function Units() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-semibold text-gray-900 text-lg">{editItem ? 'Edit Unit' : 'Add Unit'}</h3>
+              <h3 className="font-semibold text-slate-800 text-lg">{editItem ? 'Edit Unit' : 'Add Unit'}</h3>
               <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="h-5 w-5 text-gray-500" /></button>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Unit Name *</label>
-                <input {...register('name', { required: 'Name is required' })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. Kilogram" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Unit Name *</label>
+                <input {...register('name', { required: 'Name is required' })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" placeholder="e.g. Kilogram" />
                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Short Name *</label>
-                <input {...register('short_name', { required: 'Short name is required' })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. Kg" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Short Name *</label>
+                <input {...register('short_name', { required: 'Short name is required' })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" placeholder="e.g. Kg" />
                 {errors.short_name && <p className="text-red-500 text-xs mt-1">{errors.short_name.message}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <input {...register('description')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Optional description" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                <input {...register('description')} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" placeholder="Optional description" />
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">
+                <button type="submit" disabled={saving} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60">
                   {saving ? <LoadingSpinner size="sm" /> : <Save className="h-4 w-4" />} Save
                 </button>
               </div>
@@ -162,8 +162,8 @@ export default function Units() {
       {deleteId && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-sm mx-4">
-            <h3 className="font-semibold text-gray-900 mb-2">Delete Unit?</h3>
-            <p className="text-sm text-gray-500 mb-5">Units linked to products cannot be deleted.</p>
+            <h3 className="font-semibold text-slate-800 mb-2">Delete Unit?</h3>
+            <p className="text-sm text-slate-500 mb-5">Units linked to products cannot be deleted.</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
               <button onClick={() => handleDelete(deleteId)} className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Delete</button>

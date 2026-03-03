@@ -50,7 +50,7 @@ export default function InvoiceDetail() {
   if (error || !inv) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
       <p className="text-red-500 font-medium">{error || 'Invoice not found'}</p>
-      <button onClick={() => navigate('/billing/invoices')} className="text-blue-600 underline text-sm">
+      <button onClick={() => navigate('/billing/invoices')} className="text-amber-600 underline text-sm">
         ← Back to Invoices
       </button>
     </div>
@@ -78,11 +78,11 @@ export default function InvoiceDetail() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/billing/invoices')}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
+            className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500">
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{inv.invoice_no || `#${id}`}</h1>
+            <h1 className="text-xl font-bold text-slate-800">{inv.invoice_no || `#${id}`}</h1>
             <p className="text-xs text-gray-400">{formatDate(inv.invoice_date)}</p>
           </div>
           <span className={`text-xs px-3 py-1 rounded-full font-semibold ${getPaymentStatusColor(isCancelled ? 'cancelled' : inv.payment_status)}`}>
@@ -91,17 +91,17 @@ export default function InvoiceDetail() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleDownloadPDF}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">
             <Printer className="h-4 w-4" /> Print
           </button>
           <button onClick={handleDownloadPDF}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">
             <Download className="h-4 w-4" /> Download
           </button>
           {!isCancelled && (
             <>
               <button onClick={() => navigate(`/billing/invoices/${id}/edit`)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-600 text-white text-sm hover:bg-amber-700">
                 <Edit2 className="h-4 w-4" /> Edit
               </button>
               <button onClick={handleCancel}
@@ -119,11 +119,11 @@ export default function InvoiceDetail() {
         <div className="space-y-4">
 
           {/* Customer */}
-          <div className="bg-white rounded-xl border border-blue-200 p-4 shadow-sm">
-            <h3 className="text-xs font-bold text-blue-500 uppercase tracking-wide mb-3">Customer</h3>
-            <p className="font-semibold text-gray-800">{inv.customer_name || 'Walk-in'}</p>
-            {inv.customer_phone && <p className="text-sm text-gray-500 mt-1">{inv.customer_phone}</p>}
-            {inv.customer?.email  && <p className="text-sm text-gray-500">{inv.customer.email}</p>}
+          <div className="bg-white rounded-xl border border-amber-200 p-4 shadow-sm">
+            <h3 className="text-xs font-bold text-amber-500 uppercase tracking-wide mb-3">Customer</h3>
+            <p className="font-semibold text-slate-800">{inv.customer_name || 'Walk-in'}</p>
+            {inv.customer_phone && <p className="text-sm text-slate-500 mt-1">{inv.customer_phone}</p>}
+            {inv.customer?.email  && <p className="text-sm text-slate-500">{inv.customer.email}</p>}
             {inv.billing_address  && <p className="text-xs text-gray-400 mt-1">{inv.billing_address}</p>}
           </div>
 
@@ -133,11 +133,11 @@ export default function InvoiceDetail() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Mode</span>
-                <span className="font-semibold text-gray-800 uppercase">{inv.payment_mode || '—'}</span>
+                <span className="font-semibold text-slate-800 uppercase">{inv.payment_mode || '—'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Status</span>
-                <span className="font-semibold text-gray-800 capitalize">{inv.payment_status || '—'}</span>
+                <span className="font-semibold text-slate-800 capitalize">{inv.payment_status || '—'}</span>
               </div>
               {/* Payment reference details from Payment record */}
               {(() => {
@@ -150,7 +150,7 @@ export default function InvoiceDetail() {
                         <span className="text-gray-500">
                           {inv.payment_mode === 'card' ? 'Card No.' : inv.payment_mode === 'cheque' ? 'Cheque No.' : 'Ref No.'}
                         </span>
-                        <span className="font-medium text-gray-800">{p.reference_no}</span>
+                        <span className="font-medium text-slate-800">{p.reference_no}</span>
                       </div>
                     )}
                     {p.bank_name && (
@@ -158,19 +158,19 @@ export default function InvoiceDetail() {
                         <span className="text-gray-500">
                           {inv.payment_mode === 'online' ? 'UPI App' : 'Bank'}
                         </span>
-                        <span className="font-medium text-gray-800">{p.bank_name}</span>
+                        <span className="font-medium text-slate-800">{p.bank_name}</span>
                       </div>
                     )}
                     {p.cheque_date && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Cheque Date</span>
-                        <span className="font-medium text-gray-800">{p.cheque_date}</span>
+                        <span className="font-medium text-slate-800">{p.cheque_date}</span>
                       </div>
                     )}
                     {p.notes && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Notes</span>
-                        <span className="text-gray-700 text-xs max-w-[120px] text-right">{p.notes}</span>
+                        <span className="text-slate-700 text-xs max-w-[120px] text-right">{p.notes}</span>
                       </div>
                     )}
                   </>
@@ -207,7 +207,7 @@ export default function InvoiceDetail() {
                   <span className="font-medium">−{formatCurrency(discount)}</span>
                 </div>
               )}
-              <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-gray-900">
+              <div className="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-800">
                 <span>Grand Total</span>
                 <span className="text-green-700 text-base">{formatCurrency(grandTotal)}</span>
               </div>
@@ -217,7 +217,7 @@ export default function InvoiceDetail() {
                     <span>Previous Balance</span>
                     <span>+{formatCurrency(prevBalance)}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-gray-900 border-t border-dashed border-gray-200 pt-1">
+                  <div className="flex justify-between font-bold text-slate-800 border-t border-dashed border-slate-200 pt-1">
                     <span>Net Payable</span>
                     <span className="text-orange-700">{formatCurrency(netPayable)}</span>
                   </div>
@@ -237,13 +237,13 @@ export default function InvoiceDetail() {
 
         {/* Right col: items table */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-blue-900 px-4 py-3">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-slate-800 px-4 py-3">
               <h3 className="text-sm font-bold text-white">Items ({items.length})</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-blue-50 text-xs text-blue-700 uppercase">
+                <thead className="bg-slate-50 text-xs text-slate-700 uppercase">
                   <tr>
                     <th className="px-4 py-2 text-left">#</th>
                     <th className="px-4 py-2 text-left">Product</th>
@@ -254,18 +254,18 @@ export default function InvoiceDetail() {
                     <th className="px-4 py-2 text-right">Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-slate-100">
                   {items.length === 0 ? (
                     <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No items</td></tr>
                   ) : items.map((item, i) => (
-                    <tr key={item.id || i} className="hover:bg-gray-50">
+                    <tr key={item.id || i} className="hover:bg-slate-50">
                       <td className="px-4 py-3 text-gray-400 text-xs">{i + 1}</td>
-                      <td className="px-4 py-3 font-medium text-gray-800">{item.product_name || '—'}</td>
+                      <td className="px-4 py-3 font-medium text-slate-800">{item.product_name || '—'}</td>
                       <td className="px-4 py-3 text-right text-gray-500">{formatCurrency(item.mrp || 0)}</td>
-                      <td className="px-4 py-3 text-right text-gray-700">{formatCurrency(item.unit_price || 0)}</td>
-                      <td className="px-4 py-3 text-right text-gray-700">{parseFloat(item.quantity || 0)}</td>
+                      <td className="px-4 py-3 text-right text-slate-700">{formatCurrency(item.unit_price || 0)}</td>
+                      <td className="px-4 py-3 text-right text-slate-700">{parseFloat(item.quantity || 0)}</td>
                       <td className="px-4 py-3 text-right text-yellow-700">{item.tax_rate || 0}%</td>
-                      <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(item.total || 0)}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurrency(item.total || 0)}</td>
                     </tr>
                   ))}
                 </tbody>

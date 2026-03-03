@@ -147,27 +147,27 @@ export default function CreatePurchase() {
       <div className="flex items-center gap-4">
         <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-gray-100"><ArrowLeft className="h-5 w-5 text-gray-600" /></button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Purchase' : 'New Purchase Bill'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Record supplier invoice</p>
+          <h1 className="text-2xl font-bold text-slate-800">{isEdit ? 'Edit Purchase' : 'New Purchase Bill'}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Record supplier invoice</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Supplier</label>
             <div className="relative">
               <input type="text"
                 value={selectedSupplier ? selectedSupplier.name : supplierSearch}
                 onChange={(e) => { setSupplierSearch(e.target.value); setSelectedSupplier(null); setShowSupplierDrop(true) }}
                 onFocus={() => setShowSupplierDrop(true)}
                 placeholder="Search supplier..."
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
               {showSupplierDrop && filteredSuppliers.length > 0 && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-30 max-h-48 overflow-y-auto mt-1">
+                <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-30 max-h-48 overflow-y-auto mt-1">
                   {filteredSuppliers.map((s) => (
                     <button key={s.id} onClick={() => { setSelectedSupplier(s); setShowSupplierDrop(false); setSupplierSearch('') }}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm">
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50 text-sm">
                       <p className="font-medium">{s.name}</p>
                       <p className="text-xs text-gray-400">{s.phone} {s.gstin ? `· ${s.gstin}` : ''}</p>
                     </button>
@@ -177,30 +177,30 @@ export default function CreatePurchase() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bill No</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Bill No</label>
             <input value={billNo} onChange={(e) => setBillNo(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
               placeholder="Supplier's bill number" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bill Date</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Bill Date</label>
             <input type="date" value={billDate} onChange={(e) => setBillDate(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
             <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           </div>
         </div>
       </div>
 
       {/* Items */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100"><h2 className="font-semibold text-gray-900">Items</h2></div>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-4 border-b border-slate-100"><h2 className="font-semibold text-slate-800">Items</h2></div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+            <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
               <tr>
                 <th className="px-3 py-2.5 text-left w-44">Product</th>
                 <th className="px-3 py-2.5 text-left w-20">HSN</th>
@@ -218,7 +218,7 @@ export default function CreatePurchase() {
             </thead>
             <tbody>
               {items.map((item, idx) => (
-                <tr key={item._id} className="border-b">
+                <tr key={item._id} className="border-b border-slate-100">
                   <td className="px-3 py-2">
                     <div className="relative">
                       <input
@@ -226,11 +226,11 @@ export default function CreatePurchase() {
                         onChange={(e) => { setProductSearch(e.target.value); setActiveItemSearch(idx) }}
                         onFocus={() => setActiveItemSearch(idx)}
                         placeholder="Search..."
-                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" />
                       {activeItemSearch === idx && productSearch && filteredProducts.length > 0 && (
-                        <div className="absolute top-full left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-30 max-h-40 overflow-y-auto min-w-[180px]">
+                        <div className="absolute top-full left-0 bg-white border border-slate-200 rounded-lg shadow-lg z-30 max-h-40 overflow-y-auto min-w-[180px]">
                           {filteredProducts.map((p) => (
-                            <button key={p.id} onClick={() => selectProduct(idx, p)} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs">
+                            <button key={p.id} onClick={() => selectProduct(idx, p)} className="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs">
                               <p className="font-medium">{p.name}</p>
                               <p className="text-gray-400">₹{p.purchase_price}</p>
                             </button>
@@ -239,20 +239,20 @@ export default function CreatePurchase() {
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-2"><input value={item.hsn_code} onChange={(e) => updateItem(idx, 'hsn_code', e.target.value)} className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" /></td>
-                  <td className="px-3 py-2"><input type="number" min="1" value={item.qty} onChange={(e) => updateItem(idx, 'qty', parseFloat(e.target.value) || 1)} className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-500" /></td>
-                  <td className="px-3 py-2"><input type="number" min="0" step="0.01" value={item.price} onChange={(e) => updateItem(idx, 'price', parseFloat(e.target.value) || 0)} className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-500" /></td>
-                  <td className="px-3 py-2"><input type="number" min="0" max="100" value={item.discount_pct} onChange={(e) => updateItem(idx, 'discount_pct', parseFloat(e.target.value) || 0)} className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-500" /></td>
+                  <td className="px-3 py-2"><input value={item.hsn_code} onChange={(e) => updateItem(idx, 'hsn_code', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
+                  <td className="px-3 py-2"><input type="number" min="1" value={item.qty} onChange={(e) => updateItem(idx, 'qty', parseFloat(e.target.value) || 1)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
+                  <td className="px-3 py-2"><input type="number" min="0" step="0.01" value={item.price} onChange={(e) => updateItem(idx, 'price', parseFloat(e.target.value) || 0)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
+                  <td className="px-3 py-2"><input type="number" min="0" max="100" value={item.discount_pct} onChange={(e) => updateItem(idx, 'discount_pct', parseFloat(e.target.value) || 0)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
                   <td className="px-3 py-2">
-                    <select value={item.tax_rate} onChange={(e) => updateItem(idx, 'tax_rate', parseFloat(e.target.value))} className="w-full border border-gray-200 rounded px-1 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <select value={item.tax_rate} onChange={(e) => updateItem(idx, 'tax_rate', parseFloat(e.target.value))} className="w-full border border-slate-200 rounded px-1 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500">
                       {TAX_RATES.map((r) => <option key={r} value={r}>{r}%</option>)}
                     </select>
                   </td>
-                  <td className="px-3 py-2 text-right text-xs text-gray-600">{(item.cgst || 0).toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right text-xs text-gray-600">{(item.sgst || 0).toFixed(2)}</td>
-                  <td className="px-3 py-2"><input value={item.batch_no} onChange={(e) => updateItem(idx, 'batch_no', e.target.value)} className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Batch" /></td>
-                  <td className="px-3 py-2"><input type="date" value={item.expiry_date} onChange={(e) => updateItem(idx, 'expiry_date', e.target.value)} className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" /></td>
-                  <td className="px-3 py-2 text-right font-medium text-gray-900 text-xs">{(item.total || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right text-xs text-slate-600">{(item.cgst || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right text-xs text-slate-600">{(item.sgst || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2"><input value={item.batch_no} onChange={(e) => updateItem(idx, 'batch_no', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" placeholder="Batch" /></td>
+                  <td className="px-3 py-2"><input type="date" value={item.expiry_date} onChange={(e) => updateItem(idx, 'expiry_date', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
+                  <td className="px-3 py-2 text-right font-medium text-slate-800 text-xs">{(item.total || 0).toFixed(2)}</td>
                   <td className="px-3 py-2">
                     {items.length > 1 && <button onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))} className="p-1 hover:bg-red-50 text-gray-300 hover:text-red-500 rounded"><Trash2 className="h-3.5 w-3.5" /></button>}
                   </td>
@@ -261,8 +261,8 @@ export default function CreatePurchase() {
             </tbody>
           </table>
         </div>
-        <div className="p-3 border-t border-gray-100">
-          <button onClick={() => setItems((prev) => [...prev, newItem()])} className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1.5 font-medium">
+        <div className="p-3 border-t border-slate-100">
+          <button onClick={() => setItems((prev) => [...prev, newItem()])} className="text-sm text-amber-600 hover:text-amber-700 flex items-center gap-1.5 font-medium">
             <Plus className="h-4 w-4" /> Add Item
           </button>
         </div>
@@ -270,8 +270,8 @@ export default function CreatePurchase() {
 
       {/* Summary + Payment */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 space-y-2">
-          <h2 className="font-semibold text-gray-900 mb-3">Summary</h2>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 space-y-2">
+          <h2 className="font-semibold text-slate-800 mb-3">Summary</h2>
           {[
             { label: 'Subtotal', value: totals.subtotal },
             { label: 'Discount', value: totals.discount, color: 'text-red-600' },
@@ -280,43 +280,43 @@ export default function CreatePurchase() {
             { label: 'SGST', value: totals.sgst },
           ].map(({ label, value, color, bold }) => (
             <div key={label} className="flex justify-between text-sm">
-              <span className="text-gray-500">{label}</span>
-              <span className={`font-${bold ? 'semibold' : 'medium'} ${color || 'text-gray-900'}`}>{formatCurrency(value)}</span>
+              <span className="text-slate-500">{label}</span>
+              <span className={`font-${bold ? 'semibold' : 'medium'} ${color || 'text-slate-800'}`}>{formatCurrency(value)}</span>
             </div>
           ))}
           <div className="flex justify-between text-sm items-center">
-            <span className="text-gray-500">Shipping</span>
+            <span className="text-slate-500">Shipping</span>
             <input type="number" min="0" value={shipping} onChange={(e) => setShipping(parseFloat(e.target.value) || 0)}
-              className="w-24 border border-gray-200 rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              className="w-24 border border-slate-200 rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" />
           </div>
-          <div className="border-t border-gray-100 pt-2 flex justify-between font-bold">
+          <div className="border-t border-slate-100 pt-2 flex justify-between font-bold">
             <span>Grand Total</span>
-            <span className="text-xl text-blue-600">{formatCurrency(grandTotal)}</span>
+            <span className="text-xl text-amber-600">{formatCurrency(grandTotal)}</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 space-y-3">
-          <h2 className="font-semibold text-gray-900">Payment</h2>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 space-y-3">
+          <h2 className="font-semibold text-slate-800">Payment</h2>
           <div>
-            <label className="block text-sm text-gray-500 mb-1">Payment Mode</label>
+            <label className="block text-sm text-slate-500 mb-1">Payment Mode</label>
             <select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
               {PAYMENT_MODES.map((m) => <option key={m} value={m}>{m.toUpperCase()}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-500 mb-1">Paid Amount</label>
+            <label className="block text-sm text-slate-500 mb-1">Paid Amount</label>
             <input type="number" min="0" value={paidAmount} onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           </div>
           <div className="flex justify-between text-sm font-semibold">
             <span>Balance Payable</span>
             <span className={balance > 0 ? 'text-red-600' : 'text-green-600'}>{formatCurrency(balance)}</span>
           </div>
           <div>
-            <label className="block text-sm text-gray-500 mb-1">Notes</label>
+            <label className="block text-sm text-slate-500 mb-1">Notes</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Internal notes..." />
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" placeholder="Internal notes..." />
           </div>
         </div>
       </div>
@@ -324,7 +324,7 @@ export default function CreatePurchase() {
       <div className="flex justify-end gap-3">
         <button onClick={() => navigate(-1)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
         <button onClick={handleSave} disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-60">
+          className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-60">
           {saving ? <LoadingSpinner size="sm" /> : <Save className="h-4 w-4" />}
           {isEdit ? 'Update Purchase' : 'Save Purchase'}
         </button>

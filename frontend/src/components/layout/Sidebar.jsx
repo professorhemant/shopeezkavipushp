@@ -13,69 +13,45 @@ import {
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 
-// ─── Menu structure (matches kavipushp.shoppeez.com) ─────────────
 const MENU = [
+  { id: 'dashboard', label: 'Dashboard',         icon: LayoutDashboard, path: '/dashboard' },
+  { id: 'customers', label: 'Customers',          icon: Users,           path: '/customers' },
+  { id: 'invoices',  label: 'Invoices',           icon: Receipt,         path: '/billing/invoices' },
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    path: '/dashboard',
-  },
-  {
-    id: 'customers',
-    label: 'Customers',
-    icon: Users,
-    path: '/customers',
-  },
-  {
-    id: 'invoices',
-    label: 'Invoices',
-    icon: Receipt,
-    path: '/billing/invoices',
-  },
-  {
-    id: 'sales',
-    label: 'Sales',
-    icon: TrendingUp,
+    id: 'sales', label: 'Sales', icon: TrendingUp,
     children: [
-      { label: 'Estimates',         path: '/billing/invoices',       icon: FileText,     noActive: true },
-      { label: 'Credit Notes',      path: '/billing/credit-notes',   icon: CreditCard },
-      { label: 'Job Cards',         path: '/billing/pos',            icon: ClipboardList },
-      { label: 'Delivery Chalans',  path: '/billing/eway-bills',     icon: Truck },
-      { label: 'Fast Bills',        path: '/billing/pos',            icon: Zap,          noActive: true },
+      { label: 'Estimates',        path: '/billing/invoices',     icon: FileText,     noActive: true },
+      { label: 'Credit Notes',     path: '/billing/credit-notes', icon: CreditCard },
+      { label: 'Job Cards',        path: '/billing/pos',          icon: ClipboardList },
+      { label: 'Delivery Chalans', path: '/billing/eway-bills',   icon: Truck },
+      { label: 'Fast Bills',       path: '/billing/pos',          icon: Zap,          noActive: true },
     ],
   },
   {
-    id: 'inventory',
-    label: 'Inventory',
-    icon: Package,
+    id: 'inventory', label: 'Inventory', icon: Package,
     children: [
       { label: 'Products',          path: '/inventory/products',   icon: Boxes },
       { label: 'Expiring Products', path: '/inventory/alerts',     icon: AlertTriangle },
-      { label: 'Variant Options',   path: '/inventory/products',   icon: Layers,      noActive: true },
+      { label: 'Variant Options',   path: '/inventory/products',   icon: Layers,       noActive: true },
       { label: 'Categories',        path: '/inventory/categories', icon: Tag },
       { label: 'Brands',            path: '/inventory/brands',     icon: BookOpen },
       { label: 'Units',             path: '/inventory/units',      icon: Clipboard },
-      { label: 'Racks',             path: '/inventory/products',   icon: Warehouse,   noActive: true },
-      { label: 'Warehouses',        path: '/inventory/products',   icon: Warehouse,   noActive: true },
-      { label: 'Catalogues',        path: '/inventory/products',   icon: BookOpen,    noActive: true },
+      { label: 'Racks',             path: '/inventory/products',   icon: Warehouse,    noActive: true },
+      { label: 'Warehouses',        path: '/inventory/products',   icon: Warehouse,    noActive: true },
+      { label: 'Catalogues',        path: '/inventory/products',   icon: BookOpen,     noActive: true },
       { label: 'Stock Audits',      path: '/inventory/alerts',     icon: ClipboardList, noActive: true },
-      { label: 'Mfg Dashboard',     path: '/dashboard',            icon: Factory,     noActive: true },
+      { label: 'Mfg Dashboard',     path: '/dashboard',            icon: Factory,      noActive: true },
     ],
   },
   {
-    id: 'purchase',
-    label: 'Purchase',
-    icon: ShoppingCart,
+    id: 'purchase', label: 'Purchase', icon: ShoppingCart,
     children: [
       { label: 'Purchase Invoices', path: '/purchases',        icon: FileText },
       { label: 'Purchase Orders',   path: '/purchases/orders', icon: Clipboard },
     ],
   },
   {
-    id: 'accounting',
-    label: 'Bank & Cash Account',
-    icon: Landmark,
+    id: 'accounting', label: 'Bank & Cash Account', icon: Landmark,
     children: [
       { label: 'Receivables',   path: '/accounting/receivables',   icon: TrendingUp },
       { label: 'Payables',      path: '/accounting/payables',      icon: DollarSign },
@@ -86,41 +62,34 @@ const MENU = [
     ],
   },
   {
-    id: 'rental',
-    label: 'Rental Module',
-    icon: Store,
+    id: 'rental', label: 'Rental Module', icon: Store,
     children: [
-      { label: 'Appointments',  path: '/appointments',        icon: Calendar },
-      { label: 'WhatsApp',      path: '/whatsapp/campaigns',  icon: MessageSquare },
+      { label: 'Appointments', path: '/appointments',       icon: Calendar },
+      { label: 'WhatsApp',     path: '/whatsapp/campaigns', icon: MessageSquare },
     ],
   },
   {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
+    id: 'settings', label: 'Settings', icon: Settings,
     children: [
-      { label: 'Company Settings',    path: '/settings',         icon: Building2 },
-      { label: 'My Profile',          path: '/settings/profile', icon: UserCog },
-      { label: 'Staff',               path: '/staff',            icon: Users },
-      { label: 'Roles & Permissions', path: '/staff/roles',      icon: Shield },
-      { label: 'Barcode Generator',   path: '/tools/barcode',    icon: ScanBarcode },
+      { label: 'Company Settings',    path: '/settings',             icon: Building2 },
+      { label: 'My Profile',          path: '/settings/profile',     icon: UserCog },
+      { label: 'Staff',               path: '/staff',                icon: Users },
+      { label: 'Roles & Permissions', path: '/staff/roles',          icon: Shield },
+      { label: 'Barcode Generator',   path: '/tools/barcode',        icon: ScanBarcode },
       { label: 'GST Calculator',      path: '/tools/gst-calculator', icon: Calculator },
     ],
   },
   {
-    id: 'shipping',
-    label: 'Shipping Settings',
-    icon: Truck,
+    id: 'shipping', label: 'Shipping Settings', icon: Truck,
     children: [
-      { label: 'Reports',           path: '/reports/sales',      icon: BarChart2 },
-      { label: 'Purchase Report',   path: '/reports/purchases',  icon: ShoppingCart },
-      { label: 'GST Report',        path: '/reports/gst',        icon: FileSpreadsheet },
-      { label: 'Analytics',         path: '/reports/analytics',  icon: PieChart },
+      { label: 'Reports',         path: '/reports/sales',     icon: BarChart2 },
+      { label: 'Purchase Report', path: '/reports/purchases', icon: ShoppingCart },
+      { label: 'GST Report',      path: '/reports/gst',       icon: FileSpreadsheet },
+      { label: 'Analytics',       path: '/reports/analytics', icon: PieChart },
     ],
   },
 ]
 
-// ─── Single menu item ─────────────────────────────────────────────
 function MenuItem({ item }) {
   const location = useLocation()
 
@@ -129,44 +98,41 @@ function MenuItem({ item }) {
   )
 
   const [expanded, setExpanded] = useState(() => hasActiveChild ?? false)
-
   const Icon = item.icon
 
-  // Leaf item (no children)
   if (!item.children) {
     return (
       <NavLink
         to={item.path}
         className={({ isActive }) =>
-          `flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-b border-white/5 ${
+          `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors border-l-2 ${
             isActive
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-200 hover:bg-white/10 hover:text-white'
+              ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+              : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200'
           }`
         }
       >
-        <Icon className="h-[18px] w-[18px] shrink-0" />
+        <Icon className="h-[17px] w-[17px] shrink-0" />
         <span className="truncate">{item.label}</span>
       </NavLink>
     )
   }
 
-  // Parent item (has children)
   return (
     <div>
       <button
         onClick={() => setExpanded((v) => !v)}
-        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-b border-white/5 ${
+        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors border-l-2 ${
           hasActiveChild
-            ? 'bg-blue-700/60 text-white'
-            : 'text-gray-200 hover:bg-white/10 hover:text-white'
+            ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+            : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200'
         }`}
       >
-        <Icon className="h-[18px] w-[18px] shrink-0" />
+        <Icon className="h-[17px] w-[17px] shrink-0" />
         <span className="flex-1 text-left truncate">{item.label}</span>
         {expanded
-          ? <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
-          : <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+          ? <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+          : <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" />
         }
       </button>
 
@@ -177,17 +143,18 @@ function MenuItem({ item }) {
               location.pathname === child.path ||
               location.pathname.startsWith(child.path + '/')
             )
+            const ChildIcon = child.icon
             return (
               <NavLink
-                key={child.path}
+                key={child.path + child.label}
                 to={child.path}
-                className={`flex items-center gap-3 pl-10 pr-4 py-2.5 text-sm border-b border-white/5 transition-colors ${
+                className={`flex items-center gap-3 pl-9 pr-4 py-2 text-xs border-l-2 transition-colors ${
                   isActive
-                    ? 'bg-blue-600 text-white font-medium'
-                    : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                    ? 'border-amber-500 bg-amber-500/10 text-amber-400 font-medium'
+                    : 'border-transparent text-slate-500 hover:bg-white/5 hover:text-slate-300'
                 }`}
               >
-                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                <ChildIcon className="h-3.5 w-3.5 shrink-0 opacity-70" />
                 <span className="truncate">{child.label}</span>
               </NavLink>
             )
@@ -198,65 +165,61 @@ function MenuItem({ item }) {
   )
 }
 
-// ─── Sidebar component ────────────────────────────────────────────
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const { firm, user } = useAuthStore()
   const navigate = useNavigate()
 
   const SidebarContent = ({ onClose }) => (
-    <div className="flex flex-col h-full" style={{ background: '#0f2238' }}>
-      {/* Logo / Brand */}
-      <div className="flex items-center justify-between px-4 h-16 shrink-0 border-b border-white/10">
+    <div className="flex flex-col h-full bg-slate-900">
+      {/* Logo */}
+      <div className="flex items-center justify-between px-4 h-16 shrink-0 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-500 flex items-center justify-center text-white font-bold text-base shrink-0">
-            {(firm?.name || 'S').charAt(0).toUpperCase()}
+          <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+            {(firm?.name || 'K').charAt(0).toUpperCase()}
           </div>
           <div className="overflow-hidden">
             <p className="font-bold text-white truncate text-sm leading-tight">
-              {firm?.name || 'Shopeezkavipushp'}
+              {firm?.name || 'Kavipushp Jewels'}
             </p>
-            <p className="text-xs text-blue-300 truncate">Admin Panel</p>
+            <p className="text-xs text-slate-500 truncate">Admin Panel</p>
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 lg:hidden">
-            <X className="h-5 w-5" />
+          <button onClick={onClose} className="p-1 rounded text-slate-500 hover:text-white hover:bg-white/10 lg:hidden">
+            <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto">
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-2">
         {MENU.map((item) => (
           <MenuItem key={item.id} item={item} />
         ))}
       </nav>
 
-      {/* Bottom: firm/user info */}
+      {/* User info */}
       <div
-        className="flex items-center gap-3 px-4 py-3 border-t border-white/10 shrink-0 cursor-pointer hover:bg-white/10 transition-colors"
+        className="flex items-center gap-3 px-4 py-3 border-t border-slate-800 shrink-0 cursor-pointer hover:bg-white/5 transition-colors"
         onClick={() => navigate('/settings/profile')}
       >
-        <div className="w-8 h-8 rounded-full bg-blue-500/40 flex items-center justify-center shrink-0">
-          <User className="h-4 w-4 text-white" />
+        <div className="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+          <User className="h-3.5 w-3.5 text-amber-400" />
         </div>
         <div className="flex-1 overflow-hidden">
-          <p className="text-sm font-medium text-white truncate">{firm?.name || 'My Firm'}</p>
-          <p className="text-xs text-gray-400 truncate">{user?.email || ''}</p>
+          <p className="text-xs font-medium text-slate-200 truncate">{firm?.name || 'My Firm'}</p>
+          <p className="text-xs text-slate-500 truncate">{user?.email || ''}</p>
         </div>
-        <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
+        <ChevronDown className="h-3.5 w-3.5 text-slate-500 shrink-0" />
       </div>
     </div>
   )
 
   return (
     <>
-      {/* Desktop sidebar — always visible */}
       <aside className="fixed top-0 left-0 h-full w-64 z-30 hidden lg:flex flex-col">
         <SidebarContent />
       </aside>
-
-      {/* Mobile sidebar */}
       <aside className={`fixed top-0 left-0 h-full w-72 z-50 flex flex-col transition-transform duration-300 lg:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <SidebarContent onClose={onMobileClose} />
       </aside>

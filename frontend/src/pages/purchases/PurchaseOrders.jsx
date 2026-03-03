@@ -48,24 +48,24 @@ export default function PurchaseOrders() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Purchase Orders</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{summary.count} orders</p>
+          <h1 className="text-2xl font-bold text-slate-800">Purchase Orders</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{summary.count} orders</p>
         </div>
-        <Link to="/purchases/create" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+        <Link to="/purchases/create" className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
           <Plus className="h-4 w-4" /> New Order
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input type="text" placeholder="Search order no, supplier..." value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           </div>
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
             <option value="">All Status</option>
             <option value="pending">Pending</option>
             <option value="received">Received</option>
@@ -75,19 +75,19 @@ export default function PurchaseOrders() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
         ) : orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <FileText className="h-12 w-12 mb-3 text-gray-300" />
-            <p className="text-base font-medium text-gray-500">No purchase orders found</p>
-            <Link to="/purchases/create" className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Create First Order</Link>
+            <p className="text-base font-medium text-slate-500">No purchase orders found</p>
+            <Link to="/purchases/create" className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Create First Order</Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+              <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Order No</th>
                   <th className="px-4 py-3 text-left">Date</th>
@@ -100,12 +100,12 @@ export default function PurchaseOrders() {
               </thead>
               <tbody>
                 {orders.map((o) => (
-                  <tr key={o.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-blue-600">{o.bill_no || o.order_no || `PO-${o.id}`}</td>
-                    <td className="px-4 py-3 text-gray-600">{formatDate(o.bill_date || o.date)}</td>
-                    <td className="px-4 py-3 text-gray-900">{o.supplier_name || o.supplier?.name || '-'}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{o.items_count ?? '-'}</td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-900">{formatCurrency(o.total_amount)}</td>
+                  <tr key={o.id} className="border-b hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-amber-600">{o.bill_no || o.order_no || `PO-${o.id}`}</td>
+                    <td className="px-4 py-3 text-slate-600">{formatDate(o.bill_date || o.date)}</td>
+                    <td className="px-4 py-3 text-slate-800">{o.supplier_name || o.supplier?.name || '-'}</td>
+                    <td className="px-4 py-3 text-right text-slate-600">{o.items_count ?? '-'}</td>
+                    <td className="px-4 py-3 text-right font-medium text-slate-800">{formatCurrency(o.total_amount)}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                         o.status === 'received' ? 'bg-green-100 text-green-800' :
@@ -117,7 +117,7 @@ export default function PurchaseOrders() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1.5">
                         <button onClick={() => navigate(`/purchases/${o.id}/edit`)}
-                          className="p-1.5 rounded-lg hover:bg-violet-50 text-gray-400 hover:text-violet-600"><Edit2 className="h-4 w-4" /></button>
+                          className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
                         {o.status !== 'cancelled' && (
                           <button onClick={() => handleCancel(o.id)}
                             className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><XCircle className="h-4 w-4" /></button>
@@ -132,11 +132,11 @@ export default function PurchaseOrders() {
         )}
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-            <p className="text-sm text-gray-500">Page {page} of {totalPages}</p>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+            <p className="text-sm text-slate-500">Page {page} of {totalPages}</p>
             <div className="flex gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50"><ChevronLeft className="h-4 w-4" /></button>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50"><ChevronRight className="h-4 w-4" /></button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronLeft className="h-4 w-4" /></button>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronRight className="h-4 w-4" /></button>
             </div>
           </div>
         )}

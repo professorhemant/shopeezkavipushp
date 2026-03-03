@@ -27,9 +27,9 @@ export default function Modal({ open, onClose, title, children, size = 'md', foo
         sizes[size]
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h3 className="text-base font-semibold text-slate-800">{title}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -41,7 +41,7 @@ export default function Modal({ open, onClose, title, children, size = 'md', foo
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3">
             {footer}
           </div>
         )}

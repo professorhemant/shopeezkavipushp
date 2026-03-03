@@ -46,10 +46,10 @@ export default function Settings() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Configure your application preferences</p>
+          <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Configure your application preferences</p>
         </div>
-        <button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+        <button onClick={handleSave} disabled={saving} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50">
           <Save className="h-4 w-4" />{saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
@@ -57,9 +57,9 @@ export default function Settings() {
       <div className="flex gap-6">
         {/* Sidebar Tabs */}
         <div className="w-48 flex-shrink-0">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
             {TABS.map(({ key, label, icon: Icon }) => (
-              <button key={key} onClick={() => setActiveTab(key)} className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left ${activeTab === key ? 'bg-blue-50 text-blue-700 font-medium border-l-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button key={key} onClick={() => setActiveTab(key)} className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left ${activeTab === key ? 'bg-amber-50 text-amber-700 font-medium border-l-2 border-amber-600' : 'text-slate-600 hover:bg-slate-50'}`}>
                 <Icon className="h-4 w-4 flex-shrink-0" />
                 {label}
               </button>
@@ -68,10 +68,10 @@ export default function Settings() {
         </div>
 
         {/* Settings Panel */}
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
           {activeTab === 'general' && (
             <div className="space-y-6">
-              <h2 className="text-base font-semibold text-gray-900">General Settings</h2>
+              <h2 className="text-base font-semibold text-slate-800">General Settings</h2>
               <div className="grid grid-cols-2 gap-4">
                 <Setting label="Business Name" value={s.business_name} onChange={(v) => updateSetting('business_name', v)} />
                 <Setting label="Currency Symbol" value={s.currency_symbol || '₹'} onChange={(v) => updateSetting('currency_symbol', v)} />
@@ -85,7 +85,7 @@ export default function Settings() {
 
           {activeTab === 'invoice' && (
             <div className="space-y-6">
-              <h2 className="text-base font-semibold text-gray-900">Invoice Settings</h2>
+              <h2 className="text-base font-semibold text-slate-800">Invoice Settings</h2>
               <div className="grid grid-cols-2 gap-4">
                 <Setting label="Invoice Prefix" value={s.invoice_prefix || 'INV'} onChange={(v) => updateSetting('invoice_prefix', v)} />
                 <Setting label="Invoice Start Number" value={s.invoice_start_no || '1001'} onChange={(v) => updateSetting('invoice_start_no', v)} />
@@ -93,30 +93,30 @@ export default function Settings() {
                 <Setting label="Invoice Theme" value={s.invoice_theme || 'default'} onChange={(v) => updateSetting('invoice_theme', v)} as="select" options={['default', 'modern', 'classic', 'minimal']} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Invoice Footer Text</label>
-                <textarea value={s.invoice_footer || ''} onChange={(e) => updateSetting('invoice_footer', e.target.value)} rows={3} placeholder="Thank you for your business!" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="block text-xs font-medium text-slate-700 mb-1">Invoice Footer Text</label>
+                <textarea value={s.invoice_footer || ''} onChange={(e) => updateSetting('invoice_footer', e.target.value)} rows={3} placeholder="Thank you for your business!" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Terms & Conditions</label>
-                <textarea value={s.invoice_terms || ''} onChange={(e) => updateSetting('invoice_terms', e.target.value)} rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="block text-xs font-medium text-slate-700 mb-1">Terms & Conditions</label>
+                <textarea value={s.invoice_terms || ''} onChange={(e) => updateSetting('invoice_terms', e.target.value)} rows={3} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
               </div>
             </div>
           )}
 
           {activeTab === 'tax' && (
             <div className="space-y-6">
-              <h2 className="text-base font-semibold text-gray-900">Tax & GST Settings</h2>
+              <h2 className="text-base font-semibold text-slate-800">Tax & GST Settings</h2>
               <div className="grid grid-cols-2 gap-4">
                 <Setting label="GSTIN" value={s.gstin || ''} onChange={(v) => updateSetting('gstin', v)} mono />
                 <Setting label="State" value={s.state || ''} onChange={(v) => updateSetting('state', v)} />
                 <Setting label="Default GST Rate (%)" value={s.default_gst_rate || '18'} onChange={(v) => updateSetting('default_gst_rate', v)} as="select" options={['0', '5', '12', '18', '28']} />
                 <div className="flex items-center gap-3 col-span-2">
-                  <input type="checkbox" id="tcs" checked={!!s.enable_tcs} onChange={(e) => updateSetting('enable_tcs', e.target.checked)} className="rounded text-blue-600" />
-                  <label htmlFor="tcs" className="text-sm text-gray-700">Enable TCS (Tax Collected at Source)</label>
+                  <input type="checkbox" id="tcs" checked={!!s.enable_tcs} onChange={(e) => updateSetting('enable_tcs', e.target.checked)} className="rounded text-amber-600" />
+                  <label htmlFor="tcs" className="text-sm text-slate-700">Enable TCS (Tax Collected at Source)</label>
                 </div>
                 <div className="flex items-center gap-3 col-span-2">
-                  <input type="checkbox" id="tds" checked={!!s.enable_tds} onChange={(e) => updateSetting('enable_tds', e.target.checked)} className="rounded text-blue-600" />
-                  <label htmlFor="tds" className="text-sm text-gray-700">Enable TDS (Tax Deducted at Source)</label>
+                  <input type="checkbox" id="tds" checked={!!s.enable_tds} onChange={(e) => updateSetting('enable_tds', e.target.checked)} className="rounded text-amber-600" />
+                  <label htmlFor="tds" className="text-sm text-slate-700">Enable TDS (Tax Deducted at Source)</label>
                 </div>
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function Settings() {
 
           {activeTab === 'notifications' && (
             <div className="space-y-6">
-              <h2 className="text-base font-semibold text-gray-900">Notification Preferences</h2>
+              <h2 className="text-base font-semibold text-slate-800">Notification Preferences</h2>
               <div className="space-y-4">
                 {[
                   { key: 'notify_low_stock', label: 'Low Stock Alerts', desc: 'Get notified when product stock falls below minimum level' },
@@ -132,11 +132,11 @@ export default function Settings() {
                   { key: 'notify_new_order', label: 'New Order Notifications', desc: 'Alert when new purchase orders are created' },
                   { key: 'notify_daily_summary', label: 'Daily Sales Summary', desc: 'Receive daily sales and revenue report' },
                 ].map((n) => (
-                  <div key={n.key} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-                    <input type="checkbox" id={n.key} checked={!!s[n.key]} onChange={(e) => updateSetting(n.key, e.target.checked)} className="rounded text-blue-600 mt-0.5" />
+                  <div key={n.key} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
+                    <input type="checkbox" id={n.key} checked={!!s[n.key]} onChange={(e) => updateSetting(n.key, e.target.checked)} className="rounded text-amber-600 mt-0.5" />
                     <label htmlFor={n.key} className="flex-1 cursor-pointer">
-                      <p className="text-sm font-medium text-gray-900">{n.label}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{n.desc}</p>
+                      <p className="text-sm font-medium text-slate-800">{n.label}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{n.desc}</p>
                     </label>
                   </div>
                 ))}
@@ -152,13 +152,13 @@ export default function Settings() {
 function Setting({ label, value, onChange, type = 'text', as = 'input', options = [], labels = [], mono = false }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-slate-700 mb-1">{label}</label>
       {as === 'select' ? (
-        <select value={value || ''} onChange={(e) => onChange(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select value={value || ''} onChange={(e) => onChange(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
           {options.map((o, i) => <option key={o} value={o}>{labels[i] || o}</option>)}
         </select>
       ) : (
-        <input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${mono ? 'font-mono' : ''}`} />
+        <input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 ${mono ? 'font-mono' : ''}`} />
       )}
     </div>
   )

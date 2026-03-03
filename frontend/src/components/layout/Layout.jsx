@@ -8,22 +8,19 @@ export default function Layout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar — always visible on desktop */}
+    <div className="flex h-screen bg-slate-100 overflow-hidden">
       <Sidebar
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
 
-      {/* Mobile overlay */}
       {mobileSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
 
-      {/* Main content — always offset by sidebar width on desktop */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
         <Header onMobileMenuClick={() => setMobileSidebarOpen(true)} />
         <QuickNavBar />

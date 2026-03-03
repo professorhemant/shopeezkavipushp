@@ -117,68 +117,68 @@ export default function AddProduct() {
     <div className="space-y-5 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-gray-100">
-          <ArrowLeft className="h-5 w-5 text-gray-600" />
+        <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-slate-100">
+          <ArrowLeft className="h-5 w-5 text-slate-600" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Product' : 'Add Product'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{isEdit ? 'Update product details' : 'Create a new product in inventory'}</p>
+          <h1 className="text-2xl font-bold text-slate-800">{isEdit ? 'Edit Product' : 'Add Product'}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{isEdit ? 'Update product details' : 'Create a new product in inventory'}</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Basic Info */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Package className="h-4 w-4 text-blue-600" /> Basic Information
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+          <h2 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <Package className="h-4 w-4 text-amber-500" /> Basic Information
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Product Name *</label>
               <input
                 {...register('name', { required: 'Name is required' })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                 placeholder="Enter product name"
               />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">SKU</label>
               <input
                 {...register('sku')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                 placeholder="Auto-generate or enter SKU"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Barcode</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Barcode</label>
               <input
                 {...register('barcode')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                 placeholder="Scan or enter barcode"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">HSN Code</label>
               <input
                 {...register('hsn_code')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                 placeholder="e.g. 6109"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select {...register('is_active')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+              <select {...register('is_active')} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                 <option value={true}>Active</option>
                 <option value={false}>Inactive</option>
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
               <textarea
                 {...register('description')}
                 rows={3}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                 placeholder="Product description..."
               />
             </div>
@@ -186,26 +186,26 @@ export default function AddProduct() {
         </div>
 
         {/* Classification */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-900 mb-4">Classification</h2>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+          <h2 className="font-semibold text-slate-800 mb-4">Classification</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select {...register('category_id')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+              <select {...register('category_id')} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                 <option value="">Select Category</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-              <select {...register('brand_id')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Brand</label>
+              <select {...register('brand_id')} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                 <option value="">Select Brand</option>
                 {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-              <select {...register('unit_id')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Unit</label>
+              <select {...register('unit_id')} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                 <option value="">Select Unit</option>
                 {units.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.short_name})</option>)}
               </select>
@@ -214,8 +214,8 @@ export default function AddProduct() {
         </div>
 
         {/* Pricing */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-900 mb-4">Pricing</h2>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+          <h2 className="font-semibold text-slate-800 mb-4">Pricing</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { key: 'purchase_price', label: 'Purchase Price' },
@@ -224,13 +224,13 @@ export default function AddProduct() {
               { key: 'wholesale_price', label: 'Wholesale Price' },
             ].map(({ key, label }) => (
               <div key={key}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₹</span>
                   <input
                     type="number" step="0.01" min="0"
                     {...register(key)}
-                    className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                     placeholder="0.00"
                   />
                 </div>
@@ -240,18 +240,18 @@ export default function AddProduct() {
         </div>
 
         {/* Tax */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-900 mb-4">Tax Settings</h2>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+          <h2 className="font-semibold text-slate-800 mb-4">Tax Settings</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (GST %)</label>
-              <select {...register('tax_rate')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Tax Rate (GST %)</label>
+              <select {...register('tax_rate')} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                 {TAX_RATES.map((r) => <option key={r} value={r}>{r}%</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tax Type</label>
-              <select {...register('tax_type')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Tax Type</label>
+              <select {...register('tax_type')} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                 <option value="exclusive">Exclusive (Tax added on top)</option>
                 <option value="inclusive">Inclusive (Tax included in price)</option>
               </select>
@@ -260,8 +260,8 @@ export default function AddProduct() {
         </div>
 
         {/* Stock */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-900 mb-4">Stock Management</h2>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+          <h2 className="font-semibold text-slate-800 mb-4">Stock Management</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             {[
               { key: 'stock', label: 'Current Stock' },
@@ -270,11 +270,11 @@ export default function AddProduct() {
               { key: 'max_stock', label: 'Max Stock' },
             ].map(({ key, label }) => (
               <div key={key}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
                 <input
                   type="number" min="0"
                   {...register(key)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                 />
               </div>
             ))}
@@ -286,19 +286,19 @@ export default function AddProduct() {
               { key: 'has_variants', label: 'Has Variants (Size/Color)' },
             ].map(({ key, label }) => (
               <label key={key} className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" {...register(key)} className="h-4 w-4 text-blue-600 rounded border-gray-300" />
-                <span className="text-sm text-gray-700">{label}</span>
+                <input type="checkbox" {...register(key)} className="h-4 w-4 text-amber-600 rounded border-gray-300" />
+                <span className="text-sm text-slate-700">{label}</span>
               </label>
             ))}
           </div>
         </div>
 
         {/* Image */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-900 mb-4">Product Image</h2>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+          <h2 className="font-semibold text-slate-800 mb-4">Product Image</h2>
           {imagePreview ? (
             <div className="relative inline-block">
-              <img src={imagePreview} alt="Preview" className="h-40 w-40 rounded-xl object-cover border border-gray-200" />
+              <img src={imagePreview} alt="Preview" className="h-40 w-40 rounded-xl object-cover border border-slate-200" />
               <button
                 type="button"
                 onClick={() => { setImagePreview(null); setImageFile(null) }}
@@ -311,12 +311,12 @@ export default function AddProduct() {
             <div
               {...getRootProps()}
               className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                isDragActive ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                isDragActive ? 'border-amber-400 bg-amber-50' : 'border-slate-200 hover:border-amber-300 hover:bg-slate-50'
               }`}
             >
               <input {...getInputProps()} />
               <ImageIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">Drag & drop image here, or click to select</p>
+              <p className="text-sm text-slate-500">Drag & drop image here, or click to select</p>
               <p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP up to 5MB</p>
             </div>
           )}
@@ -330,7 +330,7 @@ export default function AddProduct() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-60"
+            className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-60"
           >
             {saving ? <LoadingSpinner size="sm" /> : <Save className="h-4 w-4" />}
             {isEdit ? 'Update Product' : 'Create Product'}

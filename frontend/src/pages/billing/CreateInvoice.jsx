@@ -309,7 +309,7 @@ export default function CreateInvoice() {
     <div className="flex flex-col min-h-full pb-16 -m-4 lg:-m-6 bg-white">
 
       {/* ── Row 1: Customer search | Barcode | Action buttons ── */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-blue-200 bg-blue-50/40 flex-wrap">
+      <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-amber-200 bg-amber-50/40 flex-wrap">
 
         {/* Customer search */}
         <div className="relative flex-1 min-w-[180px]">
@@ -320,7 +320,7 @@ export default function CreateInvoice() {
             onFocus={() => setShowCustDrop(true)}
             onBlur={() => setTimeout(() => setShowCustDrop(false), 180)}
             placeholder="Search name, mobile or firm(Alt+c)"
-            className="w-full border-2 border-blue-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 bg-white"
+            className="w-full border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
           />
           {showCustDrop && custResults.length > 0 && (
             <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded shadow-lg z-40 max-h-40 overflow-y-auto">
@@ -339,7 +339,7 @@ export default function CreateInvoice() {
                       })
                       .catch(() => setSelectedCust(c))
                   }}
-                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-blue-50"
+                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50"
                 >
                   <span className="font-medium">{c.name}</span>
                   <span className="text-gray-400 ml-2">{c.mobile || c.phone}</span>
@@ -370,7 +370,7 @@ export default function CreateInvoice() {
 
         {/* Action buttons */}
         <div className="flex items-center gap-1 flex-wrap">
-          <select className="border-2 border-blue-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+          <select className="border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
             <option>Select Ca</option>
             <option>Category 1</option>
           </select>
@@ -382,7 +382,7 @@ export default function CreateInvoice() {
           </button>
           <button
             onClick={() => setOrderType('delivery')}
-            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded ${orderType === 'delivery' ? 'bg-blue-600 text-white' : 'border border-blue-500 text-blue-600 hover:bg-blue-50'}`}
+            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded ${orderType === 'delivery' ? 'bg-amber-600 text-white' : 'border border-amber-500 text-amber-600 hover:bg-amber-50'}`}
           >
             <Truck className="h-3 w-3" /> DELIVERY
           </button>
@@ -475,7 +475,7 @@ export default function CreateInvoice() {
       </div>
 
       {/* ── Main: Table (left) + Totals (right) ──────────────── */}
-      <div className="flex flex-1 gap-0 divide-x divide-gray-200 overflow-hidden">
+      <div className="flex flex-1 gap-0 divide-x divide-slate-200 overflow-hidden">
 
         {/* LEFT: items table */}
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -494,26 +494,26 @@ export default function CreateInvoice() {
                 <col style={{ width: '100px' }} />
                 <col style={{ width: '28px' }} />
               </colgroup>
-              <thead className="bg-blue-900 sticky top-0">
-                <tr className="border-b-2 border-blue-700">
-                  <th className="px-2 py-2 text-left text-blue-200 font-medium">#</th>
-                  <th className="px-2 py-2 text-left text-blue-200 font-medium">Name</th>
-                  <th className="px-2 py-2 text-left text-blue-200 font-medium">Batch</th>
-                  <th className="px-2 py-2 text-center text-blue-200 font-medium">Qty</th>
-                  <th className="px-2 py-2 text-right text-blue-200 font-medium">Stock</th>
-                  <th className="px-2 py-2 text-right text-blue-200 font-medium">MRP.</th>
-                  <th className="px-2 py-2 text-right text-blue-200 font-medium">UnitPrice</th>
-                  <th className="px-2 py-2 text-right text-blue-200 font-medium">Tax</th>
-                  <th className="px-2 py-2 text-right text-blue-200 font-medium">
-                    Total <span className="text-blue-300 font-normal">(Before Tax)</span>
+              <thead className="bg-slate-800 sticky top-0">
+                <tr className="border-b-2 border-slate-600">
+                  <th className="px-2 py-2 text-left text-slate-200 font-medium">#</th>
+                  <th className="px-2 py-2 text-left text-slate-200 font-medium">Name</th>
+                  <th className="px-2 py-2 text-left text-slate-200 font-medium">Batch</th>
+                  <th className="px-2 py-2 text-center text-slate-200 font-medium">Qty</th>
+                  <th className="px-2 py-2 text-right text-slate-200 font-medium">Stock</th>
+                  <th className="px-2 py-2 text-right text-slate-200 font-medium">MRP.</th>
+                  <th className="px-2 py-2 text-right text-slate-200 font-medium">UnitPrice</th>
+                  <th className="px-2 py-2 text-right text-slate-200 font-medium">Tax</th>
+                  <th className="px-2 py-2 text-right text-slate-200 font-medium">
+                    Total <span className="text-slate-300 font-normal">(Before Tax)</span>
                   </th>
-                  <th className="px-2 py-2 text-right text-blue-200 font-medium">Total(After Tax)</th>
+                  <th className="px-2 py-2 text-right text-slate-200 font-medium">Total(After Tax)</th>
                   <th className="px-2 py-2"></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, idx) => (
-                  <tr key={row._id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <tr key={row._id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-2 py-1.5 text-gray-400">{idx + 1}</td>
 
                     {/* Name with search dropdown */}
@@ -526,10 +526,10 @@ export default function CreateInvoice() {
                           onFocus={() => { setActiveRowSearch(idx); setRowSearch(row.product_name) }}
                           onBlur={() => setTimeout(() => { if (activeRowSearch === idx) setActiveRowSearch(null) }, 200)}
                           placeholder="Search product..."
-                          className="w-full border-2 border-blue-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                          className="w-full border-2 border-amber-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
                         />
                         {activeRowSearch === idx && rowResults.length > 0 && (
-                          <div className="absolute top-full left-0 bg-white border border-gray-200 rounded shadow-lg z-40 max-h-36 overflow-y-auto min-w-[200px]">
+                          <div className="absolute top-full left-0 bg-white border border-slate-200 rounded shadow-lg z-40 max-h-36 overflow-y-auto min-w-[200px]">
                             {rowResults.map((p) => (
                               <button key={p.id}
                                 onMouseDown={() => {
@@ -551,7 +551,7 @@ export default function CreateInvoice() {
                                   setActiveRowSearch(null)
                                   setRowSearch('')
                                 }}
-                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-blue-50"
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50"
                               >
                                 <span className="font-medium">{p.name}</span>
                                 <span className="text-gray-400 ml-2">₹{p.sale_price}</span>
@@ -567,7 +567,7 @@ export default function CreateInvoice() {
                     <td className="px-2 py-1.5">
                       <input type="text" value={row.batch}
                         onChange={(e) => updateRow(idx, 'batch', e.target.value)}
-                        className="w-full border-2 border-blue-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                        className="w-full border-2 border-amber-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
                       />
                     </td>
 
@@ -588,7 +588,7 @@ export default function CreateInvoice() {
                     <td className="px-2 py-1.5">
                       <input type="number" min="0" step="0.01" value={row.mrp}
                         onChange={(e) => updateRow(idx, 'mrp', e.target.value)}
-                        className="w-full border-2 border-purple-300 rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-500 bg-white"
+                        className="w-full border-2 border-amber-300 rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
                       />
                     </td>
 
@@ -632,35 +632,35 @@ export default function CreateInvoice() {
           </div>
 
           {/* Custom fields bar */}
-          <div className="flex items-center gap-3 px-3 py-2 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center gap-3 px-3 py-2 border-t border-slate-200 bg-slate-50">
             <span className="text-xs font-medium text-gray-600">Custom Fields</span>
             <button className="flex items-center gap-1 px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 font-medium">
               <Plus className="h-3 w-3" /> New Custom Fields
             </button>
             <Link to="/dashboard"
-              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+              className="px-3 py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700 font-medium">
               Dashboard
             </Link>
           </div>
         </div>
 
         {/* RIGHT: totals panel */}
-        <div className="w-72 shrink-0 flex flex-col overflow-y-auto border-l-2 border-blue-200">
+        <div className="w-72 shrink-0 flex flex-col overflow-y-auto border-l-2 border-amber-200">
 
           {/* Panel Header */}
-          <div className="bg-blue-900 px-4 py-3 shrink-0">
+          <div className="bg-slate-800 px-4 py-3 shrink-0">
             <h3 className="text-sm font-bold text-white tracking-wide">Order Summary</h3>
           </div>
 
           {/* No. of Qty / Items */}
-          <div className="flex bg-blue-50 border-b-2 border-blue-200 shrink-0">
-            <div className="flex-1 flex flex-col items-center py-3 border-r border-blue-200">
-              <span className="text-xs text-blue-500 font-medium">Total Qty</span>
-              <span className="text-2xl font-extrabold text-blue-800">{totalQty}</span>
+          <div className="flex bg-amber-50 border-b-2 border-amber-200 shrink-0">
+            <div className="flex-1 flex flex-col items-center py-3 border-r border-amber-200">
+              <span className="text-xs text-amber-600 font-medium">Total Qty</span>
+              <span className="text-2xl font-extrabold text-amber-800">{totalQty}</span>
             </div>
             <div className="flex-1 flex flex-col items-center py-3">
-              <span className="text-xs text-blue-500 font-medium">Items</span>
-              <span className="text-2xl font-extrabold text-blue-800">{totalItems}</span>
+              <span className="text-xs text-amber-600 font-medium">Items</span>
+              <span className="text-2xl font-extrabold text-amber-800">{totalItems}</span>
             </div>
           </div>
 
@@ -846,27 +846,27 @@ export default function CreateInvoice() {
               {payMode === 'card' && (
                 <div className="space-y-2">
                   <input type="text" value={cardLast4} onChange={(e) => setCardLast4(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="Last 4 digits" maxLength={4}
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
                   <input type="text" value={cardBank} onChange={(e) => setCardBank(e.target.value)} placeholder="Bank / Card type"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
                   <input type="text" value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Auth Code"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
                 </div>
               )}
               {payMode === 'upi' && (
                 <div className="space-y-2">
                   <input type="text" value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="UPI / Transaction Ref"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
                   <input type="text" value={onlineBank} onChange={(e) => setOnlineBank(e.target.value)} placeholder="Bank / UPI App"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
                 </div>
               )}
               {payMode === 'cheque' && (
                 <div className="space-y-2">
                   <input type="text" value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Cheque No."
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
                   <input type="text" value={chequeBank} onChange={(e) => setChequeBank(e.target.value)} placeholder="Bank Name"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
                   <input type="date" value={chequeDate} onChange={(e) => setChequeDate(e.target.value)}
                     className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
                 </div>
@@ -875,7 +875,7 @@ export default function CreateInvoice() {
               <button
                 onClick={() => setShowPayPopup(false)}
                 disabled={payType === 'partial' && (!partialAmount || parseFloat(partialAmount) <= 0)}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold text-sm rounded-lg transition-colors"
+                className="w-full py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-semibold text-sm rounded-lg transition-colors"
               >
                 {payType === 'partial' ? 'Confirm Partial Payment' : 'Confirm'}
               </button>
@@ -906,13 +906,13 @@ export default function CreateInvoice() {
                   }
                 }}
                 className={`flex items-center gap-1.5 px-4 text-xs font-semibold border-r border-gray-700 transition-colors ${
-                  active ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'
+                  active ? 'bg-amber-600 text-white' : 'text-gray-300 hover:bg-gray-700'
                 }`}
               >
                 <Icon className="h-4 w-4" />
                 {pm.label}
                 {pm.shortcut && (
-                  <span className={`text-xs ${active ? 'text-blue-200' : 'text-gray-500'}`}>({pm.shortcut})</span>
+                  <span className={`text-xs ${active ? 'text-amber-200' : 'text-gray-500'}`}>({pm.shortcut})</span>
                 )}
               </button>
             )
