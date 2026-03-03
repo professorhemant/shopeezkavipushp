@@ -68,16 +68,28 @@ const formatInvoiceMessage = (sale, items, firm, settings) => {
   const balance = parseFloat(sale.balance || 0);
 
   const upiId      = settings.payment_upi_id      || '';
+  const upiId2     = settings.payment_upi_id_2    || '';
   const bankAcc    = settings.payment_bank_account || '';
   const bankIfsc   = settings.payment_bank_ifsc    || '';
   const bankName   = settings.payment_bank_name    || '';
   const bankHolder = settings.payment_bank_holder  || firm.name || '';
+  const firmName   = firm.name || settings.business_name || 'Kavipushp Jewels';
 
+  // Build payment section
   let paymentSection = '';
-  if (upiId || bankAcc) {
+  if (upiId || upiId2 || bankAcc) {
     paymentSection += `\n━━━━━━━━━━━━━━━━\n💳 *Payment Options:*\n`;
     if (upiId) {
-      paymentSection += `📱 *UPI ID:* ${upiId}\n   (GPay / PhonePe / Paytm)\n`;
+      // UPI deep link — tapping this on mobile opens any UPI app with amount pre-filled
+      const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(firmName)}&am=${balance > 0 ? balance.toFixed(2) : total}&cu=INR`;
+      paymentSection += `📱 *UPI ID 1:* ${upiId}\n`;
+      paymentSection += `   GPay / PhonePe / Paytm\n`;
+      paymentSection += `   👉 Pay now: ${upiLink}\n`;
+    }
+    if (upiId2) {
+      const upiLink2 = `upi://pay?pa=${upiId2}&pn=${encodeURIComponent(firmName)}&am=${balance > 0 ? balance.toFixed(2) : total}&cu=INR`;
+      paymentSection += `📱 *UPI ID 2:* ${upiId2}\n`;
+      paymentSection += `   👉 Pay now: ${upiLink2}\n`;
     }
     if (bankAcc) {
       paymentSection += `🏦 *Bank Transfer:*\n   A/C: ${bankAcc}\n`;
@@ -89,7 +101,7 @@ const formatInvoiceMessage = (sale, items, firm, settings) => {
 
   const firmPhone = firm.phone ? `\n📞 ${firm.phone}` : '';
 
-  return `🧿 *${firm.name || 'Our Store'}*
+  return `🧿 *${firmName}*
 ━━━━━━━━━━━━━━━━
 📋 *Invoice: ${sale.invoice_no || '-'}*
 📅 Date: ${date}
@@ -240,7 +252,7 @@ const sendInvoiceMessage = async (req, res, next) => {
     if (!phone) return res.status(400).json({ success: false, message: 'Customer has no phone number.' });
 
     // Get firm payment settings
-    const paymentKeys = ['payment_upi_id', 'payment_bank_account', 'payment_bank_ifsc', 'payment_bank_name', 'payment_bank_holder'];
+    const paymentKeys = ['payment_upi_id', 'payment_upi_id_2', 'business_name', 'payment_bank_account', 'payment_bank_ifsc', 'payment_bank_name', 'payment_bank_holder'];
     const settingRows = await Settings.findAll({
       where: { firm_id: req.firmId, key: { [Op.in]: paymentKeys } },
     });

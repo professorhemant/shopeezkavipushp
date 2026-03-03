@@ -136,13 +136,23 @@ export default function Settings() {
                   <Smartphone className="h-4 w-4 text-green-600" />
                   <h3 className="text-sm font-semibold text-slate-700">UPI Details</h3>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-slate-700 mb-1">UPI ID <span className="text-slate-400">(e.g. kavipushp@okaxis)</span></label>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">UPI ID 1 <span className="text-slate-400">(Primary — e.g. kavipushpjewels@oksbi)</span></label>
                     <input
                       type="text"
                       value={s.payment_upi_id || ''}
                       onChange={(e) => updateSetting('payment_upi_id', e.target.value)}
+                      placeholder="yourname@bankname"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">UPI ID 2 <span className="text-slate-400">(Secondary — e.g. Kavipushpbank@okhdfcbank)</span></label>
+                    <input
+                      type="text"
+                      value={s.payment_upi_id_2 || ''}
+                      onChange={(e) => updateSetting('payment_upi_id_2', e.target.value)}
                       placeholder="yourname@bankname"
                       className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                     />
@@ -170,22 +180,20 @@ export default function Settings() {
               <div className="border border-green-100 rounded-xl p-5 bg-green-50/40">
                 <p className="text-xs font-semibold text-slate-600 mb-3">📱 WhatsApp Message Preview</p>
                 <pre className="text-xs text-slate-700 whitespace-pre-wrap font-sans leading-relaxed bg-white rounded-lg p-4 border border-green-100">
-{`🧿 *Your Shop Name*
+{`🧿 *${s.business_name || 'Kavipushp Jewels'}*
 ━━━━━━━━━━━━━━━━
 📋 *Invoice: INV-2026-0001*
 📅 Date: 03 Mar 2026
 👤 Dear Customer Name,
 
 *Items Purchased:*
-  • Product × 1 — ₹4,500.00
+  • Gold Ring × 1 — ₹4,500.00
 ━━━━━━━━━━━━━━━━
 💰 *Grand Total: ₹4,500.00*
 🔴 *Balance Due: ₹3,500.00*
 ━━━━━━━━━━━━━━━━
 💳 *Payment Options:*
-📱 *UPI ID:* ${s.payment_upi_id || '— not set —'}
-   (GPay / PhonePe / Paytm)${(s.payment_bank_account) ? `\n🏦 *Bank Transfer:*\n   A/C: ${s.payment_bank_account}\n   IFSC: ${s.payment_bank_ifsc || '—'}\n   Bank: ${s.payment_bank_name || '—'}\n   Name: ${s.payment_bank_holder || '—'}` : ''}
-
+${s.payment_upi_id ? `📱 *UPI ID 1:* ${s.payment_upi_id}\n   GPay / PhonePe / Paytm\n   👉 Pay now: upi://pay?pa=${s.payment_upi_id}&am=3500.00\n` : ''}${s.payment_upi_id_2 ? `📱 *UPI ID 2:* ${s.payment_upi_id_2}\n   👉 Pay now: upi://pay?pa=${s.payment_upi_id_2}&am=3500.00\n` : ''}${s.payment_bank_account ? `🏦 *Bank Transfer:*\n   A/C: ${s.payment_bank_account}\n   IFSC: ${s.payment_bank_ifsc || '—'}\n   Bank: ${s.payment_bank_name || '—'}\n   Name: ${s.payment_bank_holder || '—'}\n` : ''}
 Thank you for shopping with us! 🙏`}
                 </pre>
               </div>

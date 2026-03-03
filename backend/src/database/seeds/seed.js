@@ -170,6 +170,13 @@ const DEFAULT_SETTINGS = [
   { key: 'tax_type', value: 'gst' },
 ];
 
+// Payment settings seeded once — never overwrite if user has changed them
+const PAYMENT_DEFAULTS = [
+  { key: 'payment_upi_id',      value: 'kavipushpjewels@oksbi' },
+  { key: 'payment_upi_id_2',   value: 'Kavipushpbank@okhdfcbank' },
+  { key: 'business_name',       value: 'Kavipushp Jewels' },
+];
+
 // ──────────────────────────────────────────────────────────────────────────────
 // SEED FUNCTIONS
 // ──────────────────────────────────────────────────────────────────────────────
@@ -215,6 +222,15 @@ async function seedFirmAndAdmin() {
   } else {
     console.log(`    Admin user already exists: ${adminUser.email}`);
   }
+
+  // Seed payment defaults (findOrCreate — never overwrite user changes)
+  for (const s of PAYMENT_DEFAULTS) {
+    await Settings.findOrCreate({
+      where: { firm_id: firm.id, key: s.key },
+      defaults: { firm_id: firm.id, key: s.key, value: s.value },
+    });
+  }
+  console.log(`    Payment settings checked.`);
 
   return firm;
 }
