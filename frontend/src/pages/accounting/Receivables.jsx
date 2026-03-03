@@ -16,12 +16,12 @@ export default function Receivables() {
   useEffect(() => {
     accountingAPI.getReceivables()
       .then(({ data: d }) => {
-        const items = d.receivables || d || []
+        const items = Array.isArray(d.data) ? d.data : (Array.isArray(d) ? d : [])
         setData(items)
         setSummary({
-          total: items.reduce((s, i) => s + parseFloat(i.outstanding || 0), 0),
+          total: d.total_receivables || items.reduce((s, i) => s + parseFloat(i.total_balance || 0), 0),
           count: items.length,
-          overdue: items.filter((i) => i.overdue).reduce((s, i) => s + parseFloat(i.outstanding || 0), 0),
+          overdue: 0,
         })
       })
       .catch(() => toast.error('Failed to load receivables'))
@@ -73,7 +73,7 @@ export default function Receivables() {
                 <tr>
                   <th className="px-4 py-3 text-left">Customer</th>
                   <th className="px-4 py-3 text-left">Phone</th>
-                  <th className="px-4 py-3 text-right">Total Sales</th>
+                  <th className="px-4 py-3 text-right">Invoices</th>
                   <th className="px-4 py-3 text-right">Total Paid</th>
                   <th className="px-4 py-3 text-right">Outstanding</th>
                   <th className="px-4 py-3 text-center">Status</th>
@@ -81,15 +81,15 @@ export default function Receivables() {
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.customer_id || r.id} className="border-b hover:bg-slate-50 cursor-pointer" onClick={() => navigate(`/customers/${r.customer_id || r.id}`)}>
+                  <tr key={r.customer_id || r.customer_name} className="border-b hover:bg-slate-50 cursor-pointer" onClick={() => r.customer_id && navigate(`/customers/${r.customer_id}`)}>
                     <td className="px-4 py-3 font-medium text-amber-600">{r.customer_name}</td>
-                    <td className="px-4 py-3 text-slate-600">{r.phone || '-'}</td>
-                    <td className="px-4 py-3 text-right text-slate-800">{formatCurrency(r.total_sales || r.total)}</td>
-                    <td className="px-4 py-3 text-right text-green-700">{formatCurrency(r.total_paid || r.paid)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-red-600">{formatCurrency(r.outstanding || r.balance)}</td>
+                    <td className="px-4 py-3 text-slate-600">{r.customer?.phone || '-'}</td>
+                    <td className="px-4 py-3 text-right text-slate-800">{r.invoice_count} invoice{r.invoice_count !== 1 ? 's' : ''}</td>
+                    <td className="px-4 py-3 text-right text-slate-500">-</td>
+                    <td className="px-4 py-3 text-right font-semibold text-red-600">{formatCurrency(r.total_balance)}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${r.overdue ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                        {r.overdue ? 'Overdue' : 'Pending'}
+                      <span className="text-xs px-2 py-1 rounded-full font-medium bg-yellow-100 text-yellow-800">
+                        Pending
                       </span>
                     </td>
                   </tr>
