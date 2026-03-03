@@ -251,8 +251,8 @@ export default function CreateInvoice() {
     try {
       const payload = {
         customer_id: selectedCust?.id || null,
-        customer_name: selectedCust?.name || custName || 'Walk-in',
-        mobile: selectedCust?.mobile || mobile || '',
+        customer_name: selectedCust?.name || custSearch.trim() || 'Walk-in',
+        mobile: selectedCust?.phone || selectedCust?.mobile || '',
         invoice_no: invoiceNo,
         invoice_date: new Date().toISOString().slice(0, 10),
         order_type: orderType,
@@ -311,19 +311,39 @@ export default function CreateInvoice() {
       {/* ── Row 1: Customer search | Barcode | Action buttons ── */}
       <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-amber-200 bg-amber-50/40 flex-wrap">
 
-        {/* Customer search */}
-        <div className="relative flex-1 min-w-[180px]">
-          <input
-            type="text"
-            value={selectedCust ? selectedCust.name : custSearch}
-            onChange={(e) => { setCustSearch(e.target.value); setSelectedCust(null); setShowCustDrop(true) }}
-            onFocus={() => setShowCustDrop(true)}
-            onBlur={() => setTimeout(() => setShowCustDrop(false), 180)}
-            placeholder="Search name, mobile or firm(Alt+c)"
-            className="w-full border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
-          />
+        {/* Customer search / selected chip */}
+        <div className="relative flex-1 min-w-[220px]">
+          {selectedCust ? (
+            <div className="flex items-center gap-2 border-2 border-amber-400 rounded-lg px-2 py-1.5 bg-amber-50">
+              <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="text-xs font-semibold text-slate-800 truncate">{selectedCust.name}</span>
+                {(selectedCust.phone || selectedCust.mobile) && (
+                  <span className="text-xs text-slate-500">{selectedCust.phone || selectedCust.mobile}</span>
+                )}
+                {prevBalance > 0 && (
+                  <span className="text-xs font-medium text-red-600">Prev: ₹{prevBalance.toFixed(2)}</span>
+                )}
+              </div>
+              <button
+                onClick={() => { setSelectedCust(null); setCustSearch(''); setMobile(''); setCustName('') }}
+                className="text-gray-400 hover:text-red-500 shrink-0"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={custSearch}
+              onChange={(e) => { setCustSearch(e.target.value); setShowCustDrop(true) }}
+              onFocus={() => setShowCustDrop(true)}
+              onBlur={() => setTimeout(() => setShowCustDrop(false), 180)}
+              placeholder="Search customer by name or mobile"
+              className="w-full border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+            />
+          )}
           {showCustDrop && custResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded shadow-lg z-40 max-h-40 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded shadow-lg z-40 max-h-48 overflow-y-auto">
               {custResults.map((c) => (
                 <button key={c.id}
                   onMouseDown={() => {
@@ -331,7 +351,6 @@ export default function CreateInvoice() {
                     setCustName(c.name)
                     setCustSearch('')
                     setShowCustDrop(false)
-                    // Fetch full customer data to get accurate outstanding_balance
                     customerAPI.getOne(c.id)
                       .then(({ data }) => {
                         const full = data.data || data.customer || data
@@ -339,10 +358,19 @@ export default function CreateInvoice() {
                       })
                       .catch(() => setSelectedCust(c))
                   }}
-                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50"
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-amber-50 border-b border-gray-50 last:border-0"
                 >
-                  <span className="font-medium">{c.name}</span>
-                  <span className="text-gray-400 ml-2">{c.mobile || c.phone}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="font-medium text-slate-800">{c.name}</span>
+                      {(c.mobile || c.phone) && (
+                        <span className="text-gray-400 ml-2">{c.mobile || c.phone}</span>
+                      )}
+                    </div>
+                    {parseFloat(c.outstanding_balance) > 0 && (
+                      <span className="text-red-500 font-medium shrink-0">₹{parseFloat(c.outstanding_balance).toFixed(2)}</span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
@@ -410,41 +438,8 @@ export default function CreateInvoice() {
         </div>
       </div>
 
-      {/* ── Row 2: Mobile | Name | Invoice No | Invoice Date ─── */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-emerald-200 bg-emerald-50/30 flex-wrap">
-        <input
-          type="text"
-          value={mobile}
-          onChange={(e) => setMobile(e.target.value)}
-          onBlur={(e) => {
-            const val = e.target.value.trim()
-            if (!val || selectedCust) return
-            // Auto-lookup customer by mobile when not already selected
-            customerAPI.getAll({ search: val, limit: 1 })
-              .then(({ data }) => {
-                const found = (data.data || data.customers || [])[0]
-                if (!found) return
-                setMobile(found.mobile || found.phone || val)
-                setCustName(found.name)
-                customerAPI.getOne(found.id)
-                  .then(({ data: d }) => {
-                    const full = d.data || d.customer || d
-                    setSelectedCust({ ...found, ...full })
-                  })
-                  .catch(() => setSelectedCust(found))
-              })
-              .catch(() => {})
-          }}
-          placeholder="Mobile number(Alt+M)"
-          className="flex-1 min-w-[150px] border-2 border-emerald-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 bg-white"
-        />
-        <input
-          type="text"
-          value={custName}
-          onChange={(e) => setCustName(e.target.value)}
-          placeholder="Name(Alt+X)"
-          className="flex-1 min-w-[150px] border-2 border-teal-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-500 bg-white"
-        />
+      {/* ── Row 2: Invoice No | Invoice Date ─── */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-slate-200 bg-slate-50/40 flex-wrap">
         <div className="flex items-center gap-1 ml-auto">
           <span className="text-xs text-amber-700 font-semibold whitespace-nowrap">Invoice No.</span>
           <input
