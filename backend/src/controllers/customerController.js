@@ -74,17 +74,36 @@ const getOne = async (req, res, next) => {
     const customer = await Customer.findOne({
       where: { id: req.params.id, firm_id: req.firmId },
       attributes: {
-        include: [[
-          literal(`(
-            COALESCE((
-              SELECT SUM(s.balance)
+        include: [
+          [
+            literal(`(
+              COALESCE((
+                SELECT SUM(s.balance)
+                FROM sales s
+                WHERE s.customer_id = Customer.id
+                  AND s.status NOT IN ('cancelled', 'returned')
+              ), 0) + COALESCE(Customer.opening_balance, 0)
+            )`),
+            'outstanding_balance',
+          ],
+          [
+            literal(`(
+              SELECT COALESCE(SUM(s.total), 0)
               FROM sales s
               WHERE s.customer_id = Customer.id
-                AND s.status NOT IN ('cancelled', 'returned')
-            ), 0) + COALESCE(Customer.opening_balance, 0)
-          )`),
-          'outstanding_balance',
-        ]],
+                AND s.status NOT IN ('cancelled')
+            )`),
+            'total_sales',
+          ],
+          [
+            literal(`(
+              SELECT COALESCE(SUM(p.amount), 0)
+              FROM payments p
+              WHERE p.customer_id = Customer.id
+            )`),
+            'total_paid',
+          ],
+        ],
       },
     });
     if (!customer) return res.status(404).json({ success: false, message: 'Customer not found.' });
