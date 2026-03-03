@@ -116,13 +116,14 @@ export default function CreatePurchase() {
   const balance = grandTotal - parseFloat(paidAmount || 0)
 
   const handleSave = async () => {
-    if (!items[0]?.product) { toast.error('Add at least one item'); return }
+    const validItems = items.filter((it) => it.product || it.product_name?.trim())
+    if (!validItems.length) { toast.error('Add at least one item'); return }
     setSaving(true)
     try {
       const payload = {
         supplier: selectedSupplier?.id, bill_no: billNo,
         bill_date: billDate, due_date: dueDate,
-        items: items.map(({ _id, ...rest }) => rest),
+        items: validItems.map(({ _id, ...rest }) => rest),
         subtotal: totals.subtotal, discount: totals.discount,
         taxable_amount: totals.taxable,
         cgst: totals.cgst, sgst: totals.sgst,
