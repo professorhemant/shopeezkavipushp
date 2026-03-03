@@ -893,7 +893,7 @@ export default function CreateInvoice() {
               onClick={() => { setShowQrModal(false); setOnlineBank('QR Scan'); setShowPayPopup(true) }}
               className="w-full bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl text-sm font-semibold"
             >
-              Customer Paid ✓
+              Pay
             </button>
           </div>
         </div>
