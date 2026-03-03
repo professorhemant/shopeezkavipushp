@@ -102,22 +102,30 @@ const getReceivables = async (req, res, next) => {
     const result = await Sale.findAll({
       where: {
         firm_id: req.firmId,
-        status: 'confirmed',
-        payment_status: { [Op.in]: ['unpaid', 'partial'] },
+        status: { [Op.notIn]: ['cancelled', 'draft'] },
+        balance:  { [Op.gt]: 0 },
       },
       attributes: [
         'customer_id', 'customer_name',
-        [fn('SUM', col('balance')), 'total_balance'],
-        [fn('COUNT', col('id')), 'invoice_count'],
+        [fn('SUM', col('Sale.balance')),  'total_balance'],
+        [fn('COUNT', col('Sale.id')),     'invoice_count'],
       ],
       include: [{
         model: Customer,
         as: 'customer',
         attributes: ['id', 'name', 'phone', 'email'],
+        required: false,
       }],
-      group: ['customer_id', 'customer_name', 'Customer.id', 'Customer.name', 'Customer.phone', 'Customer.email'],
-      having: literal('SUM(`Sale`.`balance`) > 0'),
-      order: [[fn('SUM', col('balance')), 'DESC']],
+      group: [
+        literal('`Sale`.`customer_id`'),
+        literal('`Sale`.`customer_name`'),
+        literal('`customer`.`id`'),
+        literal('`customer`.`name`'),
+        literal('`customer`.`phone`'),
+        literal('`customer`.`email`'),
+      ],
+      order: [[fn('SUM', col('Sale.balance')), 'DESC']],
+      subQuery: false,
     });
 
     const total = result.reduce((s, r) => s + parseFloat(r.dataValues.total_balance || 0), 0);
