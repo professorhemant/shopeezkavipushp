@@ -341,8 +341,8 @@ export default function Customers() {
                     </div>
 
                     <div className="mt-2">
-                      <p className="text-xs text-slate-600 whitespace-pre-wrap line-clamp-3">
-                        {expandedMsg === msg.id ? msg.message : (msg.message || '').slice(0, 120) + ((msg.message || '').length > 120 ? '…' : '')}
+                      <p className={`text-xs text-slate-600 whitespace-pre-wrap ${expandedMsg === msg.id ? '' : 'line-clamp-3'}`}>
+                        {msg.message || ''}
                       </p>
                       {(msg.message || '').length > 120 && (
                         <button
