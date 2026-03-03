@@ -75,21 +75,30 @@ const formatInvoiceMessage = (sale, items, firm, settings) => {
   const bankHolder = settings.payment_bank_holder  || firm.name || '';
   const firmName   = firm.name || settings.business_name || 'Kavipushp Jewels';
 
+  // Amount to pay (balance if partial, else full total)
+  const payAmount = balance > 0 ? balance.toFixed(2) : total;
+
   // Build payment section
   let paymentSection = '';
   if (upiId || upiId2 || bankAcc) {
     paymentSection += `\n━━━━━━━━━━━━━━━━\n💳 *Payment Options:*\n`;
+
     if (upiId) {
-      // UPI deep link — tapping this on mobile opens any UPI app with amount pre-filled
-      const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(firmName)}&am=${balance > 0 ? balance.toFixed(2) : total}&cu=INR`;
+      // Tap-to-pay deep link (opens GPay / PhonePe / Paytm with amount pre-filled)
+      const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(firmName)}&am=${payAmount}&cu=INR`;
+      // QR code image URL — customer opens this link to scan & pay
+      const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiLink)}`;
       paymentSection += `📱 *UPI ID 1:* ${upiId}\n`;
-      paymentSection += `   GPay / PhonePe / Paytm\n`;
-      paymentSection += `   👉 Pay now: ${upiLink}\n`;
+      paymentSection += `   (GPay / PhonePe / Paytm)\n`;
+      paymentSection += `   👉 Tap to Pay: ${upiLink}\n`;
+      paymentSection += `   🔳 Scan QR Code: ${qrUrl}\n`;
     }
     if (upiId2) {
-      const upiLink2 = `upi://pay?pa=${upiId2}&pn=${encodeURIComponent(firmName)}&am=${balance > 0 ? balance.toFixed(2) : total}&cu=INR`;
+      const upiLink2 = `upi://pay?pa=${upiId2}&pn=${encodeURIComponent(firmName)}&am=${payAmount}&cu=INR`;
+      const qrUrl2   = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiLink2)}`;
       paymentSection += `📱 *UPI ID 2:* ${upiId2}\n`;
-      paymentSection += `   👉 Pay now: ${upiLink2}\n`;
+      paymentSection += `   👉 Tap to Pay: ${upiLink2}\n`;
+      paymentSection += `   🔳 Scan QR Code: ${qrUrl2}\n`;
     }
     if (bankAcc) {
       paymentSection += `🏦 *Bank Transfer:*\n   A/C: ${bankAcc}\n`;
