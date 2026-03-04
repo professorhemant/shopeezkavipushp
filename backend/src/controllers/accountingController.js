@@ -186,7 +186,8 @@ const getPayables = async (req, res, next) => {
  */
 const getProfitLoss = async (req, res, next) => {
   try {
-    const { from_date, to_date } = req.query;
+    const from_date = req.query.from_date || req.query.start_date;
+    const to_date = req.query.to_date || req.query.end_date;
     if (!from_date || !to_date) return res.status(400).json({ success: false, message: 'from_date and to_date are required.' });
 
     const [salesResult, purchaseResult, expenseResult] = await Promise.all([
@@ -231,19 +232,20 @@ const getProfitLoss = async (req, res, next) => {
     const grossProfit = revenue - cogs;
     const netProfit = grossProfit - expenses;
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        period: { from_date, to_date },
-        revenue,
-        sales_tax: salesTax,
-        cogs,
-        gross_profit: parseFloat(grossProfit.toFixed(2)),
-        expenses,
-        net_profit: parseFloat(netProfit.toFixed(2)),
-        profit_margin: revenue > 0 ? parseFloat(((netProfit / revenue) * 100).toFixed(2)) : 0,
-      },
-    });
+    const result = {
+      period: { from_date, to_date },
+      revenue,
+      total_sales: revenue,
+      sales_tax: salesTax,
+      cogs,
+      cost_of_goods: cogs,
+      gross_profit: parseFloat(grossProfit.toFixed(2)),
+      expenses,
+      total_expenses: expenses,
+      net_profit: parseFloat(netProfit.toFixed(2)),
+      profit_margin: revenue > 0 ? parseFloat(((netProfit / revenue) * 100).toFixed(2)) : 0,
+    };
+    return res.status(200).json({ success: true, ...result, data: result });
   } catch (err) {
     next(err);
   }
