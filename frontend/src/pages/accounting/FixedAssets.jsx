@@ -59,8 +59,13 @@ export default function FixedAssets() {
   const openAdd = () => { setEditing(null); setDepManual(false); setForm(EMPTY_FORM); setShowModal(true) }
   const openEdit = (a) => {
     setEditing(a.id)
-    setDepManual(true) // keep existing value when editing
-    setForm({ name: a.name, purchase_date: a.purchase_date?.split('T')[0] || '', purchase_cost: a.purchase_cost || '', accumulated_depreciation: a.accumulated_depreciation || '', useful_life_years: a.useful_life_years || '', depreciation_method: a.depreciation_method || 'straight_line', category: a.category || '' })
+    setDepManual(false)
+    const purchaseDate = a.purchase_date?.split('T')[0] || ''
+    const purchaseCost = a.purchase_cost || ''
+    const usefulLife = a.useful_life_years || ''
+    const method = a.depreciation_method || 'straight_line'
+    const autoDep = calcDepreciation(purchaseCost, purchaseDate, usefulLife, method)
+    setForm({ name: a.name, purchase_date: purchaseDate, purchase_cost: purchaseCost, accumulated_depreciation: autoDep !== '' ? autoDep : (a.accumulated_depreciation || ''), useful_life_years: usefulLife, depreciation_method: method, category: a.category || '' })
     setShowModal(true)
   }
 
