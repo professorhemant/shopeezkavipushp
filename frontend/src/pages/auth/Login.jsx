@@ -39,7 +39,7 @@ export default function Login() {
           <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-white text-2xl font-bold">S</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Shopeezkavipushp</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Kavipushp Billing Software</h1>
           <p className="text-slate-500 text-sm mt-1">Complete Billing & ERP Software</p>
         </div>
 
