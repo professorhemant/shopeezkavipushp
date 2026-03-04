@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Building2, Trash2 } from 'lucide-react'
+import { Plus, Building2, Trash2, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { accountingAPI } from '../../api'
 import { formatCurrency, formatDate } from '../../utils/formatters'
@@ -12,8 +12,10 @@ export default function FixedAssets() {
   const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const [deleteId, setDeleteId] = useState(null)
 
   const fetchAssets = () => {
     setLoading(true)
@@ -25,19 +27,42 @@ export default function FixedAssets() {
 
   useEffect(() => { fetchAssets() }, [])
 
+  const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
+  const openEdit = (a) => {
+    setEditing(a.id)
+    setForm({ name: a.name, purchase_date: a.purchase_date?.split('T')[0] || '', purchase_cost: a.purchase_cost || '', useful_life_years: a.useful_life_years || '', depreciation_method: a.depreciation_method || 'straight_line', category: a.category || '' })
+    setShowModal(true)
+  }
+
   const handleSave = async (e) => {
     e.preventDefault()
     if (!form.name || !form.purchase_cost) return toast.error('Name and cost are required')
     setSaving(true)
     try {
-      await accountingAPI.createFixedAsset(form)
-      toast.success('Fixed asset added')
+      if (editing) {
+        await accountingAPI.updateFixedAsset(editing, form)
+        toast.success('Asset updated')
+      } else {
+        await accountingAPI.createFixedAsset(form)
+        toast.success('Fixed asset added')
+      }
       setShowModal(false)
       fetchAssets()
     } catch {
-      toast.error('Failed to add asset')
+      toast.error('Failed to save asset')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await accountingAPI.deleteFixedAsset(id)
+      toast.success('Asset deleted')
+      setDeleteId(null)
+      fetchAssets()
+    } catch {
+      toast.error('Failed to delete asset')
     }
   }
 
@@ -51,7 +76,7 @@ export default function FixedAssets() {
           <h1 className="text-2xl font-bold text-slate-800">Fixed Assets</h1>
           <p className="text-sm text-slate-500 mt-0.5">{assets.length} assets registered</p>
         </div>
-        <button onClick={() => { setForm(EMPTY_FORM); setShowModal(true) }} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+        <button onClick={openAdd} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
           <Plus className="h-4 w-4" /> Add Asset
         </button>
       </div>
@@ -76,13 +101,14 @@ export default function FixedAssets() {
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
             <Building2 className="h-12 w-12 mb-3 text-slate-300" />
             <p className="text-base font-medium text-slate-500">No fixed assets registered</p>
-            <button onClick={() => { setForm(EMPTY_FORM); setShowModal(true) }} className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Add First Asset</button>
+            <button onClick={openAdd} className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Add First Asset</button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
+                  <th className="px-4 py-3 text-left">Actions</th>
                   <th className="px-4 py-3 text-left">Asset Name</th>
                   <th className="px-4 py-3 text-left">Category</th>
                   <th className="px-4 py-3 text-left">Purchase Date</th>
@@ -96,6 +122,12 @@ export default function FixedAssets() {
                   const netValue = parseFloat(a.purchase_cost || 0) - parseFloat(a.accumulated_depreciation || 0)
                   return (
                     <tr key={a.id} className="border-b hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
+                          <button onClick={() => setDeleteId(a.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 font-medium text-slate-800">{a.name}</td>
                       <td className="px-4 py-3 text-slate-600">{a.category || '-'}</td>
                       <td className="px-4 py-3 text-slate-600">{formatDate(a.purchase_date)}</td>
@@ -115,7 +147,7 @@ export default function FixedAssets() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-lg font-semibold text-slate-800">Add Fixed Asset</h2>
+              <h2 className="text-lg font-semibold text-slate-800">{editing ? 'Edit Fixed Asset' : 'Add Fixed Asset'}</h2>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
@@ -153,9 +185,21 @@ export default function FixedAssets() {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-slate-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
+                <button type="submit" disabled={saving} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update' : 'Save'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {deleteId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-sm mx-4">
+            <h3 className="font-semibold text-slate-800 mb-1">Delete Asset</h3>
+            <p className="text-sm text-slate-500 mb-5">This will permanently delete this fixed asset record.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-slate-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
+              <button onClick={() => handleDelete(deleteId)} className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Delete</button>
+            </div>
           </div>
         </div>
       )}

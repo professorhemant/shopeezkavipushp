@@ -510,8 +510,22 @@ const updateFixedAsset = async (req, res, next) => {
   }
 };
 
+/**
+ * DELETE /accounting/fixed-assets/:id
+ */
+const deleteFixedAsset = async (req, res, next) => {
+  try {
+    const asset = await FixedAsset.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
+    if (!asset) return res.status(404).json({ success: false, message: 'Fixed asset not found.' });
+    await asset.destroy();
+    return res.status(200).json({ success: true, message: 'Fixed asset deleted.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getLedger, getReceivables, getPayables, getProfitLoss, getBalanceSheet,
   getExpenses, createExpense, updateExpense, deleteExpense,
-  getFixedAssets, createFixedAsset, updateFixedAsset,
+  getFixedAssets, createFixedAsset, updateFixedAsset, deleteFixedAsset,
 };

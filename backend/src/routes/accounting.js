@@ -21,5 +21,6 @@ router.delete('/expenses/:id', accountingController.deleteExpense);
 router.get('/fixed-assets', accountingController.getFixedAssets);
 router.post('/fixed-assets', accountingController.createFixedAsset);
 router.put('/fixed-assets/:id', accountingController.updateFixedAsset);
+router.delete('/fixed-assets/:id', accountingController.deleteFixedAsset);
 
 module.exports = router;

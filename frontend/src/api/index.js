@@ -161,6 +161,8 @@ export const accountingAPI = {
   deleteExpense: (id) => api.delete(`/accounting/expenses/${id}`),
   getFixedAssets: () => api.get('/accounting/fixed-assets'),
   createFixedAsset: (data) => api.post('/accounting/fixed-assets', data),
+  updateFixedAsset: (id, data) => api.put(`/accounting/fixed-assets/${id}`, data),
+  deleteFixedAsset: (id) => api.delete(`/accounting/fixed-assets/${id}`),
 }
 
 // ─── Staff ──────────────────────────────────────────────────────────
