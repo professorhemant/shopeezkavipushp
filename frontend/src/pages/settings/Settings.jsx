@@ -20,7 +20,7 @@ export default function Settings() {
 
   useEffect(() => {
     settingsAPI.getSettings()
-      .then(({ data }) => setSettings(data.settings || data))
+      .then(({ data }) => setSettings(data.data || data.settings || data))
       .catch(() => toast.error('Failed to load settings'))
       .finally(() => setLoading(false))
   }, [])
