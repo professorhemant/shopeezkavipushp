@@ -5,7 +5,7 @@ import { accountingAPI } from '../../api'
 import { formatCurrency, formatDate } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
-const EMPTY_FORM = { name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_cost: '', useful_life_years: '', depreciation_method: 'straight_line', category: '' }
+const EMPTY_FORM = { name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_cost: '', accumulated_depreciation: '', useful_life_years: '', depreciation_method: 'straight_line', category: '' }
 const CATEGORIES = ['Land & Building', 'Machinery', 'Vehicles', 'Furniture', 'Computer & Electronics', 'Other']
 
 export default function FixedAssets() {
@@ -30,7 +30,7 @@ export default function FixedAssets() {
   const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
   const openEdit = (a) => {
     setEditing(a.id)
-    setForm({ name: a.name, purchase_date: a.purchase_date?.split('T')[0] || '', purchase_cost: a.purchase_cost || '', useful_life_years: a.useful_life_years || '', depreciation_method: a.depreciation_method || 'straight_line', category: a.category || '' })
+    setForm({ name: a.name, purchase_date: a.purchase_date?.split('T')[0] || '', purchase_cost: a.purchase_cost || '', accumulated_depreciation: a.accumulated_depreciation || '', useful_life_years: a.useful_life_years || '', depreciation_method: a.depreciation_method || 'straight_line', category: a.category || '' })
     setShowModal(true)
   }
 
@@ -170,6 +170,10 @@ export default function FixedAssets() {
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Purchase Cost (₹) *</label>
                   <input type="number" step="0.01" value={form.purchase_cost} onChange={(e) => setForm({ ...form, purchase_cost: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Accumulated Depreciation (₹)</label>
+                  <input type="number" step="0.01" value={form.accumulated_depreciation} onChange={(e) => setForm({ ...form, accumulated_depreciation: e.target.value })} placeholder="0.00" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Useful Life (Years)</label>

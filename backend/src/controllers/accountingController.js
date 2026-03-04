@@ -445,14 +445,21 @@ const formatAsset = (a) => {
 // Map frontend body → DB fields
 const mapAssetBody = (body) => {
   const purchasePrice = parseFloat(body.purchase_cost || body.purchase_price || 0);
+  const accDep = body.accumulated_depreciation !== '' && body.accumulated_depreciation != null
+    ? parseFloat(body.accumulated_depreciation)
+    : null;
   const usefulLife = parseFloat(body.useful_life_years || 0);
   const depreciation_rate = usefulLife > 0 ? parseFloat((100 / usefulLife).toFixed(2)) : parseFloat(body.depreciation_rate || 0);
+  // current_value: if accumulated_depreciation given use that, else use explicit current_value, else = purchase_price
+  const current_value = accDep != null
+    ? Math.max(0, purchasePrice - accDep)
+    : body.current_value != null ? parseFloat(body.current_value) : purchasePrice;
   return {
     name: body.name,
     asset_type: body.category || body.asset_type || null,
     purchase_date: body.purchase_date || null,
     purchase_price: purchasePrice,
-    current_value: body.current_value != null ? parseFloat(body.current_value) : purchasePrice,
+    current_value,
     depreciation_rate,
     depreciation_method: body.depreciation_method || 'straight_line',
     location: body.location || null,
