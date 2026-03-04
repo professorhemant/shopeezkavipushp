@@ -7,6 +7,7 @@ import {
   CheckCircle, AlertCircle, Download
 } from 'lucide-react'
 import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 import { productAPI, categoryAPI, brandAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -275,6 +276,7 @@ export default function Products() {
   const [showBulkDelete, setShowBulkDelete] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
@@ -303,6 +305,44 @@ export default function Products() {
     categoryAPI.getAll().then(({ data }) => setCategories(data.data || data.categories || [])).catch(() => {})
     brandAPI.getAll().then(({ data }) => setBrands(data.data || data.brands || [])).catch(() => {})
   }, [])
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const { data } = await productAPI.getAll({ limit: 5000, is_active: tab === 'active' })
+      const rows = data.data || data.products || data.results || []
+      const sheetData = rows.map((p) => ({
+        'Name': p.name || '',
+        'SKU': p.sku || '',
+        'Barcode': p.bar_code || '',
+        'HSN Code': p.hsn_code || '',
+        'Category': p.category?.name || p.Category?.name || '',
+        'Brand': p.brand?.name || p.Brand?.name || '',
+        'Purchase Price (₹)': parseFloat(p.purchase_price || 0),
+        'Selling Price (₹)': parseFloat(p.sell_price || p.selling_price || 0),
+        'MRP (₹)': parseFloat(p.mrp || 0),
+        'Tax Type': p.tax_type || '',
+        'Tax Rate (%)': parseFloat(p.tax_rate || 0),
+        'Current Stock': parseFloat(p.stock || 0),
+        'Min Stock': parseFloat(p.min_stock || 0),
+        'Stock Value (₹)': parseFloat((p.stock || 0) * (p.purchase_price || 0)).toFixed(2),
+        'Track Inventory': p.track_inventory ? 'Yes' : 'No',
+        'Status': p.is_active ? 'Active' : 'Archived',
+      }))
+      const ws = XLSX.utils.json_to_sheet(sheetData)
+      // Auto-width columns
+      const colWidths = Object.keys(sheetData[0] || {}).map((k) => ({ wch: Math.max(k.length, 15) }))
+      ws['!cols'] = colWidths
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Products')
+      XLSX.writeFile(wb, `products_inventory_${new Date().toISOString().split('T')[0]}.xlsx`)
+      toast.success(`Exported ${sheetData.length} products`)
+    } catch {
+      toast.error('Export failed')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const handleDelete = async (id) => {
     try {
@@ -378,6 +418,13 @@ export default function Products() {
             className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
           >
             <Barcode className="h-4 w-4" /> Generate Barcodes
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5"
+          >
+            <Download className="h-4 w-4" /> {exporting ? 'Exporting...' : 'Export Excel'}
           </button>
           <Link
             to="/inventory/products/add"
