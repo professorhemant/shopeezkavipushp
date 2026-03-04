@@ -190,7 +190,9 @@ const getProfitLoss = async (req, res, next) => {
     const to_date = req.query.to_date || req.query.end_date;
     if (!from_date || !to_date) return res.status(400).json({ success: false, message: 'from_date and to_date are required.' });
 
-    const [salesResult, purchaseResult, expenseResult] = await Promise.all([
+    const periodDays = (new Date(to_date) - new Date(from_date)) / (1000 * 60 * 60 * 24) + 1;
+
+    const [salesResult, purchaseResult, expenseResult, fixedAssets] = await Promise.all([
       Sale.findOne({
         where: {
           firm_id: req.firmId,
@@ -222,15 +224,32 @@ const getProfitLoss = async (req, res, next) => {
         attributes: [[fn('SUM', col('amount')), 'total']],
         raw: true,
       }),
+      FixedAsset.findAll({
+        where: { firm_id: req.firmId, is_active: true, depreciation_rate: { [Op.gt]: 0 } },
+        attributes: ['purchase_price', 'current_value', 'depreciation_rate', 'depreciation_method'],
+        raw: true,
+      }),
     ]);
+
+    // Calculate period depreciation for each fixed asset
+    const periodDepreciation = fixedAssets.reduce((sum, asset) => {
+      const price = parseFloat(asset.purchase_price || 0);
+      const rate = parseFloat(asset.depreciation_rate || 0);
+      const currentVal = parseFloat(asset.current_value ?? price);
+      if (price <= 0 || rate <= 0 || currentVal <= 0) return sum;
+      const annualDep = price * (rate / 100);
+      const periodDep = annualDep * (periodDays / 365);
+      return sum + Math.min(periodDep, currentVal);
+    }, 0);
 
     const revenue = parseFloat(salesResult?.revenue || 0);
     const salesTax = parseFloat(salesResult?.cgst || 0) + parseFloat(salesResult?.sgst || 0) + parseFloat(salesResult?.igst || 0);
     const cogs = parseFloat(purchaseResult?.total || 0);
     const expenses = parseFloat(expenseResult?.total || 0);
+    const depreciation = parseFloat(periodDepreciation.toFixed(2));
 
     const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - expenses;
+    const netProfit = grossProfit - expenses - depreciation;
 
     const result = {
       period: { from_date, to_date },
@@ -242,6 +261,7 @@ const getProfitLoss = async (req, res, next) => {
       gross_profit: parseFloat(grossProfit.toFixed(2)),
       expenses,
       total_expenses: expenses,
+      depreciation,
       net_profit: parseFloat(netProfit.toFixed(2)),
       profit_margin: revenue > 0 ? parseFloat(((netProfit / revenue) * 100).toFixed(2)) : 0,
     };

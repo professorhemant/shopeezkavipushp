@@ -33,7 +33,8 @@ export default function ProfitLoss() {
   const cogs = data?.cogs || data?.cost_of_goods || 0
   const grossProfit = data?.gross_profit || (revenue - cogs)
   const expenses = data?.expenses || data?.total_expenses || 0
-  const netProfit = data?.net_profit || (grossProfit - expenses)
+  const depreciation = data?.depreciation || 0
+  const netProfit = data?.net_profit || (grossProfit - expenses - depreciation)
 
   return (
     <div className="space-y-5">
@@ -84,6 +85,7 @@ export default function ProfitLoss() {
                 { label: 'Less: Cost of Goods Sold', value: -cogs, indent: true, bold: false },
                 { label: 'Gross Profit', value: grossProfit, indent: false, bold: true },
                 { label: 'Less: Operating Expenses', value: -expenses, indent: true, bold: false },
+                { label: 'Less: Depreciation', value: -depreciation, indent: true, bold: false },
                 { label: 'Net Profit / (Loss)', value: netProfit, indent: false, bold: true },
               ].map((row, i) => (
                 <div key={i} className={`flex items-center justify-between px-6 py-3 ${row.bold ? 'bg-slate-50' : ''}`}>
