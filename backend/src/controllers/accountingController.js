@@ -418,6 +418,49 @@ const deleteExpense = async (req, res, next) => {
   }
 };
 
+// Map DB fixed asset row → frontend-friendly shape
+const formatAsset = (a) => {
+  const purchaseCost = parseFloat(a.purchase_price || 0);
+  const currentValue = parseFloat(a.current_value ?? purchaseCost);
+  const accumulatedDepreciation = Math.max(0, purchaseCost - currentValue);
+  return {
+    id: a.id,
+    name: a.name,
+    category: a.asset_type || '',
+    purchase_date: a.purchase_date,
+    purchase_cost: purchaseCost,
+    current_value: currentValue,
+    accumulated_depreciation: accumulatedDepreciation,
+    net_value: currentValue,
+    depreciation_rate: a.depreciation_rate,
+    depreciation_method: a.depreciation_method,
+    useful_life_years: a.depreciation_rate > 0 ? Math.round(100 / parseFloat(a.depreciation_rate)) : null,
+    location: a.location,
+    serial_no: a.serial_no,
+    notes: a.notes,
+    is_active: a.is_active,
+  };
+};
+
+// Map frontend body → DB fields
+const mapAssetBody = (body) => {
+  const purchasePrice = parseFloat(body.purchase_cost || body.purchase_price || 0);
+  const usefulLife = parseFloat(body.useful_life_years || 0);
+  const depreciation_rate = usefulLife > 0 ? parseFloat((100 / usefulLife).toFixed(2)) : parseFloat(body.depreciation_rate || 0);
+  return {
+    name: body.name,
+    asset_type: body.category || body.asset_type || null,
+    purchase_date: body.purchase_date || null,
+    purchase_price: purchasePrice,
+    current_value: body.current_value != null ? parseFloat(body.current_value) : purchasePrice,
+    depreciation_rate,
+    depreciation_method: body.depreciation_method || 'straight_line',
+    location: body.location || null,
+    serial_no: body.serial_no || null,
+    notes: body.notes || null,
+  };
+};
+
 /**
  * GET /accounting/fixed-assets
  */
@@ -430,9 +473,10 @@ const getFixedAssets = async (req, res, next) => {
       limit,
       offset,
     });
+    const formatted = rows.map(formatAsset);
     return res.status(200).json({
       success: true,
-      data: rows,
+      data: formatted,
       pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
     });
   } catch (err) {
@@ -445,8 +489,8 @@ const getFixedAssets = async (req, res, next) => {
  */
 const createFixedAsset = async (req, res, next) => {
   try {
-    const asset = await FixedAsset.create({ ...req.body, firm_id: req.firmId, created_by: req.userId });
-    return res.status(201).json({ success: true, message: 'Fixed asset created.', data: asset });
+    const asset = await FixedAsset.create({ ...mapAssetBody(req.body), firm_id: req.firmId, created_by: req.userId });
+    return res.status(201).json({ success: true, message: 'Fixed asset created.', data: formatAsset(asset) });
   } catch (err) {
     next(err);
   }
@@ -459,8 +503,8 @@ const updateFixedAsset = async (req, res, next) => {
   try {
     const asset = await FixedAsset.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
     if (!asset) return res.status(404).json({ success: false, message: 'Fixed asset not found.' });
-    await asset.update(req.body);
-    return res.status(200).json({ success: true, message: 'Fixed asset updated.', data: asset });
+    await asset.update(mapAssetBody(req.body));
+    return res.status(200).json({ success: true, message: 'Fixed asset updated.', data: formatAsset(asset) });
   } catch (err) {
     next(err);
   }
