@@ -277,42 +277,81 @@ const getProfitLoss = async (req, res, next) => {
 const getBalanceSheet = async (req, res, next) => {
   try {
     const firmId = req.firmId;
+    const { Product } = require('../models');
+    const asOf = req.query.as_of ? new Date(req.query.as_of) : new Date();
+    asOf.setHours(23, 59, 59, 999);
 
-    const [receivablesResult, payablesResult, assetsResult] = await Promise.all([
+    const [receivablesResult, payablesResult, inventoryResult, fixedAssetRows] = await Promise.all([
       Sale.findOne({
-        where: { firm_id: firmId, payment_status: { [Op.in]: ['unpaid', 'partial'] } },
+        where: { firm_id: firmId, status: { [Op.notIn]: ['cancelled', 'draft'] }, payment_status: { [Op.in]: ['unpaid', 'partial'] } },
         attributes: [[fn('SUM', col('balance')), 'total']],
         raw: true,
       }),
       Purchase.findOne({
-        where: { firm_id: firmId, payment_status: { [Op.in]: ['unpaid', 'partial'] } },
+        where: { firm_id: firmId, status: { [Op.notIn]: ['cancelled', 'draft'] }, payment_status: { [Op.in]: ['unpaid', 'partial'] } },
         attributes: [[fn('SUM', col('balance')), 'total']],
         raw: true,
       }),
-      FixedAsset ? FixedAsset.findOne({
-        where: { firm_id: firmId },
-        attributes: [[fn('SUM', col('current_value')), 'total']],
+      Product ? Product.findOne({
+        where: { firm_id: firmId, track_inventory: true },
+        attributes: [[fn('SUM', literal('`stock` * `purchase_price`')), 'total']],
         raw: true,
       }) : Promise.resolve({ total: 0 }),
+      FixedAsset.findAll({
+        where: { firm_id: firmId, is_active: true },
+        attributes: ['id', 'name', 'asset_type', 'purchase_price', 'current_value', 'depreciation_rate', 'purchase_date'],
+        raw: true,
+      }),
     ]);
 
+    // Calculate accumulated depreciation for each asset as of asOf date
+    const fixedAssetSchedule = fixedAssetRows.map((a) => {
+      const cost = parseFloat(a.purchase_price || 0);
+      const rate = parseFloat(a.depreciation_rate || 0);
+      let accumDep = 0;
+      if (cost > 0 && rate > 0 && a.purchase_date) {
+        const yearsElapsed = Math.max(0, (asOf - new Date(a.purchase_date)) / (365.25 * 24 * 60 * 60 * 1000));
+        accumDep = Math.min(cost, cost * (rate / 100) * yearsElapsed);
+      }
+      const netValue = Math.max(0, cost - accumDep);
+      return {
+        name: a.name,
+        category: a.asset_type || '',
+        cost: parseFloat(cost.toFixed(2)),
+        accumulated_depreciation: parseFloat(accumDep.toFixed(2)),
+        net_value: parseFloat(netValue.toFixed(2)),
+      };
+    });
+
+    const totalFixedAssetCost = fixedAssetSchedule.reduce((s, a) => s + a.cost, 0);
+    const totalAccumDep = fixedAssetSchedule.reduce((s, a) => s + a.accumulated_depreciation, 0);
+    const totalNetFixedAssets = fixedAssetSchedule.reduce((s, a) => s + a.net_value, 0);
     const receivables = parseFloat(receivablesResult?.total || 0);
     const payables = parseFloat(payablesResult?.total || 0);
-    const fixedAssets = parseFloat(assetsResult?.total || 0);
+    const inventory = parseFloat(inventoryResult?.total || 0);
+
+    const totalCurrentAssets = receivables + inventory;
+    const totalAssets = totalNetFixedAssets + totalCurrentAssets;
+    const totalLiabilities = payables;
+    const equity = totalAssets - totalLiabilities;
 
     return res.status(200).json({
       success: true,
       data: {
-        assets: {
-          current_assets: { receivables },
-          fixed_assets: { total: fixedAssets },
-          total_assets: parseFloat((receivables + fixedAssets).toFixed(2)),
+        as_of: req.query.as_of || new Date().toISOString().split('T')[0],
+        fixed_assets: {
+          schedule: fixedAssetSchedule,
+          total_cost: parseFloat(totalFixedAssetCost.toFixed(2)),
+          total_accumulated_depreciation: parseFloat(totalAccumDep.toFixed(2)),
+          total_net_value: parseFloat(totalNetFixedAssets.toFixed(2)),
         },
-        liabilities: {
-          current_liabilities: { payables },
-          total_liabilities: parseFloat(payables.toFixed(2)),
-        },
-        equity: parseFloat((receivables + fixedAssets - payables).toFixed(2)),
+        current_assets: { trade_receivables: receivables, inventory },
+        total_current_assets: parseFloat(totalCurrentAssets.toFixed(2)),
+        total_assets: parseFloat(totalAssets.toFixed(2)),
+        current_liabilities: { trade_payables: payables },
+        total_liabilities: parseFloat(totalLiabilities.toFixed(2)),
+        equity: parseFloat(equity.toFixed(2)),
+        total_liabilities_equity: parseFloat((totalLiabilities + equity).toFixed(2)),
       },
     });
   } catch (err) {

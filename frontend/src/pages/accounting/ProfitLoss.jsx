@@ -6,14 +6,29 @@ import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 const today = new Date()
-const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
 const todayStr = today.toISOString().split('T')[0]
+
+// Indian Financial Year: Apr 1 – Mar 31
+const getFY = (offset = 0) => {
+  const yr = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1
+  const start = yr - offset
+  return { from: `${start}-04-01`, to: `${start + 1}-03-31` }
+}
+const thisCalYear = { from: `${today.getFullYear()}-01-01`, to: `${today.getFullYear()}-12-31` }
+
+const PRESETS = [
+  { label: 'This FY', ...getFY(0) },
+  { label: 'Last FY', ...getFY(1) },
+  { label: `CY ${today.getFullYear()}`, ...thisCalYear },
+  { label: 'This Month', from: new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0], to: todayStr },
+]
 
 export default function ProfitLoss() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [startDate, setStartDate] = useState(firstOfMonth)
-  const [endDate, setEndDate] = useState(todayStr)
+  const thisFY = getFY(0)
+  const [startDate, setStartDate] = useState(thisFY.from)
+  const [endDate, setEndDate] = useState(thisFY.to)
 
   const fetchData = async () => {
     setLoading(true)
@@ -43,7 +58,15 @@ export default function ProfitLoss() {
           <h1 className="text-2xl font-bold text-slate-800">Profit & Loss</h1>
           <p className="text-sm text-slate-500 mt-0.5">Income statement for the selected period</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1">
+            {PRESETS.map((p) => (
+              <button key={p.label} onClick={() => { setStartDate(p.from); setEndDate(p.to) }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${startDate === p.from && endDate === p.to ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-600 border-slate-200 hover:border-amber-400'}`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
           <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
             className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           <span className="text-slate-400 text-sm">to</span>
