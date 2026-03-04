@@ -17,6 +17,7 @@ router.put('/:id', purchaseController.update);
 
 // Action routes
 router.put('/:id/cancel', purchaseController.cancel);
+router.delete('/:id', purchaseController.deletePurchase);
 router.post('/:id/payment', purchaseController.addPayment);
 
 module.exports = router;

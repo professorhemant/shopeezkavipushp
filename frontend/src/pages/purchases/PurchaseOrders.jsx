@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Search, Edit2, XCircle, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Edit2, XCircle, Trash2, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { purchaseAPI } from '../../api'
 import { formatCurrency, formatDate } from '../../utils/formatters'
@@ -41,6 +41,17 @@ export default function PurchaseOrders() {
       fetchOrders()
     } catch {
       toast.error('Failed to cancel order')
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Permanently delete this order? This cannot be undone.')) return
+    try {
+      await purchaseAPI.delete(id)
+      toast.success('Order deleted')
+      fetchOrders()
+    } catch {
+      toast.error('Failed to delete order')
     }
   }
 
@@ -122,6 +133,8 @@ export default function PurchaseOrders() {
                           <button onClick={() => handleCancel(o.id)}
                             className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><XCircle className="h-4 w-4" /></button>
                         )}
+                        <button onClick={() => handleDelete(o.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>

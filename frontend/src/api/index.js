@@ -136,6 +136,7 @@ export const purchaseAPI = {
   create: (data) => api.post('/purchases', data),
   update: (id, data) => api.put(`/purchases/${id}`, data),
   cancel: (id) => api.put(`/purchases/${id}/cancel`),
+  delete: (id) => api.delete(`/purchases/${id}`),
   addPayment: (id, data) => api.post(`/purchases/${id}/payment`, data),
 }
 

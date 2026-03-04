@@ -387,4 +387,43 @@ const receivePO = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, getOne, create, update, cancel, addPayment, createPO, receivePO };
+/**
+ * DELETE /purchases/:id
+ */
+const deletePurchase = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const purchase = await Purchase.findOne({
+      where: { id: req.params.id, firm_id: req.firmId },
+      include: [{ model: PurchaseItem, as: 'items' }],
+      transaction: t,
+    });
+    if (!purchase) { await t.rollback(); return res.status(404).json({ success: false, message: 'Purchase not found.' }); }
+
+    // Reverse stock if purchase was received
+    if (purchase.status === 'received') {
+      for (const item of (purchase.items || [])) {
+        if (!item.product_id) continue;
+        const product = await Product.findByPk(item.product_id, { transaction: t });
+        if (product && product.track_inventory) {
+          await product.update(
+            { stock: Math.max(0, parseFloat(product.stock || 0) - parseFloat(item.quantity)) },
+            { transaction: t }
+          );
+        }
+      }
+    }
+
+    await Payment.destroy({ where: { purchase_id: purchase.id }, transaction: t });
+    await PurchaseItem.destroy({ where: { purchase_id: purchase.id }, transaction: t });
+    await purchase.destroy({ transaction: t });
+
+    await t.commit();
+    return res.status(200).json({ success: true, message: 'Purchase deleted.' });
+  } catch (err) {
+    await t.rollback();
+    next(err);
+  }
+};
+
+module.exports = { getAll, getOne, create, update, cancel, deletePurchase, addPayment, createPO, receivePO };

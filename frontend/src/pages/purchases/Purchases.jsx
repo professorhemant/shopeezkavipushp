@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Plus, Search, Download, Edit2, XCircle, FileText,
+  Plus, Search, Download, Edit2, XCircle, Trash2, FileText,
   ChevronLeft, ChevronRight
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -54,6 +54,17 @@ export default function Purchases() {
       fetchPurchases()
     } catch {
       toast.error('Failed to cancel purchase')
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Permanently delete this purchase? This cannot be undone.')) return
+    try {
+      await purchaseAPI.delete(id)
+      toast.success('Purchase deleted')
+      fetchPurchases()
+    } catch {
+      toast.error('Failed to delete purchase')
     }
   }
 
@@ -140,6 +151,8 @@ export default function Purchases() {
                           <button onClick={() => handleCancel(p.id)}
                             className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><XCircle className="h-4 w-4" /></button>
                         )}
+                        <button onClick={() => handleDelete(p.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>
