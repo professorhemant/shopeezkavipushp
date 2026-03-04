@@ -61,7 +61,13 @@ export default function CreatePurchase() {
         setBillNo(p.bill_no || '')
         setBillDate(p.bill_date?.slice(0, 10) || '')
         setDueDate(p.due_date?.slice(0, 10) || '')
-        setItems(p.items?.map((item) => ({ ...item, _id: Date.now() + Math.random() })) || [newItem()])
+        setItems(p.items?.map((item) => calcItem({
+          ...item,
+          _id: Date.now() + Math.random(),
+          qty: parseFloat(item.quantity || item.qty || 1),
+          price: parseFloat(item.unit_price || item.price || 0),
+          discount_pct: parseFloat(item.discount || item.discount_pct || 0),
+        })) || [newItem()])
         setPaidAmount(p.paid_amount || 0)
         setPaymentMode(p.payment_mode || 'bank')
         setNotes(p.notes || '')
