@@ -33,9 +33,9 @@ export default function Purchases() {
       setTotalPages(data.pagination?.pages || data.total_pages || 1)
       setSummary({
         count: data.pagination?.total || data.count || items.length,
-        total: data.total_amount || items.reduce((s, i) => s + parseFloat(i.total_amount || 0), 0),
+        total: data.total_amount || items.reduce((s, i) => s + parseFloat(i.total || 0), 0),
         paid: data.total_paid || items.reduce((s, i) => s + parseFloat(i.paid_amount || 0), 0),
-        balance: data.total_balance || items.reduce((s, i) => s + parseFloat(i.balance_amount || 0), 0),
+        balance: data.total_balance || items.reduce((s, i) => s + parseFloat(i.balance || 0), 0),
       })
     } catch {
       toast.error('Failed to load purchases')
@@ -122,11 +122,11 @@ export default function Purchases() {
                   <tr key={p.id} className="border-b hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-amber-600">{p.bill_no || p.purchase_no}</td>
                     <td className="px-4 py-3 text-slate-600">{formatDate(p.bill_date || p.date)}</td>
-                    <td className="px-4 py-3 text-slate-800">{p.supplier_name || p.supplier?.name || '-'}</td>
+                    <td className="px-4 py-3 text-slate-800">{p.supplier_name || p.Supplier?.name || p.supplier?.name || '-'}</td>
                     <td className="px-4 py-3 text-right text-slate-600">{p.items_count ?? '-'}</td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-800">{formatCurrency(p.total_amount)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-slate-800">{formatCurrency(p.total)}</td>
                     <td className="px-4 py-3 text-right text-green-700 font-medium">{formatCurrency(p.paid_amount)}</td>
-                    <td className="px-4 py-3 text-right text-red-600 font-medium">{formatCurrency(p.balance_amount)}</td>
+                    <td className="px-4 py-3 text-right text-red-600 font-medium">{formatCurrency(p.balance)}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPaymentStatusColor(p.payment_status || p.status)}`}>
                         {p.payment_status || p.status}

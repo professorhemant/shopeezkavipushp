@@ -32,6 +32,11 @@ const getAll = async (req, res, next) => {
     const { count, rows } = await Purchase.findAndCountAll({
       where,
       include: [{ model: Supplier, as: 'Supplier', attributes: ['id', 'name', 'phone', 'email'] }],
+      attributes: {
+        include: [
+          [sequelize.literal('(SELECT COUNT(*) FROM purchase_items WHERE purchase_items.purchase_id = `Purchase`.`id`)'), 'items_count'],
+        ],
+      },
       order: [['bill_date', 'DESC'], ['createdAt', 'DESC']],
       limit,
       offset,
