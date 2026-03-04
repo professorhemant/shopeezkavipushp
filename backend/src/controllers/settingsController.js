@@ -9,8 +9,11 @@ const { QueryTypes } = require('sequelize');
  */
 const getSettings = async (req, res, next) => {
   try {
-    const settings = await Setting.findAll({ where: { firm_id: req.firmId } });
-    const settingsMap = settings.reduce((acc, s) => {
+    const rows = await sequelize.query(
+      'SELECT `key`, value FROM settings WHERE firm_id = :firmId',
+      { replacements: { firmId: req.firmId }, type: QueryTypes.SELECT }
+    );
+    const settingsMap = rows.reduce((acc, s) => {
       acc[s.key] = s.value;
       return acc;
     }, {});
@@ -109,15 +112,16 @@ const getInvoiceSettings = async (req, res, next) => {
       'invoice_show_signature', 'invoice_due_days',
     ];
 
-    const settings = await Setting.findAll({
-      where: { firm_id: req.firmId, key: keys },
-    });
+    const settingRows = await sequelize.query(
+      'SELECT `key`, value FROM settings WHERE firm_id = :firmId AND `key` IN (:keys)',
+      { replacements: { firmId: req.firmId, keys }, type: QueryTypes.SELECT }
+    );
 
     const firm = await Firm.findByPk(req.firmId, {
       attributes: ['invoice_prefix', 'invoice_footer', 'terms_conditions', 'logo'],
     });
 
-    const settingsMap = settings.reduce((acc, s) => {
+    const settingsMap = settingRows.reduce((acc, s) => {
       acc[s.key] = s.value;
       return acc;
     }, {});
