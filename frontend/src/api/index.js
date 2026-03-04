@@ -135,7 +135,7 @@ export const purchaseAPI = {
   getOne: (id) => api.get(`/purchases/${id}`),
   create: (data) => api.post('/purchases', data),
   update: (id, data) => api.put(`/purchases/${id}`, data),
-  cancel: (id) => api.post(`/purchases/${id}/cancel`),
+  cancel: (id) => api.put(`/purchases/${id}/cancel`),
   addPayment: (id, data) => api.post(`/purchases/${id}/payment`, data),
 }
 
