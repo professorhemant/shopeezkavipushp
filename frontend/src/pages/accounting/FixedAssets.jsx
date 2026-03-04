@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Plus, Building2, Trash2, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { accountingAPI } from '../../api'
@@ -14,8 +14,26 @@ export default function FixedAssets() {
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [depManual, setDepManual] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
+
+  const calcDepreciation = useCallback((cost, date, lifeYears, method) => {
+    const c = parseFloat(cost)
+    const y = parseFloat(lifeYears)
+    if (!c || !y || !date) return ''
+    const purchaseDate = new Date(date)
+    const today = new Date()
+    const elapsedYears = Math.max(0, (today - purchaseDate) / (365.25 * 24 * 60 * 60 * 1000))
+    let dep = 0
+    if (method === 'wdv') {
+      const rate = 1 - Math.pow(0, 1 / y) // simplified: rate = 1/y for display
+      dep = c * (1 - Math.pow(Math.max(0, 1 - 1 / y), elapsedYears))
+    } else {
+      dep = (c / y) * elapsedYears
+    }
+    return Math.min(c, Math.max(0, dep)).toFixed(2)
+  }, [])
 
   const fetchAssets = () => {
     setLoading(true)
@@ -27,9 +45,21 @@ export default function FixedAssets() {
 
   useEffect(() => { fetchAssets() }, [])
 
-  const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
+  const updateForm = (patch) => {
+    setForm((prev) => {
+      const next = { ...prev, ...patch }
+      if (!depManual) {
+        const auto = calcDepreciation(next.purchase_cost, next.purchase_date, next.useful_life_years, next.depreciation_method)
+        if (auto !== '') next.accumulated_depreciation = auto
+      }
+      return next
+    })
+  }
+
+  const openAdd = () => { setEditing(null); setDepManual(false); setForm(EMPTY_FORM); setShowModal(true) }
   const openEdit = (a) => {
     setEditing(a.id)
+    setDepManual(true) // keep existing value when editing
     setForm({ name: a.name, purchase_date: a.purchase_date?.split('T')[0] || '', purchase_cost: a.purchase_cost || '', accumulated_depreciation: a.accumulated_depreciation || '', useful_life_years: a.useful_life_years || '', depreciation_method: a.depreciation_method || 'straight_line', category: a.category || '' })
     setShowModal(true)
   }
@@ -154,37 +184,44 @@ export default function FixedAssets() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-slate-700 mb-1">Asset Name *</label>
-                  <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                  <input value={form.name} onChange={(e) => updateForm({ name: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Category</label>
-                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
+                  <select value={form.category} onChange={(e) => updateForm({ category: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                     <option value="">Select...</option>
                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Purchase Date</label>
-                  <input type="date" value={form.purchase_date} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                  <input type="date" value={form.purchase_date} onChange={(e) => updateForm({ purchase_date: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Purchase Cost (₹) *</label>
-                  <input type="number" step="0.01" value={form.purchase_cost} onChange={(e) => setForm({ ...form, purchase_cost: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Accumulated Depreciation (₹)</label>
-                  <input type="number" step="0.01" value={form.accumulated_depreciation} onChange={(e) => setForm({ ...form, accumulated_depreciation: e.target.value })} placeholder="0.00" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                  <input type="number" step="0.01" value={form.purchase_cost} onChange={(e) => updateForm({ purchase_cost: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Useful Life (Years)</label>
-                  <input type="number" value={form.useful_life_years} onChange={(e) => setForm({ ...form, useful_life_years: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                  <input type="number" value={form.useful_life_years} onChange={(e) => updateForm({ useful_life_years: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Depreciation Method</label>
-                  <select value={form.depreciation_method} onChange={(e) => setForm({ ...form, depreciation_method: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
+                  <select value={form.depreciation_method} onChange={(e) => updateForm({ depreciation_method: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                     <option value="straight_line">Straight Line</option>
                     <option value="wdv">Written Down Value</option>
                   </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Accumulated Depreciation (₹)
+                    <span className="ml-2 text-amber-600 font-normal">{depManual ? '(manual)' : '(auto-calculated)'}</span>
+                  </label>
+                  <input type="number" step="0.01" value={form.accumulated_depreciation}
+                    onChange={(e) => { setDepManual(true); setForm((p) => ({ ...p, accumulated_depreciation: e.target.value })) }}
+                    placeholder="Auto-calculated from purchase date & useful life"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 bg-amber-50/40" />
+                  {depManual && <button type="button" onClick={() => { setDepManual(false); updateForm({}) }} className="text-xs text-amber-600 hover:underline mt-1">Reset to auto-calculate</button>}
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
