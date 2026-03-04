@@ -1,6 +1,7 @@
 'use strict';
 
-const { Setting, Firm } = require('../models');
+const { Setting, Firm, sequelize } = require('../models');
+const { QueryTypes } = require('sequelize');
 
 /**
  * GET /settings
@@ -34,11 +35,22 @@ const updateSettings = async (req, res, next) => {
 
     const entries = Object.entries(updates);
     for (const [key, value] of entries) {
-      await Setting.upsert({
-        firm_id: firmId,
-        key,
-        value: typeof value === 'object' ? JSON.stringify(value) : String(value),
-      });
+      const strVal = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      const [existing] = await sequelize.query(
+        'SELECT id FROM settings WHERE firm_id = :firmId AND `key` = :key LIMIT 1',
+        { replacements: { firmId, key }, type: QueryTypes.SELECT }
+      );
+      if (existing) {
+        await sequelize.query(
+          'UPDATE settings SET value = :value, updatedAt = NOW() WHERE id = :id',
+          { replacements: { value: strVal, id: existing.id }, type: QueryTypes.UPDATE }
+        );
+      } else {
+        await sequelize.query(
+          'INSERT INTO settings (id, firm_id, `key`, value, createdAt, updatedAt) VALUES (UUID(), :firmId, :key, :value, NOW(), NOW())',
+          { replacements: { firmId, key, value: strVal }, type: QueryTypes.INSERT }
+        );
+      }
     }
 
     return res.status(200).json({ success: true, message: `${entries.length} setting(s) updated.` });
