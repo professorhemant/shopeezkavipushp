@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op, fn, col, literal } = require('sequelize');
-const { Sale, Purchase, Customer, Supplier, Expense, FixedAsset, Payment, sequelize } = require('../models');
+const { Sale, Purchase, Customer, Supplier, Expense, ExpenseCategory, FixedAsset, Payment, sequelize } = require('../models');
 
 const paginate = (q) => {
   const page = Math.max(1, parseInt(q.page) || 1);
@@ -298,20 +298,40 @@ const getBalanceSheet = async (req, res, next) => {
   }
 };
 
+// Map DB expense row to frontend-friendly shape
+const formatExpense = (e, categoryName) => ({
+  id: e.id,
+  date: e.expense_date,
+  description: e.title,
+  category: categoryName || e.ExpenseCategory?.name || e.category_id || '',
+  amount: e.amount,
+  payment_mode: e.payment_mode,
+  notes: e.notes,
+  reference_no: e.reference_no,
+  created_at: e.createdAt,
+});
+
 /**
  * GET /accounting/expenses
  */
 const getExpenses = async (req, res, next) => {
   try {
     const { limit, offset, page } = paginate(req.query);
-    const { from_date, to_date, category_id } = req.query;
+    const { from_date, to_date, start_date, end_date, category_id, search } = req.query;
 
     const where = { firm_id: req.firmId };
-    if (from_date && to_date) where.expense_date = { [Op.between]: [new Date(from_date), new Date(to_date)] };
+    const fd = from_date || start_date;
+    const td = to_date || end_date;
+    if (fd && td) where.expense_date = { [Op.between]: [new Date(fd), new Date(td)] };
     if (category_id) where.category_id = category_id;
+    if (search) where[Op.or] = [
+      { title: { [Op.like]: `%${search}%` } },
+      { notes: { [Op.like]: `%${search}%` } },
+    ];
 
     const { count, rows } = await Expense.findAndCountAll({
       where,
+      include: [{ model: ExpenseCategory, as: 'ExpenseCategory', attributes: ['id', 'name'], required: false }],
       order: [['expense_date', 'DESC']],
       limit,
       offset,
@@ -319,12 +339,37 @@ const getExpenses = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      data: rows,
+      data: rows.map((e) => formatExpense(e)),
       pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
+      total_amount: rows.reduce((s, e) => s + parseFloat(e.amount || 0), 0),
     });
   } catch (err) {
     next(err);
   }
+};
+
+// Map frontend body → DB fields, resolving category string to category_id
+const mapExpenseBody = async (body, firmId) => {
+  const { date, description, category, amount, payment_mode, notes, reference_no } = body;
+  let category_id = body.category_id || null;
+  let categoryName = category || null;
+  if (category && !category_id) {
+    const [cat] = await ExpenseCategory.findOrCreate({
+      where: { firm_id: firmId, name: category },
+      defaults: { firm_id: firmId, name: category },
+    });
+    category_id = cat.id;
+  }
+  return {
+    title: description || body.title || category || 'Expense',
+    expense_date: date || body.expense_date,
+    amount,
+    payment_mode: payment_mode || 'cash',
+    category_id,
+    notes: notes || null,
+    reference_no: reference_no || null,
+    _categoryName: categoryName,
+  };
 };
 
 /**
@@ -332,8 +377,10 @@ const getExpenses = async (req, res, next) => {
  */
 const createExpense = async (req, res, next) => {
   try {
-    const expense = await Expense.create({ ...req.body, firm_id: req.firmId, created_by: req.userId });
-    return res.status(201).json({ success: true, message: 'Expense created.', data: expense });
+    const mapped = await mapExpenseBody(req.body, req.firmId);
+    const { _categoryName, ...fields } = mapped;
+    const expense = await Expense.create({ ...fields, firm_id: req.firmId, created_by: req.userId });
+    return res.status(201).json({ success: true, message: 'Expense created.', data: formatExpense(expense, _categoryName) });
   } catch (err) {
     next(err);
   }
@@ -346,8 +393,10 @@ const updateExpense = async (req, res, next) => {
   try {
     const expense = await Expense.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
     if (!expense) return res.status(404).json({ success: false, message: 'Expense not found.' });
-    await expense.update(req.body);
-    return res.status(200).json({ success: true, message: 'Expense updated.', data: expense });
+    const mapped = await mapExpenseBody(req.body, req.firmId);
+    const { _categoryName, ...fields } = mapped;
+    await expense.update(fields);
+    return res.status(200).json({ success: true, message: 'Expense updated.', data: formatExpense(expense, _categoryName) });
   } catch (err) {
     next(err);
   }
