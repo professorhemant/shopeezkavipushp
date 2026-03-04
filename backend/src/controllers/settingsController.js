@@ -45,12 +45,12 @@ const updateSettings = async (req, res, next) => {
       );
       if (existing) {
         await sequelize.query(
-          'UPDATE settings SET value = :value WHERE id = :id',
+          'UPDATE settings SET value = :value, updated_at = NOW() WHERE id = :id',
           { replacements: { value: strVal, id: existing.id }, type: QueryTypes.UPDATE }
         );
       } else {
         await sequelize.query(
-          'INSERT INTO settings (id, firm_id, `key`, value) VALUES (UUID(), :firmId, :key, :value)',
+          'INSERT INTO settings (id, firm_id, `key`, value, created_at, updated_at) VALUES (UUID(), :firmId, :key, :value, NOW(), NOW())',
           { replacements: { firmId, key, value: strVal }, type: QueryTypes.INSERT }
         );
       }
