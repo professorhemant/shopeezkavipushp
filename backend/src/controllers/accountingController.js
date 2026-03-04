@@ -293,7 +293,7 @@ const getBalanceSheet = async (req, res, next) => {
         raw: true,
       }),
       Product ? Product.findOne({
-        where: { firm_id: firmId, track_inventory: true },
+        where: { firm_id: firmId, is_active: true },
         attributes: [[fn('SUM', literal('`stock` * `purchase_price`')), 'total']],
         raw: true,
       }) : Promise.resolve({ total: 0 }),
