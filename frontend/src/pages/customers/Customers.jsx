@@ -21,6 +21,8 @@ export default function Customers() {
   const [editingOutstanding, setEditingOutstanding] = useState(0)
   const [editingCust, setEditingCust] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [nameSuggestions, setNameSuggestions] = useState([])
+  const [showNameDrop, setShowNameDrop] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
   const [waCustomer,  setWaCustomer]  = useState(null)   // customer whose history is shown
@@ -238,9 +240,38 @@ export default function Customers() {
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
+                <div className="col-span-2 relative">
                   <label className="block text-xs font-medium text-slate-700 mb-1">Name *</label>
-                  <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                  <input
+                    value={form.name}
+                    onChange={(e) => {
+                      setForm({ ...form, name: e.target.value })
+                      if (!editing && e.target.value.trim().length > 0) {
+                        customerAPI.getAll({ search: e.target.value.trim(), limit: 5 })
+                          .then(({ data }) => { setNameSuggestions(data.data || []); setShowNameDrop(true) })
+                          .catch(() => {})
+                      } else { setNameSuggestions([]); setShowNameDrop(false) }
+                    }}
+                    onBlur={() => setTimeout(() => setShowNameDrop(false), 150)}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                  />
+                  {showNameDrop && nameSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 mt-1 max-h-48 overflow-y-auto">
+                      {nameSuggestions.map((c) => (
+                        <button key={c.id} type="button"
+                          onMouseDown={() => {
+                            setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setEditingCust(c)
+                            setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: parseFloat(c.outstanding_balance || 0) })
+                            setShowNameDrop(false)
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-amber-50 border-b border-slate-50 last:border-0">
+                          <span className="font-medium text-slate-800">{c.name}</span>
+                          {c.phone && <span className="text-slate-400 ml-2 text-xs">{c.phone}</span>}
+                          {parseFloat(c.outstanding_balance) > 0 && <span className="float-right text-red-500 text-xs font-semibold">₹{parseFloat(c.outstanding_balance).toFixed(2)}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Phone</label>
