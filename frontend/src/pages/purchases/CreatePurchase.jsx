@@ -6,7 +6,7 @@ import { purchaseAPI, supplierAPI, productAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
-const TAX_RATES = [0, 5, 12, 18, 28]
+const TAX_RATES = [0, 3, 5, 12, 18, 28]
 const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque']
 
 function newItem() {
@@ -256,13 +256,20 @@ export default function CreatePurchase() {
                     </div>
                   </td>
                   <td className="px-3 py-2"><input value={item.hsn_code} onChange={(e) => updateItem(idx, 'hsn_code', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
-                  <td className="px-3 py-2"><input type="number" min="1" value={item.qty} onChange={(e) => updateItem(idx, 'qty', parseFloat(e.target.value) || 1)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
+                  <td className="px-3 py-2"><input type="number" min="1" max="999" value={item.qty} onChange={(e) => updateItem(idx, 'qty', parseFloat(e.target.value) || 1)} className="w-16 border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
                   <td className="px-3 py-2"><input type="number" min="0" step="0.01" value={item.price} onChange={(e) => updateItem(idx, 'price', parseFloat(e.target.value) || 0)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
                   <td className="px-3 py-2"><input type="number" min="0" max="100" value={item.discount_pct} onChange={(e) => updateItem(idx, 'discount_pct', parseFloat(e.target.value) || 0)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
                   <td className="px-3 py-2">
-                    <select value={item.tax_rate} onChange={(e) => updateItem(idx, 'tax_rate', parseFloat(e.target.value))} className="w-full border border-slate-200 rounded px-1 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500">
-                      {TAX_RATES.map((r) => <option key={r} value={r}>{r}%</option>)}
-                    </select>
+                    <input
+                      type="number" min="0" max="100" step="0.1"
+                      list={`tax-rates-${idx}`}
+                      value={item.tax_rate}
+                      onChange={(e) => updateItem(idx, 'tax_rate', parseFloat(e.target.value) || 0)}
+                      className="w-16 border border-amber-400 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500"
+                    />
+                    <datalist id={`tax-rates-${idx}`}>
+                      {TAX_RATES.map((r) => <option key={r} value={r} />)}
+                    </datalist>
                   </td>
                   <td className="px-3 py-2 text-right text-xs text-slate-600">{(item.cgst || 0).toFixed(2)}</td>
                   <td className="px-3 py-2 text-right text-xs text-slate-600">{(item.sgst || 0).toFixed(2)}</td>
