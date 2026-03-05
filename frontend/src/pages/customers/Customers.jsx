@@ -18,6 +18,7 @@ export default function Customers() {
   const [total, setTotal] = useState(0)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [editingOutstanding, setEditingOutstanding] = useState(0)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
@@ -43,8 +44,8 @@ export default function Customers() {
 
   useEffect(() => { fetchCustomers() }, [fetchCustomers])
 
-  const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
-  const openEdit = (c) => { setEditing(c.id); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: c.opening_balance || '' }); setShowModal(true) }
+  const openAdd = () => { setEditing(null); setEditingOutstanding(0); setForm(EMPTY_FORM); setShowModal(true) }
+  const openEdit = (c) => { setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: c.opening_balance || '' }); setShowModal(true) }
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -274,6 +275,12 @@ export default function Customers() {
                     <label className="block text-xs font-medium text-slate-700 mb-1">Opening Balance (₹)</label>
                     <input type="number" value={form.opening_balance} onChange={(e) => setForm({ ...form, opening_balance: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                   </div>
+                {editing && editingOutstanding > 0 && (
+                  <div className="col-span-2 flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+                    <span className="text-xs font-medium text-orange-700">Current Previous Balance</span>
+                    <span className="text-sm font-bold text-orange-600">₹{editingOutstanding.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
