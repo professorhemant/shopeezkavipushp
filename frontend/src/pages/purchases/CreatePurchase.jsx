@@ -7,7 +7,7 @@ import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 const TAX_RATES = [0, 3, 5, 12, 18, 28]
-const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque']
+const PAYMENT_MODES = ['cash', 'upi', 'card', 'netbanking', 'cheque', 'neft', 'rtgs', 'other']
 
 function newItem() {
   return {
@@ -47,7 +47,7 @@ export default function CreatePurchase() {
   const [items, setItems] = useState([newItem()])
   const [shipping, setShipping] = useState(0)
   const [paidAmount, setPaidAmount] = useState(0)
-  const [paymentMode, setPaymentMode] = useState('bank')
+  const [paymentMode, setPaymentMode] = useState('cash')
   const [notes, setNotes] = useState('')
   const [activeItemSearch, setActiveItemSearch] = useState(null)
   const [productSearch, setProductSearch] = useState('')
