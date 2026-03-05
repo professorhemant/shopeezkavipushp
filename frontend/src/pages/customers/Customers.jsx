@@ -256,10 +256,13 @@ export default function Customers() {
                     className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                   />
                   {showNameDrop && nameSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 mt-1 max-h-48 overflow-y-auto">
+                    <div
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="absolute top-full left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-[200] mt-1 max-h-48 overflow-y-auto"
+                    >
                       {nameSuggestions.map((c) => (
                         <button key={c.id} type="button"
-                          onMouseDown={() => {
+                          onClick={() => {
                             setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setEditingCust(c)
                             setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: parseFloat(c.outstanding_balance || 0) })
                             setShowNameDrop(false)
