@@ -182,7 +182,7 @@ export default function Customers() {
                 {customers.map((c) => (
                   <tr key={c.id} className="border-b hover:bg-slate-50">
                     <td className="px-4 py-3">
-                      <button onClick={() => navigate(`/customers/${c.id}`)} className="font-medium text-amber-600 hover:underline text-left">{c.name}</button>
+                      <button onClick={() => openEdit(c)} className="font-medium text-amber-600 hover:underline text-left">{c.name}</button>
                       {c.email && <p className="text-xs text-gray-400">{c.email}</p>}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
@@ -202,10 +202,8 @@ export default function Customers() {
                     </td>
                     <td className="px-4 py-3 text-gray-600 font-mono text-xs">{c.gstin || '-'}</td>
                     <td className="px-4 py-3 text-gray-600">{c.city || '-'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => openEdit(c)} className="font-medium text-red-600 hover:underline hover:text-red-700">
-                        {formatCurrency(c.outstanding_balance || 0)}
-                      </button>
+                    <td className="px-4 py-3 text-right font-medium text-red-600">
+                      {formatCurrency(c.outstanding_balance || 0)}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
