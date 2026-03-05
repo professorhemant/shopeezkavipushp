@@ -280,7 +280,7 @@ export default function Customers() {
                       type="number"
                       readOnly={!!editing}
                       value={form.opening_balance}
-                      onChange={editing ? undefined : (e) => setForm({ ...form, opening_balance: e.target.value })}
+                      onChange={editing ? () => {} : (e) => setForm({ ...form, opening_balance: e.target.value })}
                       className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none ${editing ? 'bg-orange-50 border-orange-300 text-orange-700 font-semibold cursor-default' : 'border-slate-200 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500'}`}
                     />
                   </div>
