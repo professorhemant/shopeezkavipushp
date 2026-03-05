@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Edit2, Trash2, Users, Phone, ChevronLeft, ChevronRight, MessageCircle, X, Send, Clock, Loader2 } from 'lucide-react'
+import { Plus, Search, Trash2, Users, Phone, ChevronLeft, ChevronRight, MessageCircle, X, Send, Clock, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { customerAPI, whatsappAPI, saleAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -19,6 +19,7 @@ export default function Customers() {
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [editingOutstanding, setEditingOutstanding] = useState(0)
+  const [editingCust, setEditingCust] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
@@ -44,8 +45,8 @@ export default function Customers() {
 
   useEffect(() => { fetchCustomers() }, [fetchCustomers])
 
-  const openAdd = () => { setEditing(null); setEditingOutstanding(0); setForm(EMPTY_FORM); setShowModal(true) }
-  const openEdit = (c) => { setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: parseFloat(c.outstanding_balance || 0) }); setShowModal(true) }
+  const openAdd = () => { setEditing(null); setEditingOutstanding(0); setEditingCust(null); setForm(EMPTY_FORM); setShowModal(true) }
+  const openEdit = (c) => { setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setEditingCust(c); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: parseFloat(c.outstanding_balance || 0) }); setShowModal(true) }
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -201,10 +202,13 @@ export default function Customers() {
                     </td>
                     <td className="px-4 py-3 text-gray-600 font-mono text-xs">{c.gstin || '-'}</td>
                     <td className="px-4 py-3 text-gray-600">{c.city || '-'}</td>
-                    <td className="px-4 py-3 text-right font-medium text-red-600">{formatCurrency(c.outstanding_balance || 0)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => openEdit(c)} className="font-medium text-red-600 hover:underline hover:text-red-700">
+                        {formatCurrency(c.outstanding_balance || 0)}
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
                         <button onClick={() => setDeleteId(c.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
@@ -287,6 +291,9 @@ export default function Customers() {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
+                {editing && editingCust && (
+                  <button type="button" onClick={() => { setShowModal(false); navigate('/create-invoice', { state: { preselectedCustomer: editingCust } }) }} className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Create Invoice</button>
+                )}
                 <button type="submit" disabled={saving} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
               </div>
             </form>

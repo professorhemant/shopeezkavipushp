@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useNavigate, useParams, useLocation, Link } from 'react-router-dom'
 import {
   ScanBarcode, X, Truck, Package, Repeat2,
   Trash2, Plus, Calendar, Info, Banknote,
@@ -41,6 +41,7 @@ const PAYMENT_MODES = [
 // ── Component ─────────────────────────────────────────────────────
 export default function CreateInvoice() {
   const navigate    = useNavigate()
+  const location    = useLocation()
   const { id }      = useParams()
   const isEdit      = Boolean(id)
   const barcodeRef  = useRef(null)
@@ -164,6 +165,24 @@ export default function CreateInvoice() {
       .then(({ data }) => setCustResults(data.data || data.customers || []))
       .catch(() => {})
   }, [custSearch])
+
+  // ── pre-select customer from Customers page ───────────────────
+  useEffect(() => {
+    const preselected = location.state?.preselectedCustomer
+    if (!preselected || isEdit) return
+    setMobile(preselected.mobile || preselected.phone || '')
+    setCustName(preselected.name)
+    const bal = parseFloat(preselected.outstanding_balance || preselected.opening_balance || 0)
+    setPrevBalanceInput(bal > 0 ? String(bal) : '')
+    customerAPI.getOne(preselected.id)
+      .then(({ data }) => {
+        const full = data.data || data.customer || data
+        setSelectedCust({ ...preselected, ...full })
+        const fullBal = parseFloat(full.outstanding_balance || full.opening_balance || 0)
+        setPrevBalanceInput(fullBal > 0 ? String(fullBal) : '')
+      })
+      .catch(() => setSelectedCust(preselected))
+  }, [])
 
   // ── row product search ───────────────────────────────────────
   useEffect(() => {
