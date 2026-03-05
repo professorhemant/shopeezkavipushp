@@ -56,6 +56,7 @@ export default function CreateInvoice() {
   const [selectedCust,    setSelectedCust]    = useState(null)
   const [mobile,          setMobile]          = useState('')
   const [custName,        setCustName]        = useState('')
+  const [prevBalanceInput, setPrevBalanceInput] = useState('')
 
   // barcode / product
   const [barcode,         setBarcode]         = useState('')
@@ -240,7 +241,7 @@ export default function CreateInvoice() {
   const totalItems  = rows.filter((r) => r.product_id).length
   const subTotal    = rows.reduce((s, r) => s + (r.total_before || 0), 0)
   const totalTax    = rows.reduce((s, r) => s + (r.tax_amt || 0), 0)
-  const prevBalance = parseFloat(selectedCust?.outstanding_balance || selectedCust?.opening_balance || 0)
+  const prevBalance = parseFloat(prevBalanceInput) || 0
   const grandTotal  = subTotal + totalTax + parseFloat(shipping || 0) - discountApplied
   const netPayable  = grandTotal + prevBalance
   const partialPaid = payType === 'partial' ? (parseFloat(partialAmount) || 0) : netPayable
@@ -344,22 +345,32 @@ export default function CreateInvoice() {
         {/* Customer search / selected chip */}
         <div className="relative flex-1 min-w-[220px]">
           {selectedCust ? (
-            <div className="flex items-center gap-2 border-2 border-amber-400 rounded-lg px-2 py-1.5 bg-amber-50">
-              <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span className="text-xs font-semibold text-slate-800 truncate">{selectedCust.name}</span>
-                {(selectedCust.phone || selectedCust.mobile) && (
-                  <span className="text-xs text-slate-500">{selectedCust.phone || selectedCust.mobile}</span>
-                )}
-                {prevBalance > 0 && (
-                  <span className="text-xs font-medium text-red-600">Prev: ₹{prevBalance.toFixed(2)}</span>
-                )}
+            <div className="flex flex-col gap-1 border-2 border-amber-400 rounded-lg px-2 py-1.5 bg-amber-50">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span className="text-xs font-semibold text-slate-800 truncate">{selectedCust.name}</span>
+                  {(selectedCust.phone || selectedCust.mobile) && (
+                    <span className="text-xs text-slate-500">{selectedCust.phone || selectedCust.mobile}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => { setSelectedCust(null); setCustSearch(''); setMobile(''); setCustName(''); setPrevBalanceInput('') }}
+                  className="text-gray-400 hover:text-red-500 shrink-0"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
-              <button
-                onClick={() => { setSelectedCust(null); setCustSearch(''); setMobile(''); setCustName('') }}
-                className="text-gray-400 hover:text-red-500 shrink-0"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-red-600 font-medium whitespace-nowrap">Prev. Balance ₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={prevBalanceInput}
+                  onChange={(e) => setPrevBalanceInput(e.target.value)}
+                  placeholder="0"
+                  className="w-24 border border-red-300 rounded px-1.5 py-0.5 text-xs text-red-700 font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-red-400"
+                />
+              </div>
             </div>
           ) : (
             <input
@@ -381,10 +392,14 @@ export default function CreateInvoice() {
                     setCustName(c.name)
                     setCustSearch('')
                     setShowCustDrop(false)
+                    const initialBal = parseFloat(c.outstanding_balance || c.opening_balance || 0)
+                    setPrevBalanceInput(initialBal > 0 ? String(initialBal) : '')
                     customerAPI.getOne(c.id)
                       .then(({ data }) => {
                         const full = data.data || data.customer || data
                         setSelectedCust({ ...c, ...full })
+                        const bal = parseFloat(full.outstanding_balance || full.opening_balance || 0)
+                        setPrevBalanceInput(bal > 0 ? String(bal) : '')
                       })
                       .catch(() => setSelectedCust(c))
                   }}
