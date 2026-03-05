@@ -278,15 +278,15 @@ export default function Customers() {
                 </div>
                 <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Previous Balance (₹){editing && <span className="ml-1 text-slate-400 font-normal">(auto)</span>}
+                      {editing ? 'Previous Balance (₹)' : 'Opening Balance (₹)'}
                     </label>
-                    <input
-                      type="number"
-                      readOnly={!!editing}
-                      value={form.opening_balance}
-                      onChange={editing ? () => {} : (e) => setForm({ ...form, opening_balance: e.target.value })}
-                      className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none ${editing ? 'bg-orange-50 border-orange-300 text-orange-700 font-semibold cursor-default' : 'border-slate-200 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500'}`}
-                    />
+                    {editing ? (
+                      <div className="w-full bg-orange-50 border border-orange-300 rounded-lg px-3 py-2 text-sm font-bold text-orange-600">
+                        ₹{editingOutstanding.toFixed(2)}
+                      </div>
+                    ) : (
+                      <input type="number" value={form.opening_balance} onChange={(e) => setForm({ ...form, opening_balance: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                    )}
                   </div>
               </div>
               <div className="flex gap-3 pt-2">
