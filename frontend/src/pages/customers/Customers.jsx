@@ -6,7 +6,7 @@ import { customerAPI, whatsappAPI, saleAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
-const EMPTY_FORM = { name: '', phone: '', email: '', gstin: '', address: '', city: '', state: '', pincode: '', credit_limit: '', opening_balance: '' }
+const EMPTY_FORM = { name: '', phone: '', email: '', gstin: '', billing_address: '', city: '', state: '', pincode: '', credit_limit: '', opening_balance: '' }
 
 export default function Customers() {
   const navigate = useNavigate()
@@ -44,7 +44,7 @@ export default function Customers() {
   useEffect(() => { fetchCustomers() }, [fetchCustomers])
 
   const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
-  const openEdit = (c) => { setEditing(c.id); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', address: c.address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: c.opening_balance || '' }); setShowModal(true) }
+  const openEdit = (c) => { setEditing(c.id); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: c.opening_balance || '' }); setShowModal(true) }
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -264,7 +264,7 @@ export default function Customers() {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-slate-700 mb-1">Address</label>
-                  <textarea value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                  <textarea value={form.billing_address} onChange={(e) => setForm({ ...form, billing_address: e.target.value })} rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Credit Limit (₹)</label>

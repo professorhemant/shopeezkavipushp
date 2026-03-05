@@ -21,6 +21,10 @@ export default function CustomerDetails() {
   const [toDate, setToDate] = useState('')
 
   useEffect(() => {
+    setCustomer(null)
+    setLedger([])
+    setInvoices([])
+    setTab('overview')
     const fetchData = async () => {
       try {
         const [custRes, ledRes] = await Promise.all([
@@ -55,7 +59,6 @@ export default function CustomerDetails() {
   }
 
   const fetchInvoices = async () => {
-    if (invoices.length > 0) return
     setInvoicesLoading(true)
     try {
       const res = await saleAPI.getAll({ customer_id: id, limit: 100 })
@@ -94,7 +97,7 @@ export default function CustomerDetails() {
         {[
           { label: 'Total Sales', value: formatCurrency(customer.total_sales || 0), color: 'text-amber-600' },
           { label: 'Total Paid', value: formatCurrency(customer.total_paid || 0), color: 'text-emerald-600' },
-          { label: 'Outstanding Balance', value: formatCurrency(customer.outstanding_balance || 0), color: 'text-red-600' },
+          { label: 'Previous Balance', value: formatCurrency(customer.outstanding_balance || 0), color: 'text-red-600' },
           { label: 'Credit Limit', value: formatCurrency(customer.credit_limit || 0), color: 'text-slate-800' },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
@@ -129,10 +132,10 @@ export default function CustomerDetails() {
                   <span>{customer.email}</span>
                 </div>
               )}
-              {(customer.address || customer.city || customer.state) && (
+              {(customer.billing_address || customer.city || customer.state) && (
                 <div className="flex items-start gap-3 text-gray-600">
                   <MapPin className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
-                  <span>{[customer.address, customer.city, customer.state, customer.pincode].filter(Boolean).join(', ')}</span>
+                  <span>{[customer.billing_address, customer.city, customer.state, customer.pincode].filter(Boolean).join(', ')}</span>
                 </div>
               )}
               {customer.gstin && (
@@ -141,31 +144,25 @@ export default function CustomerDetails() {
                   <span>GSTIN: <span className="font-mono">{customer.gstin}</span></span>
                 </div>
               )}
-              {!customer.phone && !customer.email && !customer.address && !customer.gstin && (
+              {!customer.phone && !customer.email && !customer.billing_address && !customer.gstin && (
                 <p className="text-slate-400 text-sm">No contact information available</p>
               )}
             </div>
           </div>
 
-          {(customer.opening_balance > 0 || customer.credit_limit > 0) && (
-            <div className="border-t border-slate-100 pt-5">
-              <h2 className="text-base font-semibold text-slate-800 mb-4">Financial Details</h2>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {customer.opening_balance > 0 && (
-                  <div>
-                    <p className="text-slate-500">Opening Balance</p>
-                    <p className="font-medium text-slate-800 mt-0.5">{formatCurrency(customer.opening_balance)}</p>
-                  </div>
-                )}
-                {customer.credit_limit > 0 && (
-                  <div>
-                    <p className="text-slate-500">Credit Limit</p>
-                    <p className="font-medium text-slate-800 mt-0.5">{formatCurrency(customer.credit_limit)}</p>
-                  </div>
-                )}
+          <div className="border-t border-slate-100 pt-5">
+            <h2 className="text-base font-semibold text-slate-800 mb-4">Financial Details</h2>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-slate-500">Opening Balance</p>
+                <p className="font-medium text-slate-800 mt-0.5">{formatCurrency(parseFloat(customer.opening_balance) || 0)}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">Credit Limit</p>
+                <p className="font-medium text-slate-800 mt-0.5">{formatCurrency(parseFloat(customer.credit_limit) || 0)}</p>
               </div>
             </div>
-          )}
+          </div>
         </div>
       )}
 
