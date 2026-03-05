@@ -45,7 +45,7 @@ export default function Customers() {
   useEffect(() => { fetchCustomers() }, [fetchCustomers])
 
   const openAdd = () => { setEditing(null); setEditingOutstanding(0); setForm(EMPTY_FORM); setShowModal(true) }
-  const openEdit = (c) => { setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: c.opening_balance || '' }); setShowModal(true) }
+  const openEdit = (c) => { setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: parseFloat(c.outstanding_balance || 0) }); setShowModal(true) }
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -58,7 +58,8 @@ export default function Customers() {
         opening_balance: form.opening_balance === '' ? 0 : form.opening_balance,
       }
       if (editing) {
-        await customerAPI.update(editing, payload)
+        const { opening_balance, ...editPayload } = payload
+        await customerAPI.update(editing, editPayload)
         toast.success('Customer updated')
       } else {
         await customerAPI.create(payload)
@@ -272,15 +273,17 @@ export default function Customers() {
                   <input type="number" value={form.credit_limit} onChange={(e) => setForm({ ...form, credit_limit: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">Opening Balance (₹)</label>
-                    <input type="number" value={form.opening_balance} onChange={(e) => setForm({ ...form, opening_balance: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Previous Balance (₹){editing && <span className="ml-1 text-slate-400 font-normal">(auto)</span>}
+                    </label>
+                    <input
+                      type="number"
+                      readOnly={!!editing}
+                      value={form.opening_balance}
+                      onChange={editing ? undefined : (e) => setForm({ ...form, opening_balance: e.target.value })}
+                      className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none ${editing ? 'bg-orange-50 border-orange-300 text-orange-700 font-semibold cursor-default' : 'border-slate-200 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500'}`}
+                    />
                   </div>
-                {editing && editingOutstanding > 0 && (
-                  <div className="col-span-2 flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
-                    <span className="text-xs font-medium text-orange-700">Current Previous Balance</span>
-                    <span className="text-sm font-bold text-orange-600">₹{editingOutstanding.toFixed(2)}</span>
-                  </div>
-                )}
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
