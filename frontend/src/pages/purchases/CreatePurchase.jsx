@@ -260,16 +260,7 @@ export default function CreatePurchase() {
                   <td className="px-3 py-2"><input type="number" min="0" step="0.01" value={item.price} onChange={(e) => updateItem(idx, 'price', parseFloat(e.target.value) || 0)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
                   <td className="px-3 py-2"><input type="number" min="0" max="100" value={item.discount_pct} onChange={(e) => updateItem(idx, 'discount_pct', parseFloat(e.target.value) || 0)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
                   <td className="px-3 py-2">
-                    <input
-                      type="number" min="0" max="100" step="0.1"
-                      list={`tax-rates-${idx}`}
-                      value={item.tax_rate}
-                      onChange={(e) => updateItem(idx, 'tax_rate', parseFloat(e.target.value) || 0)}
-                      className="w-16 border border-amber-400 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500"
-                    />
-                    <datalist id={`tax-rates-${idx}`}>
-                      {TAX_RATES.map((r) => <option key={r} value={r} />)}
-                    </datalist>
+                    <TaxPicker value={item.tax_rate} onChange={(v) => updateItem(idx, 'tax_rate', v)} />
                   </td>
                   <td className="px-3 py-2 text-right text-xs text-slate-600">{(item.cgst || 0).toFixed(2)}</td>
                   <td className="px-3 py-2 text-right text-xs text-slate-600">{(item.sgst || 0).toFixed(2)}</td>
@@ -352,6 +343,62 @@ export default function CreatePurchase() {
           {isEdit ? 'Update Purchase' : 'Save Purchase'}
         </button>
       </div>
+    </div>
+  )
+}
+
+function TaxPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const [custom, setCustom] = useState(false)
+  const slabs = TAX_RATES
+
+  if (custom) {
+    return (
+      <input
+        autoFocus
+        type="number" min="0" max="100" step="0.1"
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        onBlur={() => setCustom(false)}
+        className="w-16 border border-amber-500 rounded px-2 py-1 text-xs text-right font-semibold text-amber-700 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
+      />
+    )
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="w-16 flex items-center justify-between border border-slate-200 rounded px-2 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:border-amber-400 hover:bg-amber-50 focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 transition-colors"
+      >
+        <span>{value}%</span>
+        <span className="text-slate-400 text-[10px]">▾</span>
+      </button>
+      {open && (
+        <div
+          onMouseDown={(e) => e.preventDefault()}
+          className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-[200] p-1.5 flex flex-col gap-1 min-w-[72px]"
+        >
+          {slabs.map((r) => (
+            <button
+              key={r} type="button"
+              onClick={() => { onChange(r); setOpen(false) }}
+              className={`px-3 py-1 rounded text-xs font-semibold text-left transition-colors ${value === r ? 'bg-amber-500 text-white' : 'hover:bg-amber-50 text-slate-700'}`}
+            >
+              {r}%
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => { setOpen(false); setCustom(true) }}
+            className="px-3 py-1 rounded text-xs text-slate-400 hover:bg-slate-50 text-left border-t border-slate-100 mt-0.5"
+          >
+            Custom…
+          </button>
+        </div>
+      )}
     </div>
   )
 }
