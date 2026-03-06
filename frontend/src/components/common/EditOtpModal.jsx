@@ -9,14 +9,12 @@ export default function EditOtpModal({ onVerified, onClose }) {
   const [verifying, setVerifying] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [maskedPhone, setMaskedPhone] = useState('')
-  const [devOtp, setDevOtp] = useState('')
 
   const requestOtp = async () => {
     setSending(true)
     try {
       const { data } = await authAPI.requestEditOtp()
       setMaskedPhone(data.maskedPhone || '')
-      setDevOtp(data.otp || '')
       setOtpSent(true)
       toast.success(`OTP sent to ${data.maskedPhone}`)
     } catch {
@@ -70,11 +68,6 @@ export default function EditOtpModal({ onVerified, onClose }) {
           </button>
         ) : (
           <div className="space-y-3">
-            {devOtp && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center text-sm text-amber-700">
-                Your OTP: <span className="font-bold text-lg tracking-widest">{devOtp}</span>
-              </div>
-            )}
             <input
               type="text"
               inputMode="numeric"
@@ -94,7 +87,7 @@ export default function EditOtpModal({ onVerified, onClose }) {
               {verifying ? 'Verifying…' : 'Verify & Edit'}
             </button>
             <button
-              onClick={() => { setOtpSent(false); setOtp(''); setDevOtp('') }}
+              onClick={() => { setOtpSent(false); setOtp('') }}
               className="w-full text-sm text-slate-400 hover:text-slate-600 py-1"
             >
               Resend OTP

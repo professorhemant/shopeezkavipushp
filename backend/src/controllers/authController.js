@@ -324,8 +324,6 @@ const requestEditOtp = async (req, res, next) => {
       success: true,
       message: `OTP sent to ${maskedPhone}`,
       maskedPhone,
-      // Return OTP until SMS service is integrated
-      otp,
     });
   } catch (err) {
     next(err);
