@@ -129,6 +129,7 @@ export default function CreatePurchase() {
     try {
       const payload = {
         supplier_id: selectedSupplier?.id || null,
+        supplier_name: selectedSupplier?.name || supplierSearch || null,
         bill_no: billNo, bill_date: billDate, due_date: dueDate || null,
         items: validItems.map((it) => ({
           product_id:   it.product   || null,

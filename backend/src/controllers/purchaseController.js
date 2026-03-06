@@ -31,7 +31,10 @@ const getAll = async (req, res, next) => {
 
     const { count, rows } = await Purchase.findAndCountAll({
       where,
-      include: [{ model: Supplier, as: 'Supplier', attributes: ['id', 'name', 'phone', 'email'] }],
+      include: [
+        { model: Supplier, as: 'Supplier', attributes: ['id', 'name', 'phone', 'email'] },
+        { model: PurchaseItem, as: 'items', attributes: ['product_name'], separate: true },
+      ],
       attributes: {
         include: [
           [sequelize.literal('(SELECT COUNT(*) FROM purchase_items WHERE purchase_items.purchase_id = `Purchase`.`id`)'), 'items_count'],
@@ -80,7 +83,7 @@ const create = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
     const firmId = req.firmId;
-    const { supplier_id, bill_no, bill_date, items, discount_amount, is_interstate, notes, payment } = req.body;
+    const { supplier_id, supplier_name, bill_no, bill_date, items, discount_amount, is_interstate, notes, payment } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       await t.rollback();
@@ -153,6 +156,7 @@ const create = async (req, res, next) => {
     const purchase = await Purchase.create({
       firm_id: firmId,
       supplier_id: supplier_id || null,
+      supplier_name: supplier_name || null,
       bill_no: bill_no || `PUR-${Date.now()}`,
       bill_date: bill_date || new Date(),
       subtotal,
@@ -210,8 +214,8 @@ const update = async (req, res, next) => {
   try {
     const purchase = await Purchase.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
     if (!purchase) return res.status(404).json({ success: false, message: 'Purchase not found.' });
-    if (!['draft', 'ordered'].includes(purchase.status)) {
-      return res.status(400).json({ success: false, message: 'Only draft/ordered purchases can be updated.' });
+    if (purchase.status === 'cancelled') {
+      return res.status(400).json({ success: false, message: 'Cancelled purchases cannot be updated.' });
     }
     const body = { ...req.body };
     delete body.firm_id;

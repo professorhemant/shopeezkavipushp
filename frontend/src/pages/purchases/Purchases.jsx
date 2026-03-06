@@ -120,7 +120,7 @@ export default function Purchases() {
                   <th className="px-4 py-3 text-left">Bill No</th>
                   <th className="px-4 py-3 text-left">Bill Date</th>
                   <th className="px-4 py-3 text-left">Supplier</th>
-                  <th className="px-4 py-3 text-right">Items</th>
+                  <th className="px-4 py-3 text-left">Products</th>
                   <th className="px-4 py-3 text-right">Total</th>
                   <th className="px-4 py-3 text-right">Paid</th>
                   <th className="px-4 py-3 text-right">Balance</th>
@@ -133,8 +133,14 @@ export default function Purchases() {
                   <tr key={p.id} className="border-b hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-amber-600">{p.bill_no || p.purchase_no}</td>
                     <td className="px-4 py-3 text-slate-600">{formatDate(p.bill_date || p.date)}</td>
-                    <td className="px-4 py-3 text-slate-800">{p.supplier_name || p.Supplier?.name || p.supplier?.name || '-'}</td>
-                    <td className="px-4 py-3 text-right text-slate-600">{p.items_count ?? '-'}</td>
+                    <td className="px-4 py-3 text-slate-800">{p.supplier_name || p.Supplier?.name || '-'}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {p.items?.length > 0
+                        ? <span title={p.items.map(i => i.product_name).join(', ')} className="cursor-default">
+                            {p.items.map(i => i.product_name).join(', ')}
+                          </span>
+                        : '-'}
+                    </td>
                     <td className="px-4 py-3 text-right font-medium text-slate-800">{formatCurrency(p.total)}</td>
                     <td className="px-4 py-3 text-right text-green-700 font-medium">{formatCurrency(p.paid_amount)}</td>
                     <td className="px-4 py-3 text-right text-red-600 font-medium">{formatCurrency(p.balance)}</td>

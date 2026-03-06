@@ -114,6 +114,7 @@ function App() {
           {/* Purchases */}
           <Route path="purchases" element={<Purchases />} />
           <Route path="purchases/create" element={<CreatePurchase />} />
+          <Route path="purchases/:id/edit" element={<CreatePurchase />} />
           <Route path="purchases/orders" element={<PurchaseOrders />} />
 
           {/* Customers */}
