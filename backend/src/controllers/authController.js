@@ -324,8 +324,8 @@ const requestEditOtp = async (req, res, next) => {
         await axios.post(
           'https://www.fast2sms.com/dev/bulkV2',
           {
-            route: 'otp',
-            variables_values: otp,
+            route: 'q',
+            message: `Your Kavipushp Jewels edit OTP is ${otp}. Valid for 10 minutes. Do not share with anyone.`,
             numbers: phone.replace(/\D/g, '').slice(-10),
           },
           { headers: { authorization: process.env.FAST2SMS_API_KEY } }
