@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import Layout from './components/layout/Layout'
 import useAuthStore from './store/authStore'
 import LoadingSpinner from './components/common/LoadingSpinner'
@@ -86,6 +86,17 @@ const PublicRoute = ({ children }) => {
 }
 
 function App() {
+  const { isAuthenticated, checkAuth } = useAuthStore()
+  const [validating, setValidating] = useState(isAuthenticated)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkAuth().finally(() => setValidating(false))
+    }
+  }, [])
+
+  if (validating) return <LoadingSpinner fullscreen />
+
   return (
     <Suspense fallback={<LoadingSpinner fullscreen />}>
       <Routes>
