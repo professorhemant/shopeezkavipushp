@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import EditOtpModal from '../common/EditOtpModal'
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Truck,
   UserCog, BarChart3, Settings, Building2, ChevronDown,
@@ -12,6 +13,8 @@ import {
   BarChart2
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
+
+const PROTECTED_IDS = new Set(['sales', 'inventory', 'purchase', 'accounting', 'settings'])
 
 const MENU = [
   { id: 'dashboard', label: 'Dashboard',         icon: LayoutDashboard, path: '/dashboard' },
@@ -90,8 +93,9 @@ const MENU = [
   },
 ]
 
-function MenuItem({ item }) {
+function MenuItem({ item, onProtectedClick }) {
   const location = useLocation()
+  const navigate = useNavigate()
 
   const hasActiveChild = item.children?.some((c) =>
     !c.noActive && (location.pathname === c.path || location.pathname.startsWith(c.path + '/'))
@@ -99,6 +103,18 @@ function MenuItem({ item }) {
 
   const [expanded, setExpanded] = useState(() => hasActiveChild ?? false)
   const Icon = item.icon
+
+  const handleParentClick = () => {
+    if (!expanded && item.children && PROTECTED_IDS.has(item.id) && onProtectedClick) {
+      onProtectedClick(() => {
+        setExpanded(true)
+        const firstChild = item.children.find((c) => c.path)
+        if (firstChild) navigate(firstChild.path)
+      })
+    } else {
+      setExpanded((v) => !v)
+    }
+  }
 
   if (!item.children) {
     return (
@@ -121,7 +137,7 @@ function MenuItem({ item }) {
   return (
     <div>
       <button
-        onClick={() => setExpanded((v) => !v)}
+        onClick={handleParentClick}
         className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors border-l-2 ${
           hasActiveChild
             ? 'border-amber-500 bg-amber-500/10 text-amber-400'
@@ -168,6 +184,11 @@ function MenuItem({ item }) {
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const { firm, user } = useAuthStore()
   const navigate = useNavigate()
+  const [otpModal, setOtpModal] = useState({ open: false, onSuccess: null })
+
+  const requestOtp = (onSuccess) => {
+    setOtpModal({ open: true, onSuccess })
+  }
 
   const SidebarContent = ({ onClose }) => (
     <div className="flex flex-col h-full bg-slate-900">
@@ -194,7 +215,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
         {MENU.map((item) => (
-          <MenuItem key={item.id} item={item} />
+          <MenuItem key={item.id} item={item} onProtectedClick={requestOtp} />
         ))}
       </nav>
 
@@ -223,6 +244,13 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       <aside className={`fixed top-0 left-0 h-full w-72 z-50 flex flex-col transition-transform duration-300 lg:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <SidebarContent onClose={onMobileClose} />
       </aside>
+
+      {otpModal.open && (
+        <EditOtpModal
+          onVerified={() => { const cb = otpModal.onSuccess; setOtpModal({ open: false, onSuccess: null }); cb?.() }}
+          onClose={() => setOtpModal({ open: false, onSuccess: null })}
+        />
+      )}
     </>
   )
 }
