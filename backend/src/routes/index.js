@@ -24,6 +24,7 @@ const whatsappRoutes = require('./whatsapp');
 const settingsRoutes = require('./settings');
 const gstRoutes = require('./gst');
 const toolsRoutes = require('./tools');
+const dayBookRoutes = require('./daybook');
 
 // Public routes
 router.use('/auth', authRoutes);
@@ -47,6 +48,7 @@ router.use('/whatsapp', authenticate, whatsappRoutes);
 router.use('/settings', authenticate, settingsRoutes);
 router.use('/gst', authenticate, gstRoutes);
 router.use('/tools', authenticate, toolsRoutes);
+router.use('/daybook', authenticate, dayBookRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

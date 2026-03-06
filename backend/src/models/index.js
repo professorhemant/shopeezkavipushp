@@ -28,6 +28,12 @@ const EWayBill = require('./EWayBill');
 const EInvoice = require('./EInvoice');
 const StockAlert = require('./StockAlert');
 const Settings = require('./Settings');
+const DayBookSale = require('./DayBookSale');
+const DayBookBridalBooking = require('./DayBookBridalBooking');
+const DayBookBridalDispatch = require('./DayBookBridalDispatch');
+const DayBookExpense = require('./DayBookExpense');
+const DayBookSecurityRefund = require('./DayBookSecurityRefund');
+const DayBookConfig = require('./DayBookConfig');
 
 // ─── Associations ────────────────────────────────────────────────
 // User <-> Role
@@ -118,4 +124,10 @@ module.exports = {
   EInvoice,
   StockAlert,
   Settings,
+  DayBookSale,
+  DayBookBridalBooking,
+  DayBookBridalDispatch,
+  DayBookExpense,
+  DayBookSecurityRefund,
+  DayBookConfig,
 };

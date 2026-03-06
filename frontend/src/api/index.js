@@ -230,6 +230,33 @@ export const gstAPI = {
   generateEWayBill: (saleId, data) => api.post(`/gst/ewaybill/${saleId}`, data),
 }
 
+// ─── Day Book ────────────────────────────────────────────────────────
+export const dayBookAPI = {
+  getConfig: (date) => api.get('/daybook/config', { params: { date } }),
+  updateConfig: (data) => api.put('/daybook/config', data),
+  getSummary: (date) => api.get('/daybook/summary', { params: { date } }),
+  getSales: (date) => api.get('/daybook/sales', { params: { date } }),
+  createSale: (data) => api.post('/daybook/sales', data),
+  updateSale: (id, data) => api.put(`/daybook/sales/${id}`, data),
+  deleteSale: (id) => api.delete(`/daybook/sales/${id}`),
+  getBridalBookings: (date) => api.get('/daybook/bridal-bookings', { params: { date } }),
+  createBridalBooking: (data) => api.post('/daybook/bridal-bookings', data),
+  updateBridalBooking: (id, data) => api.put(`/daybook/bridal-bookings/${id}`, data),
+  deleteBridalBooking: (id) => api.delete(`/daybook/bridal-bookings/${id}`),
+  getBridalDispatch: (date) => api.get('/daybook/bridal-dispatch', { params: { date } }),
+  createBridalDispatch: (data) => api.post('/daybook/bridal-dispatch', data),
+  updateBridalDispatch: (id, data) => api.put(`/daybook/bridal-dispatch/${id}`, data),
+  deleteBridalDispatch: (id) => api.delete(`/daybook/bridal-dispatch/${id}`),
+  getExpenses: (date) => api.get('/daybook/expenses', { params: { date } }),
+  createExpense: (data) => api.post('/daybook/expenses', data),
+  updateExpense: (id, data) => api.put(`/daybook/expenses/${id}`, data),
+  deleteExpense: (id) => api.delete(`/daybook/expenses/${id}`),
+  getSecurityRefunds: (date) => api.get('/daybook/security-refunds', { params: { date } }),
+  createSecurityRefund: (data) => api.post('/daybook/security-refunds', data),
+  updateSecurityRefund: (id, data) => api.put(`/daybook/security-refunds/${id}`, data),
+  deleteSecurityRefund: (id) => api.delete(`/daybook/security-refunds/${id}`),
+}
+
 // ─── Tools ──────────────────────────────────────────────────────────
 export const toolsAPI = {
   generateBarcode: (data) => api.post('/tools/barcode', data),

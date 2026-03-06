@@ -60,6 +60,13 @@ const QRGenerator = lazy(() => import('./pages/tools/QRGenerator'))
 const InvoiceGenerator = lazy(() => import('./pages/tools/InvoiceGenerator'))
 const GSTCalculator = lazy(() => import('./pages/tools/GSTCalculator'))
 
+const DayBookSales = lazy(() => import('./pages/daybook/DayBookSales'))
+const BridalBookings = lazy(() => import('./pages/daybook/BridalBookings'))
+const BridalDispatch = lazy(() => import('./pages/daybook/BridalDispatch'))
+const DayBookExpenses = lazy(() => import('./pages/daybook/DayBookExpenses'))
+const SecurityRefund = lazy(() => import('./pages/daybook/SecurityRefund'))
+const TotalReceived = lazy(() => import('./pages/daybook/TotalReceived'))
+
 const Firms = lazy(() => import('./pages/firms/Firms'))
 const Settings = lazy(() => import('./pages/settings/Settings'))
 const Profile = lazy(() => import('./pages/settings/Profile'))
@@ -155,6 +162,14 @@ function App() {
           <Route path="tools/qr" element={<QRGenerator />} />
           <Route path="tools/invoice" element={<InvoiceGenerator />} />
           <Route path="tools/gst-calculator" element={<GSTCalculator />} />
+
+          {/* Day Book */}
+          <Route path="daybook/sales" element={<DayBookSales />} />
+          <Route path="daybook/bridal-bookings" element={<BridalBookings />} />
+          <Route path="daybook/bridal-dispatch" element={<BridalDispatch />} />
+          <Route path="daybook/expenses" element={<DayBookExpenses />} />
+          <Route path="daybook/security-refund" element={<SecurityRefund />} />
+          <Route path="daybook/total-received" element={<TotalReceived />} />
 
           {/* Firms & Settings */}
           <Route path="firms" element={<Firms />} />

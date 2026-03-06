@@ -18,6 +18,17 @@ const PROTECTED_IDS = new Set(['sales', 'inventory', 'purchase', 'accounting', '
 
 const MENU = [
   { id: 'dashboard', label: 'Dashboard',         icon: LayoutDashboard, path: '/dashboard' },
+  {
+    id: 'daybook', label: 'Day Book', icon: BookOpen,
+    children: [
+      { label: 'Sales',             path: '/daybook/sales',             icon: TrendingUp },
+      { label: 'Bridal Bookings',   path: '/daybook/bridal-bookings',   icon: Calendar },
+      { label: 'Bridal Dispatch',   path: '/daybook/bridal-dispatch',   icon: Truck },
+      { label: 'Expenses',          path: '/daybook/expenses',          icon: Wallet },
+      { label: 'Security Refund',   path: '/daybook/security-refund',   icon: Shield },
+      { label: 'Total Received',    path: '/daybook/total-received',    icon: DollarSign },
+    ],
+  },
   { id: 'customers', label: 'Customers',          icon: Users,           path: '/customers' },
   { id: 'invoices',  label: 'Invoices',           icon: Receipt,         path: '/billing/invoices' },
   {
