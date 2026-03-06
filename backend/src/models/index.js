@@ -76,6 +76,7 @@ Supplier.hasMany(Purchase, { foreignKey: 'supplier_id' });
 Purchase.hasMany(PurchaseItem, { foreignKey: 'purchase_id', as: 'items' });
 PurchaseItem.belongsTo(Purchase, { foreignKey: 'purchase_id', as: 'Purchase' });
 PurchaseItem.belongsTo(Product, { foreignKey: 'product_id' });
+Purchase.hasMany(Payment, { foreignKey: 'purchase_id', as: 'payments' });
 
 // Expense
 Expense.belongsTo(ExpenseCategory, { foreignKey: 'category_id' });
