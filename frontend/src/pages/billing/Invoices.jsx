@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { saleAPI } from '../../api'
 import { formatCurrency, formatDate, getPaymentStatusColor } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import EditOtpModal from '../../components/common/EditOtpModal'
 
 const STATUS_OPTIONS = ['', 'paid', 'partial', 'unpaid', 'cancelled']
 
@@ -22,6 +23,7 @@ export default function Invoices() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [summary, setSummary] = useState({ count: 0, total: 0, received: 0, balance: 0 })
+  const [otpModal, setOtpModal] = useState({ open: false, editId: null })
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
@@ -83,6 +85,7 @@ export default function Invoices() {
   }
 
   return (
+    <>
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
@@ -179,7 +182,7 @@ export default function Invoices() {
                         <button onClick={() => handleDownloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600" title="Download">
                           <Download className="h-4 w-4" />
                         </button>
-                        <button onClick={() => navigate(`/billing/invoices/${inv.id}/edit`)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="Edit">
+                        <button onClick={() => setOtpModal({ open: true, editId: inv.id })} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="Edit">
                           <Edit2 className="h-4 w-4" />
                         </button>
                         {inv.status !== 'cancelled' && (
@@ -223,5 +226,13 @@ export default function Invoices() {
         )}
       </div>
     </div>
+
+    {otpModal.open && (
+      <EditOtpModal
+        onVerified={() => { setOtpModal({ open: false, editId: null }); navigate(`/billing/invoices/${otpModal.editId}/edit`) }}
+        onClose={() => setOtpModal({ open: false, editId: null })}
+      />
+    )}
+    </>
   )
 }
