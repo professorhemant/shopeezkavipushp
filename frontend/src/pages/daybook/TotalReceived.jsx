@@ -33,9 +33,9 @@ export default function TotalReceived() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Day Book — Total Received</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Day Book — Total Received</h1>
           <p className="text-sm text-slate-500 mt-0.5">Daily summary</p>
         </div>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
@@ -47,7 +47,7 @@ export default function TotalReceived() {
       ) : !data ? null : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-green-50 border border-green-200 rounded-xl p-5">
               <p className="text-sm text-green-600 font-medium">Total Cash Received</p>
               <p className="text-3xl font-bold text-green-700 mt-1">{formatCurrency(data.total_cash_received)}</p>
@@ -66,7 +66,7 @@ export default function TotalReceived() {
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
               <h3 className="font-semibold text-slate-800">Income / Received</h3>
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-xs text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Source</th>
@@ -82,7 +82,7 @@ export default function TotalReceived() {
                 <Row label="Security Refunds" cash={data.received.refunds.cash} online={data.received.refunds.online} total={data.received.refunds.total} />
                 <Row label="TOTAL RECEIVED" cash={data.total_cash_received} online={data.total_online_received} total={data.total_cash_received + data.total_online_received} highlight />
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           {/* Expenses Table */}
@@ -90,7 +90,7 @@ export default function TotalReceived() {
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
               <h3 className="font-semibold text-slate-800">Expenses / Outflow</h3>
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-xs text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Category</th>
@@ -105,13 +105,13 @@ export default function TotalReceived() {
                 <Row label="Salary" cash={data.expenses.salary.cash} online={data.expenses.salary.online} total={data.expenses.salary.total} />
                 <Row label="TOTAL EXPENSES" cash={data.expenses.total.cash} online={data.expenses.total.online} total={data.expenses.total.total} highlight />
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           {/* Net Summary */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
             <h3 className="font-semibold text-slate-800 mb-4">Net Summary</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 rounded-lg bg-green-50 border border-green-100">
                 <p className="text-xs text-slate-500 mb-1">Opening Balance + Cash Received − Cash Expenses</p>
                 <p className="text-lg font-bold text-green-700">Net Cash in Hand: {formatCurrency(data.net_cash)}</p>

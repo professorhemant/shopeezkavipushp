@@ -37,7 +37,7 @@ export default function QuickNavBar() {
               }
             >
               <Icon className="h-3.5 w-3.5 shrink-0" />
-              <span>{tab.label}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
             </NavLink>
           )
         })}

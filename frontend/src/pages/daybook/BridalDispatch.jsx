@@ -50,12 +50,12 @@ export default function BridalDispatch() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Day Book — Bridal Dispatch</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Day Book — Bridal Dispatch</h1>
           <p className="text-sm text-slate-500 mt-0.5">{rows.length} entries</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
             className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
           <button onClick={() => { setForm(EMPTY); setEditId(null); setShowForm(true) }}
@@ -102,7 +102,7 @@ export default function BridalDispatch() {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {loading ? <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div> : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
               <tr>
                 <th className="px-4 py-3 text-left">S.No.</th>
@@ -143,7 +143,7 @@ export default function BridalDispatch() {
                 </tr>
               </tfoot>
             )}
-          </table>
+          </table></div>
         )}
       </div>
     </div>

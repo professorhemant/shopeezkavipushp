@@ -87,9 +87,9 @@ export default function Invoices() {
   return (
     <>
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Sales Invoices</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Sales Invoices</h1>
           <p className="text-sm text-slate-500 mt-0.5">{summary.count} invoices</p>
         </div>
         <Link to="/billing/invoices/create" className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
