@@ -6,7 +6,7 @@ import { purchaseAPI, supplierAPI, productAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
-const TAX_RATES = [0, 3, 5, 12, 18, 28]
+const TAX_RATES = [0, 3, 5, 10, 12, 15, 18]
 const PAYMENT_MODES = ['cash', 'upi', 'card', 'netbanking', 'cheque', 'neft', 'rtgs', 'other']
 
 function newItem() {
@@ -395,7 +395,7 @@ function TaxPicker({ value, onChange }) {
             onClick={() => { setOpen(false); setCustom(true) }}
             className="px-3 py-1 rounded text-xs text-slate-400 hover:bg-slate-50 text-left border-t border-slate-100 mt-0.5"
           >
-            Custom…
+            Other
           </button>
         </div>
       )}
