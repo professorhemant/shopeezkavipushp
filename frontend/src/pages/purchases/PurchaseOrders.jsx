@@ -116,7 +116,7 @@ export default function PurchaseOrders() {
                     <td className="px-4 py-3 text-slate-600">{formatDate(o.bill_date || o.date)}</td>
                     <td className="px-4 py-3 text-slate-800">{o.supplier_name || o.supplier?.name || '-'}</td>
                     <td className="px-4 py-3 text-slate-600">{o.product_names || '-'}</td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-800">{formatCurrency(o.total_amount)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-slate-800">{formatCurrency(o.total)}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                         o.status === 'received' ? 'bg-green-100 text-green-800' :
