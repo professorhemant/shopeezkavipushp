@@ -103,7 +103,7 @@ export default function PurchaseOrders() {
                   <th className="px-4 py-3 text-left">Order No</th>
                   <th className="px-4 py-3 text-left">Date</th>
                   <th className="px-4 py-3 text-left">Supplier</th>
-                  <th className="px-4 py-3 text-right">Items</th>
+                  <th className="px-4 py-3 text-right">Products</th>
                   <th className="px-4 py-3 text-right">Total</th>
                   <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3 text-center">Actions</th>
