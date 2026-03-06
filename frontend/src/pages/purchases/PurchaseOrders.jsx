@@ -58,6 +58,7 @@ export default function PurchaseOrders() {
   }
 
   return (
+    <>
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
@@ -164,5 +165,6 @@ export default function PurchaseOrders() {
         onClose={() => setOtpModal({ open: false, editId: null })}
       />
     )}
+    </>
   )
 }
