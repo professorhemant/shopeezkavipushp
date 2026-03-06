@@ -210,17 +210,86 @@ const create = async (req, res, next) => {
  * PUT /purchases/:id
  */
 const update = async (req, res, next) => {
+  const t = await sequelize.transaction();
   try {
-    const purchase = await Purchase.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
-    if (!purchase) return res.status(404).json({ success: false, message: 'Purchase not found.' });
-    if (purchase.status === 'cancelled') {
-      return res.status(400).json({ success: false, message: 'Cancelled purchases cannot be updated.' });
+    const purchase = await Purchase.findOne({
+      where: { id: req.params.id, firm_id: req.firmId },
+      include: [{ model: PurchaseItem, as: 'items' }],
+      transaction: t,
+    });
+    if (!purchase) { await t.rollback(); return res.status(404).json({ success: false, message: 'Purchase not found.' }); }
+    if (purchase.status === 'cancelled') { await t.rollback(); return res.status(400).json({ success: false, message: 'Cancelled purchases cannot be updated.' }); }
+
+    const { supplier_id, supplier_name, bill_no, bill_date, due_date, notes, payment, items } = req.body;
+
+    // Recalculate totals if items provided
+    let subtotal = parseFloat(purchase.subtotal || 0);
+    let totalCGST = parseFloat(purchase.cgst || 0);
+    let totalSGST = parseFloat(purchase.sgst || 0);
+    let totalIGST = parseFloat(purchase.igst || 0);
+    let grandTotal = parseFloat(purchase.total || 0);
+
+    if (Array.isArray(items) && items.length > 0) {
+      subtotal = 0; totalCGST = 0; totalSGST = 0; totalIGST = 0;
+      const is_interstate = purchase.is_interstate || false;
+      const processedItems = [];
+      for (const item of items) {
+        const qty = parseFloat(item.quantity || item.qty || 1);
+        const rate = parseFloat(item.rate || item.unit_price || 0);
+        const itemDiscount = parseFloat(item.discount_amount || 0);
+        const taxRate = parseFloat(item.tax_rate || 0);
+        const baseAmount = qty * rate - itemDiscount;
+        const gst = calculateGST(baseAmount, taxRate, false, is_interstate);
+        subtotal += gst.taxableAmount;
+        totalCGST += gst.cgst; totalSGST += gst.sgst; totalIGST += gst.igst;
+        processedItems.push({
+          product_id: item.product_id || item.product || null,
+          product_name: item.product_name || 'Item',
+          hsn_code: item.hsn_code || null,
+          quantity: qty, unit_price: rate,
+          discount_amount: itemDiscount,
+          taxable_amount: gst.taxableAmount,
+          tax_rate: taxRate,
+          cgst_rate: is_interstate ? 0 : taxRate / 2,
+          sgst_rate: is_interstate ? 0 : taxRate / 2,
+          igst_rate: is_interstate ? taxRate : 0,
+          cgst: gst.cgst, sgst: gst.sgst, igst: gst.igst,
+          total: gst.total,
+          batch_no: item.batch_no || null,
+          expiry_date: item.expiry_date || null,
+        });
+      }
+      grandTotal = subtotal + totalCGST + totalSGST + totalIGST;
+      await PurchaseItem.destroy({ where: { purchase_id: purchase.id }, transaction: t });
+      for (const item of processedItems) {
+        await PurchaseItem.create({ purchase_id: purchase.id, ...item }, { transaction: t });
+      }
     }
-    const body = { ...req.body };
-    delete body.firm_id;
-    await purchase.update(body);
+
+    const paidAmount = payment ? parseFloat(payment.amount || 0) : parseFloat(purchase.paid_amount || 0);
+    const balance = grandTotal - paidAmount;
+    const paymentStatus = paidAmount >= grandTotal ? 'paid' : paidAmount > 0 ? 'partial' : 'unpaid';
+
+    await purchase.update({
+      supplier_id: supplier_id !== undefined ? (supplier_id || null) : purchase.supplier_id,
+      supplier_name: supplier_name !== undefined ? (supplier_name || null) : purchase.supplier_name,
+      bill_no: bill_no || purchase.bill_no,
+      bill_date: bill_date || purchase.bill_date,
+      due_date: due_date !== undefined ? (due_date || null) : purchase.due_date,
+      notes: notes !== undefined ? (notes || null) : purchase.notes,
+      subtotal, cgst: totalCGST, sgst: totalSGST, igst: totalIGST,
+      taxable_amount: subtotal,
+      total: grandTotal,
+      paid_amount: paidAmount,
+      balance,
+      payment_status: paymentStatus,
+      payment_mode: payment?.mode || purchase.payment_mode,
+    }, { transaction: t });
+
+    await t.commit();
     return res.status(200).json({ success: true, message: 'Purchase updated.', data: purchase });
   } catch (err) {
+    await t.rollback();
     next(err);
   }
 };
