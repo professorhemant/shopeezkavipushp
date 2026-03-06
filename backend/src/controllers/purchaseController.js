@@ -66,7 +66,6 @@ const getOne = async (req, res, next) => {
       include: [
         { model: Supplier, as: 'Supplier' },
         { model: PurchaseItem, as: 'items' },
-        { model: Payment, as: 'payments' },
       ],
     });
     if (!purchase) return res.status(404).json({ success: false, message: 'Purchase not found.' });

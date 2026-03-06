@@ -58,19 +58,27 @@ export default function CreatePurchase() {
     productAPI.getAll({ limit: 500 }).then(({ data }) => setProducts(data.data || data.products || data.results || [])).catch(() => {})
     if (isEdit) {
       purchaseAPI.getOne(id).then(({ data }) => {
-        const p = data.purchase || data
+        const p = data.data || data.purchase || data
         setBillNo(p.bill_no || '')
         setBillDate(p.bill_date?.slice(0, 10) || '')
         setDueDate(p.due_date?.slice(0, 10) || '')
-        setItems(p.items?.map((item) => calcItem({
+        if (p.Supplier) setSelectedSupplier(p.Supplier)
+        else if (p.supplier_name) setSupplierSearch(p.supplier_name)
+        setItems((p.items?.length ? p.items : []).map((item) => calcItem({
           ...item,
           _id: Date.now() + Math.random(),
+          product: item.product_id || '',
+          product_name: item.product_name || '',
+          hsn_code: item.hsn_code || '',
           qty: parseFloat(item.quantity || item.qty || 1),
           price: parseFloat(item.unit_price || item.price || 0),
-          discount_pct: parseFloat(item.discount || item.discount_pct || 0),
+          discount_pct: parseFloat(item.discount_amount ? (item.discount_amount / (item.quantity * item.unit_price) * 100) : 0),
+          tax_rate: parseFloat(item.tax_rate || 0),
+          batch_no: item.batch_no || '',
+          expiry_date: item.expiry_date?.slice(0, 10) || '',
         })) || [newItem()])
         setPaidAmount(p.paid_amount || 0)
-        setPaymentMode(p.payment_mode || 'bank')
+        setPaymentMode(p.payment_mode || 'cash')
         setNotes(p.notes || '')
       }).catch(() => toast.error('Failed to load purchase'))
         .finally(() => setLoading(false))
