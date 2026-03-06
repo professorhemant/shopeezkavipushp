@@ -134,13 +134,7 @@ export default function Purchases() {
                     <td className="px-4 py-3 font-medium text-amber-600">{p.bill_no || p.purchase_no}</td>
                     <td className="px-4 py-3 text-slate-600">{formatDate(p.bill_date || p.date)}</td>
                     <td className="px-4 py-3 text-slate-800">{p.supplier_name || p.Supplier?.name || '-'}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {p.items?.length > 0
-                        ? <span title={p.items.map(i => i.product_name).join(', ')} className="cursor-default">
-                            {p.items.map(i => i.product_name).join(', ')}
-                          </span>
-                        : '-'}
-                    </td>
+                    <td className="px-4 py-3 text-slate-600">{p.product_names || '-'}</td>
                     <td className="px-4 py-3 text-right font-medium text-slate-800">{formatCurrency(p.total)}</td>
                     <td className="px-4 py-3 text-right text-green-700 font-medium">{formatCurrency(p.paid_amount)}</td>
                     <td className="px-4 py-3 text-right text-red-600 font-medium">{formatCurrency(p.balance)}</td>

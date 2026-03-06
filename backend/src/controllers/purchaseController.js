@@ -33,11 +33,11 @@ const getAll = async (req, res, next) => {
       where,
       include: [
         { model: Supplier, as: 'Supplier', attributes: ['id', 'name', 'phone', 'email'] },
-        { model: PurchaseItem, as: 'items', attributes: ['product_name'], separate: true },
       ],
       attributes: {
         include: [
           [sequelize.literal('(SELECT COUNT(*) FROM purchase_items WHERE purchase_items.purchase_id = `Purchase`.`id`)'), 'items_count'],
+          [sequelize.literal('(SELECT GROUP_CONCAT(product_name SEPARATOR ", ") FROM purchase_items WHERE purchase_items.purchase_id = `Purchase`.`id`)'), 'product_names'],
         ],
       },
       order: [['bill_date', 'DESC'], ['createdAt', 'DESC']],
