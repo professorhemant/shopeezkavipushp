@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { accountingAPI } from '../../api'
 import { formatCurrency, formatDate } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import EditOtpModal from '../../components/common/EditOtpModal'
 
 const EMPTY_FORM = { date: new Date().toISOString().split('T')[0], category: '', description: '', amount: '', payment_mode: 'cash', notes: '' }
 const CATEGORIES = ['Rent', 'Salaries', 'Utilities', 'Transport', 'Marketing', 'Office Supplies', 'Maintenance', 'Insurance', 'Other']
@@ -22,6 +23,7 @@ export default function Expenses() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
+  const [otpModal, setOtpModal] = useState({ open: false, pendingEdit: null })
 
   const fetchExpenses = useCallback(async () => {
     setLoading(true)
@@ -133,7 +135,7 @@ export default function Expenses() {
                     <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurrency(e.amount)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => openEdit(e)} className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
+                        <button onClick={() => setOtpModal({ open: true, pendingEdit: e })} className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
                         <button onClick={() => setDeleteId(e.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
@@ -217,6 +219,13 @@ export default function Expenses() {
             </div>
           </div>
         </div>
+      )}
+
+      {otpModal.open && (
+        <EditOtpModal
+          onVerified={() => { setOtpModal({ open: false, pendingEdit: null }); openEdit(otpModal.pendingEdit) }}
+          onClose={() => setOtpModal({ open: false, pendingEdit: null })}
+        />
       )}
     </div>
   )

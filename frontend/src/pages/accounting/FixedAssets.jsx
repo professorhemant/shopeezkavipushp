@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { accountingAPI } from '../../api'
 import { formatCurrency, formatDate } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import EditOtpModal from '../../components/common/EditOtpModal'
 
 const EMPTY_FORM = { name: '', purchase_date: new Date().toISOString().split('T')[0], purchase_cost: '', accumulated_depreciation: '', useful_life_years: '', depreciation_method: 'straight_line', category: '' }
 const CATEGORIES = ['Land & Building', 'Machinery', 'Vehicles', 'Furniture', 'Computer & Electronics', 'Other']
@@ -17,6 +18,7 @@ export default function FixedAssets() {
   const [depManual, setDepManual] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
+  const [otpModal, setOtpModal] = useState({ open: false, pendingEdit: null })
 
   const calcDepreciation = useCallback((cost, date, lifeYears, method) => {
     const c = parseFloat(cost)
@@ -159,7 +161,7 @@ export default function FixedAssets() {
                     <tr key={a.id} className="border-b hover:bg-slate-50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
+                          <button onClick={() => setOtpModal({ open: true, pendingEdit: a })} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
                           <button onClick={() => setDeleteId(a.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </td>
@@ -248,6 +250,13 @@ export default function FixedAssets() {
             </div>
           </div>
         </div>
+      )}
+
+      {otpModal.open && (
+        <EditOtpModal
+          onVerified={() => { setOtpModal({ open: false, pendingEdit: null }); openEdit(otpModal.pendingEdit) }}
+          onClose={() => setOtpModal({ open: false, pendingEdit: null })}
+        />
       )}
     </div>
   )
