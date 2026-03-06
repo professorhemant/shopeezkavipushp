@@ -44,6 +44,8 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (data) => api.put('/auth/profile', data),
   changePassword: (data) => api.put('/auth/change-password', data),
+  requestEditOtp: () => api.post('/auth/request-edit-otp'),
+  verifyEditOtp: (data) => api.post('/auth/verify-edit-otp', data),
 }
 
 // ─── Dashboard ──────────────────────────────────────────────────────

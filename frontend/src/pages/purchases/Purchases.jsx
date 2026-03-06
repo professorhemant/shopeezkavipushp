@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { purchaseAPI } from '../../api'
 import { formatCurrency, formatDate, getPaymentStatusColor } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import EditOtpModal from '../../components/common/EditOtpModal'
 
 export default function Purchases() {
   const navigate = useNavigate()
@@ -20,6 +21,7 @@ export default function Purchases() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [summary, setSummary] = useState({ count: 0, total: 0, paid: 0, balance: 0 })
+  const [otpModal, setOtpModal] = useState({ open: false, editId: null })
 
   const fetchPurchases = useCallback(async () => {
     setLoading(true)
@@ -145,7 +147,7 @@ export default function Purchases() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1.5">
-                        <button onClick={() => navigate(`/purchases/${p.id}/edit`)}
+                        <button onClick={() => setOtpModal({ open: true, editId: p.id })}
                           className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
                         {p.status !== 'cancelled' && (
                           <button onClick={() => handleCancel(p.id)}
@@ -184,5 +186,12 @@ export default function Purchases() {
         )}
       </div>
     </div>
+
+    {otpModal.open && (
+      <EditOtpModal
+        onVerified={() => { setOtpModal({ open: false, editId: null }); navigate(`/purchases/${otpModal.editId}/edit`) }}
+        onClose={() => setOtpModal({ open: false, editId: null })}
+      />
+    )}
   )
 }

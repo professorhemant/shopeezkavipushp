@@ -15,5 +15,7 @@ router.post('/reset-password', authController.resetPassword);
 router.get('/profile', authenticate, authController.getProfile);
 router.put('/profile', authenticate, authController.updateProfile);
 router.put('/change-password', authenticate, authController.changePassword);
+router.post('/request-edit-otp', authenticate, authController.requestEditOtp);
+router.post('/verify-edit-otp', authenticate, authController.verifyEditOtp);
 
 module.exports = router;

@@ -299,4 +299,63 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, forgotPassword, resetPassword, changePassword, getProfile, updateProfile };
+/**
+ * POST /auth/request-edit-otp  (authenticated)
+ * Generate OTP for edit action, store on user record
+ */
+const requestEditOtp = async (req, res, next) => {
+  try {
+    const user = await User.findByPk(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.update({ otp, otp_expires: otpExpires });
+
+    const phone = user.phone || '';
+    const maskedPhone = phone.length >= 4
+      ? phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4)
+      : '****';
+
+    // TODO: send SMS to user.phone
+    console.log(`Edit OTP for user ${user.email}: ${otp}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `OTP sent to ${maskedPhone}`,
+      maskedPhone,
+      // Return OTP until SMS service is integrated
+      otp,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /auth/verify-edit-otp  (authenticated)
+ * Verify OTP for edit action
+ */
+const verifyEditOtp = async (req, res, next) => {
+  try {
+    const { otp } = req.body;
+    if (!otp) return res.status(400).json({ success: false, message: 'OTP is required.' });
+
+    const user = await User.findOne({
+      where: {
+        id: req.userId,
+        otp,
+        otp_expires: { [Op.gt]: new Date() },
+      },
+    });
+
+    if (!user) return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
+
+    await user.update({ otp: null, otp_expires: null });
+    return res.status(200).json({ success: true, message: 'OTP verified.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { register, login, forgotPassword, resetPassword, changePassword, getProfile, updateProfile, requestEditOtp, verifyEditOtp };
