@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import ReactDOM from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -350,7 +351,17 @@ export default function CreatePurchase() {
 function TaxPicker({ value, onChange }) {
   const [open, setOpen] = useState(false)
   const [custom, setCustom] = useState(false)
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef(null)
   const slabs = TAX_RATES
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setDropPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX })
+    }
+    setOpen((o) => !o)
+  }
 
   if (custom) {
     return (
@@ -368,18 +379,20 @@ function TaxPicker({ value, onChange }) {
   return (
     <div className="relative">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={handleOpen}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         className="w-16 flex items-center justify-between border border-slate-200 rounded px-2 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:border-amber-400 hover:bg-amber-50 focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 transition-colors"
       >
         <span>{value}%</span>
         <span className="text-slate-400 text-[10px]">▾</span>
       </button>
-      {open && (
+      {open && typeof document !== 'undefined' && ReactDOM.createPortal(
         <div
           onMouseDown={(e) => e.preventDefault()}
-          className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-[200] p-1.5 flex flex-col gap-1 min-w-[72px]"
+          style={{ position: 'absolute', top: dropPos.top, left: dropPos.left }}
+          className="bg-white border border-slate-200 rounded-lg shadow-xl z-[9999] p-1.5 flex flex-col gap-1 min-w-[72px]"
         >
           {slabs.map((r) => (
             <button
@@ -397,7 +410,8 @@ function TaxPicker({ value, onChange }) {
           >
             Other
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
