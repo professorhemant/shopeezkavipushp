@@ -1,5 +1,6 @@
 'use strict';
 
+const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
@@ -317,8 +318,24 @@ const requestEditOtp = async (req, res, next) => {
       ? phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4)
       : '****';
 
-    // TODO: send SMS to user.phone
-    console.log(`Edit OTP for user ${user.email}: ${otp}`);
+    // Send OTP via Fast2SMS
+    if (process.env.FAST2SMS_API_KEY && phone) {
+      try {
+        await axios.post(
+          'https://www.fast2sms.com/dev/bulkV2',
+          {
+            route: 'otp',
+            variables_values: otp,
+            numbers: phone.replace(/\D/g, '').slice(-10),
+          },
+          { headers: { authorization: process.env.FAST2SMS_API_KEY } }
+        );
+      } catch (smsErr) {
+        console.error('Fast2SMS error:', smsErr?.response?.data || smsErr.message);
+      }
+    } else {
+      console.log(`Edit OTP for user ${user.email}: ${otp}`);
+    }
 
     return res.status(200).json({
       success: true,
