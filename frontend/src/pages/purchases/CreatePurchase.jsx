@@ -263,8 +263,8 @@ export default function CreatePurchase() {
                   <td className="px-3 py-2">
                     <TaxPicker value={item.tax_rate} onChange={(v) => updateItem(idx, 'tax_rate', v)} />
                   </td>
-                  <td className="px-3 py-2 text-right text-xs text-slate-600">{(item.cgst || 0).toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right text-xs text-slate-600">{(item.sgst || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right text-xs text-slate-600">{((item.tax_rate || 0) / 2).toFixed(1)}%</td>
+                  <td className="px-3 py-2 text-right text-xs text-slate-600">{((item.tax_rate || 0) / 2).toFixed(1)}%</td>
                   <td className="px-3 py-2"><input value={item.batch_no} onChange={(e) => updateItem(idx, 'batch_no', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" placeholder="Batch" /></td>
                   <td className="px-3 py-2"><input type="date" value={item.expiry_date} onChange={(e) => updateItem(idx, 'expiry_date', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500" /></td>
                   <td className="px-3 py-2 text-right font-medium text-slate-800 text-xs">{(item.total || 0).toFixed(2)}</td>
