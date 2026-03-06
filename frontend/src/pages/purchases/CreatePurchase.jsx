@@ -386,7 +386,7 @@ function TaxPicker({ value, onChange }) {
         className="w-16 flex items-center justify-between border border-slate-200 rounded px-2 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:border-amber-400 hover:bg-amber-50 focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 transition-colors"
       >
         <span>{value}%</span>
-        <span className="text-slate-400 text-[10px]">▾</span>
+        <span className="text-slate-500 text-sm">▾</span>
       </button>
       {open && typeof document !== 'undefined' && ReactDOM.createPortal(
         <div
