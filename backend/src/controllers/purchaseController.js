@@ -270,7 +270,7 @@ const update = async (req, res, next) => {
     const balance = grandTotal - paidAmount;
     const paymentStatus = paidAmount >= grandTotal ? 'paid' : paidAmount > 0 ? 'partial' : 'unpaid';
 
-    await purchase.update({
+    await Purchase.update({
       supplier_id: supplier_id !== undefined ? (supplier_id || null) : purchase.supplier_id,
       supplier_name: supplier_name !== undefined ? (supplier_name || null) : purchase.supplier_name,
       bill_no: bill_no || purchase.bill_no,
@@ -283,8 +283,7 @@ const update = async (req, res, next) => {
       paid_amount: paidAmount,
       balance,
       payment_status: paymentStatus,
-      payment_mode: payment?.mode || purchase.payment_mode,
-    }, { transaction: t });
+    }, { where: { id: purchase.id }, transaction: t });
 
     await t.commit();
     return res.status(200).json({ success: true, message: 'Purchase updated.', data: purchase });
