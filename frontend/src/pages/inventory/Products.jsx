@@ -63,6 +63,7 @@ function ImportModal({ onClose, onSuccess }) {
     Papa.parse(f, {
       header: true,
       skipEmptyLines: true,
+      transformHeader: (h) => h.trim().toLowerCase(),
       complete: ({ data, errors: parseErrors }) => {
         const errs = []
         // If CSV has a 'type' column, only include rows where type === 'product'. Otherwise include all rows.
