@@ -1,6 +1,6 @@
 'use strict';
 
-const { DayBookSale, DayBookBridalBooking, DayBookBridalDispatch, DayBookExpense, DayBookSecurityRefund, DayBookConfig } = require('../models');
+const { DayBookSale, DayBookBridalBooking, DayBookBridalDispatch, DayBookExpense, DayBookSecurityRefund, DayBookConfig, Payment } = require('../models');
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -105,8 +105,9 @@ const getSummary = async (req, res, next) => {
   try {
     const date = req.query.date || today();
 
-    const [sales, bookings, dispatches, refunds, expenses, config] = await Promise.all([
-      DayBookSale.findAll({ where: { date } }),
+    const [salePayments, bookings, dispatches, refunds, expenses, config] = await Promise.all([
+      // Use actual Payment records for sales (payment_date = date, reference_type = 'sale')
+      Payment.findAll({ where: { payment_date: date, reference_type: 'sale' } }),
       DayBookBridalBooking.findAll({ where: { date } }),
       DayBookBridalDispatch.findAll({ where: { date } }),
       DayBookSecurityRefund.findAll({ where: { date } }),
@@ -114,17 +115,34 @@ const getSummary = async (req, res, next) => {
       DayBookConfig.findOne({ where: { date } }),
     ]);
 
+    // Sum payments: cash vs non-cash (card/upi/online all go to bank)
+    const sumPayments = (rows, modeFn) => rows
+      .filter(modeFn)
+      .reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+
     const sum = (rows, mode) => rows
       .filter((r) => !mode || r.payment_mode === mode)
       .reduce((s, r) => s + parseFloat(r.amount || 0), 0);
 
     const openingBalance = parseFloat(config?.opening_balance || 0);
 
+    const salesCash   = sumPayments(salePayments, p => p.payment_mode === 'cash');
+    const salesOnline = sumPayments(salePayments, p => p.payment_mode !== 'cash');
+    const salesTotal  = sumPayments(salePayments, () => true);
+
+    // For bridal bookings/dispatch/refunds: cash + card treated as cash-in-hand; online as bank
+    const bookingCash   = sum(bookings, 'cash') + sum(bookings, 'card');
+    const bookingOnline = sum(bookings, 'online');
+    const dispatchCash   = sum(dispatches, 'cash') + sum(dispatches, 'card');
+    const dispatchOnline = sum(dispatches, 'online');
+    const refundCash   = sum(refunds, 'cash') + sum(refunds, 'card');
+    const refundOnline = sum(refunds, 'online');
+
     const received = {
-      sales:    { cash: sum(sales, 'cash'),    online: sum(sales, 'online'),    total: sum(sales) },
-      bookings: { cash: sum(bookings, 'cash'), online: sum(bookings, 'online'), total: sum(bookings) },
-      dispatch: { cash: sum(dispatches, 'cash'), online: sum(dispatches, 'online'), total: sum(dispatches) },
-      refunds:  { cash: sum(refunds, 'cash'),  online: sum(refunds, 'online'),  total: sum(refunds) },
+      sales:    { cash: salesCash,   online: salesOnline,   total: salesTotal },
+      bookings: { cash: bookingCash, online: bookingOnline, total: bookingCash + bookingOnline },
+      dispatch: { cash: dispatchCash, online: dispatchOnline, total: dispatchCash + dispatchOnline },
+      refunds:  { cash: refundCash,  online: refundOnline,  total: refundCash + refundOnline },
     };
 
     const expenseSummary = {
