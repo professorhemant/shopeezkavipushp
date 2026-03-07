@@ -134,9 +134,28 @@ const bulkImport = async (req, res, next) => {
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ success: false, message: 'products array is required.' });
     }
+
+    // Resolve category names → category_id (find or create per firm)
+    const categoryNames = [...new Set(
+      products.map((p) => (p.category_name || '').trim()).filter(Boolean)
+    )];
+    const categoryMap = {};
+    for (const name of categoryNames) {
+      const [cat] = await Category.findOrCreate({
+        where: { name, firm_id: firmId },
+        defaults: { name, firm_id: firmId },
+      });
+      categoryMap[name] = cat.id;
+    }
+
     const toCreate = products
       .filter((p) => p.name && String(p.name).trim())
-      .map((p) => ({ ...p, firm_id: firmId }));
+      .map(({ category_name, ...p }) => ({
+        ...p,
+        firm_id: firmId,
+        category_id: categoryMap[(category_name || '').trim()] || null,
+      }));
+
     if (!toCreate.length) {
       return res.status(400).json({ success: false, message: 'No valid products to import. "name" is required for every row.' });
     }
