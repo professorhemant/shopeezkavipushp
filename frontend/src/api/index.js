@@ -149,6 +149,7 @@ export const inventoryAPI = {
   getExpiryAlerts: (days) => api.get('/inventory/alerts/expiry', { params: { days } }),
   getStockLedger: (productId, params) => api.get(`/inventory/ledger/${productId}`, { params }),
   adjustStock: (data) => api.post('/inventory/adjust', data),
+  resetAllInventory: () => api.delete('/inventory/reset-all'),
 }
 
 // ─── Accounting ─────────────────────────────────────────────────────
