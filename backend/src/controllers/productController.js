@@ -135,17 +135,31 @@ const bulkImport = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'products array is required.' });
     }
 
-    // Resolve category names → category_id (find or create per firm)
+    // Resolve category names → category_id
     const categoryNames = [...new Set(
       products.map((p) => (p.category_name || '').trim()).filter(Boolean)
     )];
     const categoryMap = {};
-    for (const name of categoryNames) {
-      const [cat] = await Category.findOrCreate({
-        where: { name, firm_id: firmId },
-        defaults: { name, firm_id: firmId },
+    if (categoryNames.length > 0) {
+      // Fetch already-existing categories for this firm
+      const existing = await Category.findAll({
+        where: { firm_id: firmId, name: { [Op.in]: categoryNames } },
+        attributes: ['id', 'name'],
       });
-      categoryMap[name] = cat.id;
+      existing.forEach((c) => { categoryMap[c.name] = c.id; });
+
+      // Create any that don't exist yet
+      for (const name of categoryNames) {
+        if (categoryMap[name]) continue;
+        try {
+          const cat = await Category.create({ name, firm_id: firmId });
+          categoryMap[name] = cat.id;
+        } catch {
+          // Already created by concurrent request — fetch it
+          const cat = await Category.findOne({ where: { name, firm_id: firmId } });
+          if (cat) categoryMap[name] = cat.id;
+        }
+      }
     }
 
     const toCreate = products
