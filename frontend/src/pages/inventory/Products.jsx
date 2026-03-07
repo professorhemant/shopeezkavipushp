@@ -26,7 +26,7 @@ const SAMPLE_CSV = [
 
 // Parse one CSV row object → Product model payload
 const csvRowToProduct = (row) => {
-  // tax_type: "inclusive_tax" → "inclusive", "exclusive_tax" → "exclusive"
+  // tax_type: "inclusive_tax" → "inclusive", "exclusive_tax" → "exclusive", missing → "inclusive"
   const rawTaxType = (row.tax_type || '').trim().toLowerCase()
   const taxType = rawTaxType.includes('exclusive') ? 'exclusive' : 'inclusive'
 
@@ -41,6 +41,9 @@ const csvRowToProduct = (row) => {
     stock:          parseFloat(row.stock_qty)     || 0,
     tax_type:       taxType,
     tax_rate:       parseFloat(row.tax_rate)      || 0,
+    color:          (row.color || '').trim()      || undefined,
+    show_on_website: (row.show_on_website || '').trim().toUpperCase() === 'Y',
+    trending:        (row.trending || '').trim().toUpperCase() === 'Y',
     // categories column → stored as description (category_id requires DB lookup)
     description:    (row.categories || '').trim() || undefined,
   }
@@ -63,8 +66,11 @@ function ImportModal({ onClose, onSuccess }) {
       skipEmptyLines: true,
       complete: ({ data, errors: parseErrors }) => {
         const errs = []
-        // Only process rows where type === 'product' (skip service/variant rows)
-        const productRows = data.filter((r) => !r.type || r.type.trim().toLowerCase() === 'product')
+        // If CSV has a 'type' column, only include rows where type === 'product'. Otherwise include all rows.
+        const hasTypeCol = data.length > 0 && 'type' in data[0]
+        const productRows = hasTypeCol
+          ? data.filter((r) => !r.type || r.type.trim().toLowerCase() === 'product')
+          : data
         const clean = productRows.map((row, i) => {
           const product = csvRowToProduct(row)
           if (!product.name) errs.push(`Row ${i + 2}: "name" is required`)
@@ -136,7 +142,7 @@ function ImportModal({ onClose, onSuccess }) {
           {/* Sample download */}
           <div className="flex items-center justify-between bg-amber-50 rounded-lg px-4 py-3 text-sm">
             <span className="text-amber-700">
-              <strong>Required columns:</strong> name, bar_code, hsn_code, sell_price, mrp, cost_price, stock_qty, tax_type, tax_rate
+              <strong>Required columns:</strong> name, bar_code, categories, hsn_code, sell_price, mrp, cost_price, stock_qty, tax_rate
             </span>
             <button
               onClick={downloadSample}
