@@ -557,7 +557,7 @@ export default function CreateInvoice() {
                 <tr className="border-b-2 border-slate-600">
                   <th className="px-2 py-2 text-left text-slate-200 font-medium">#</th>
                   <th className="px-2 py-2 text-left text-slate-200 font-medium">Name</th>
-                  <th className="px-2 py-2 text-left text-slate-200 font-medium">Batch</th>
+                  <th className="px-2 py-2 text-left text-slate-200 font-medium">Barcode</th>
                   <th className="px-2 py-2 text-center text-slate-200 font-medium">Qty</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">Stock</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">MRP.</th>
@@ -622,10 +622,36 @@ export default function CreateInvoice() {
                       </div>
                     </td>
 
-                    {/* Batch */}
+                    {/* Barcode */}
                     <td className="px-2 py-1.5">
-                      <input type="text" value={row.batch}
+                      <input
+                        type="text"
+                        value={row.batch}
                         onChange={(e) => updateRow(idx, 'batch', e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' || !row.batch.trim()) return
+                          const found = allProducts.find(
+                            (p) => p.barcode === row.batch.trim() || p.sku === row.batch.trim()
+                          )
+                          if (found) {
+                            setRows((prev) => {
+                              const next = [...prev]
+                              next[idx] = calcRow({
+                                ...next[idx],
+                                product_id: found.id,
+                                product_name: found.name,
+                                stock: found.stock || 0,
+                                mrp: found.mrp || found.sale_price || 0,
+                                unit_price: found.sale_price || 0,
+                                tax_rate: found.tax_rate || 0,
+                              })
+                              return next
+                            })
+                          } else {
+                            toast.error('Product not found for barcode: ' + row.batch.trim())
+                          }
+                        }}
+                        placeholder="Scan barcode..."
                         className="w-full border-2 border-amber-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
                       />
                     </td>
