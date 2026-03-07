@@ -229,7 +229,10 @@ const generateBarcode = async (req, res, next) => {
  */
 const deleteAllProducts = async (req, res, next) => {
   try {
-    const deleted = await Product.destroy({ where: { firm_id: req.firmId } });
+    const [deleted] = await Product.update(
+      { is_active: false },
+      { where: { firm_id: req.firmId, is_active: true } }
+    );
     return res.status(200).json({ success: true, message: 'All products deleted.', data: { deleted } });
   } catch (err) {
     next(err);
