@@ -11,5 +11,6 @@ router.post('/adjust-stock', inventoryController.adjustStock);
 
 router.get('/stock-ledger/:productId', inventoryController.getStockLedger);
 router.get('/batches/:productId', inventoryController.getBatches);
+router.delete('/reset-all', inventoryController.resetAllInventory);
 
 module.exports = router;

@@ -295,4 +295,45 @@ const getBatches = async (req, res, next) => {
   }
 };
 
-module.exports = { getStockSummary, getLowStockAlerts, getExpiryAlerts, getStockLedger, adjustStock, getBatches };
+/**
+ * DELETE /inventory/reset-all
+ * Resets stock and opening_stock to 0 for all products, deletes all inventory batches
+ */
+const resetAllInventory = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    // Delete all inventory batches for this firm's products
+    const productIds = await Product.findAll({
+      where: { firm_id: req.firmId },
+      attributes: ['id'],
+      transaction: t,
+    }).then(products => products.map(p => p.id));
+
+    let batchesDeleted = 0;
+    if (productIds.length > 0) {
+      batchesDeleted = await InventoryBatch.destroy({
+        where: { product_id: productIds },
+        transaction: t,
+      });
+    }
+
+    // Reset stock and opening_stock to 0 for all products
+    const [productsUpdated] = await Product.update(
+      { stock: 0, opening_stock: 0 },
+      { where: { firm_id: req.firmId }, transaction: t }
+    );
+
+    await t.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: 'All inventory reset successfully.',
+      data: { products_updated: productsUpdated, batches_deleted: batchesDeleted },
+    });
+  } catch (err) {
+    await t.rollback();
+    next(err);
+  }
+};
+
+module.exports = { getStockSummary, getLowStockAlerts, getExpiryAlerts, getStockLedger, adjustStock, getBatches, resetAllInventory };
