@@ -628,11 +628,25 @@ export default function CreateInvoice() {
                         type="text"
                         value={row.batch}
                         onChange={(e) => updateRow(idx, 'batch', e.target.value)}
-                        onKeyDown={(e) => {
+                        onKeyDown={async (e) => {
                           if (e.key !== 'Enter' || !row.batch.trim()) return
-                          const found = allProducts.find(
-                            (p) => p.barcode === row.batch.trim() || p.sku === row.batch.trim()
+                          const q = row.batch.trim()
+                          // try local cache first
+                          let found = allProducts.find(
+                            (p) => (p.barcode || '').toLowerCase() === q.toLowerCase() ||
+                                   (p.sku || '').toLowerCase() === q.toLowerCase()
                           )
+                          // fallback: search via API
+                          if (!found) {
+                            try {
+                              const res = await productAPI.getAll({ search: q, limit: 10 })
+                              const list = res.data?.data || []
+                              found = list.find(
+                                (p) => (p.barcode || '').toLowerCase() === q.toLowerCase() ||
+                                       (p.sku || '').toLowerCase() === q.toLowerCase()
+                              )
+                            } catch (_) {}
+                          }
                           if (found) {
                             setRows((prev) => {
                               const next = [...prev]
@@ -648,7 +662,7 @@ export default function CreateInvoice() {
                               return next
                             })
                           } else {
-                            toast.error('Product not found for barcode: ' + row.batch.trim())
+                            toast.error('Product not found for barcode: ' + q)
                           }
                         }}
                         placeholder="Scan barcode..."
