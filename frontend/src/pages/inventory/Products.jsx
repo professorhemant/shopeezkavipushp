@@ -44,7 +44,7 @@ const csvRowToProduct = (row) => {
     color:          (row.color || '').trim()      || undefined,
     show_on_website: (row.show_on_website || '').trim().toUpperCase() === 'Y',
     trending:        (row.trending || '').trim().toUpperCase() === 'Y',
-    category_name:  (row.categories || row.category_name || '').trim() || undefined,
+    category_name:  (row.category || row.categories || row.category_name || '').trim() || undefined,
   }
 }
 
