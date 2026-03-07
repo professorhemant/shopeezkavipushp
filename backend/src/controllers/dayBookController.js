@@ -134,19 +134,19 @@ const getSummary = async (req, res, next) => {
       sales:    { cash: salesCash, card: sumPayments(salePayments, p => p.payment_mode === 'card'), online: sumPayments(salePayments, p => p.payment_mode !== 'cash' && p.payment_mode !== 'card'), total: salesTotal },
       bookings: { cash: sum(bookings, 'cash'), card: sum(bookings, 'card'), online: sum(bookings, 'online'), total: sum(bookings) },
       dispatch: { cash: sum(dispatches, 'cash'), card: sum(dispatches, 'card'), online: sum(dispatches, 'online'), total: sum(dispatches) },
-      refunds:  { cash: sum(refunds, 'cash'),  card: sum(refunds, 'card'),  online: sum(refunds, 'online'),  total: sum(refunds) },
     };
 
     const expenseSummary = {
       routine:   { cash: sum(expenses.filter(e => e.expense_type === 'routine'), 'cash'),   online: sum(expenses.filter(e => e.expense_type === 'routine'), 'online'),   total: sum(expenses.filter(e => e.expense_type === 'routine')) },
       incentive: { cash: sum(expenses.filter(e => e.expense_type === 'incentive'), 'cash'), online: sum(expenses.filter(e => e.expense_type === 'incentive'), 'online'), total: sum(expenses.filter(e => e.expense_type === 'incentive')) },
       salary:    { cash: sum(expenses.filter(e => e.expense_type === 'salary'), 'cash'),    online: sum(expenses.filter(e => e.expense_type === 'salary'), 'online'),    total: sum(expenses.filter(e => e.expense_type === 'salary')) },
-      total:     { cash: sum(expenses, 'cash'), online: sum(expenses, 'online'), total: sum(expenses) },
+      security_refunds: { cash: sum(refunds, 'cash'), online: sum(refunds, 'online'), total: sum(refunds) },
+      total:     { cash: sum(expenses, 'cash') + sum(refunds, 'cash'), online: sum(expenses, 'online') + sum(refunds, 'online'), total: sum(expenses) + sum(refunds) },
     };
 
-    const totalCashReceived = received.sales.cash + received.bookings.cash + received.dispatch.cash + received.refunds.cash;
-    const totalCardReceived = received.sales.card + received.bookings.card + received.dispatch.card + received.refunds.card;
-    const totalOnlineReceived = received.sales.online + received.bookings.online + received.dispatch.online + received.refunds.online;
+    const totalCashReceived = received.sales.cash + received.bookings.cash + received.dispatch.cash;
+    const totalCardReceived = received.sales.card + received.bookings.card + received.dispatch.card;
+    const totalOnlineReceived = received.sales.online + received.bookings.online + received.dispatch.online;
 
     res.json({
       success: true,

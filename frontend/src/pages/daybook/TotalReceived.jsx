@@ -86,7 +86,6 @@ export default function TotalReceived() {
                 <Row label="Sales" cash={data.received.sales.cash} card={data.received.sales.card||0} online={data.received.sales.online} total={data.received.sales.total} />
                 <Row label="Bridal Bookings" cash={data.received.bookings.cash} card={data.received.bookings.card||0} online={data.received.bookings.online} total={data.received.bookings.total} />
                 <Row label="Bridal Dispatch" cash={data.received.dispatch.cash} card={data.received.dispatch.card||0} online={data.received.dispatch.online} total={data.received.dispatch.total} />
-                <Row label="Security Refunds" cash={data.received.refunds.cash} card={data.received.refunds.card||0} online={data.received.refunds.online} total={data.received.refunds.total} />
                 <Row label="TOTAL RECEIVED" cash={data.total_cash_received} card={data.total_card_received||0} online={data.total_online_received} total={data.total_cash_received + (data.total_card_received||0) + data.total_online_received} highlight />
               </tbody>
             </table></div>
@@ -111,6 +110,7 @@ export default function TotalReceived() {
                 <Row label="Routine Expenses" cash={data.expenses.routine.cash} card={0} online={data.expenses.routine.online} total={data.expenses.routine.total} />
                 <Row label="Incentives" cash={data.expenses.incentive.cash} card={0} online={data.expenses.incentive.online} total={data.expenses.incentive.total} />
                 <Row label="Salary" cash={data.expenses.salary.cash} card={0} online={data.expenses.salary.online} total={data.expenses.salary.total} />
+                <Row label="Security Refunds" cash={data.expenses.security_refunds?.cash||0} card={0} online={data.expenses.security_refunds?.online||0} total={data.expenses.security_refunds?.total||0} />
                 <Row label="TOTAL EXPENSES" cash={data.expenses.total.cash} card={0} online={data.expenses.total.online} total={data.expenses.total.total} highlight />
               </tbody>
             </table></div>

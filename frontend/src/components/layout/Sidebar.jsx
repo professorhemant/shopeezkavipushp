@@ -25,7 +25,6 @@ const MENU = [
       { label: 'Bridal Bookings',   path: '/daybook/bridal-bookings',   icon: Calendar },
       { label: 'Bridal Dispatch',   path: '/daybook/bridal-dispatch',   icon: Truck },
       { label: 'Expenses',          path: '/daybook/expenses',          icon: Wallet },
-      { label: 'Security Refund',   path: '/daybook/security-refund',   icon: Shield },
       { label: 'Total Received',    path: '/daybook/total-received',    icon: DollarSign },
     ],
   },
