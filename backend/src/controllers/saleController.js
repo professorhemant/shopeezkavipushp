@@ -105,7 +105,7 @@ const create = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
     const firmId = req.firmId;
-    const { customer_id, invoice_date, items, discount_amount, is_interstate, notes, payment } = req.body;
+    const { customer_id, invoice_date, items, discount_amount, is_interstate, notes, payment, payments: paymentsArr } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       await t.rollback();
@@ -174,8 +174,17 @@ const create = async (req, res, next) => {
     const discountAmt = parseFloat(discount_amount || 0);
     const taxTotal = totalCGST + totalSGST + totalIGST;
     const grandTotal = subtotal + taxTotal - discountAmt;
-    const paidAmount = payment ? parseFloat(payment.amount || 0) : 0;
-    // directPayment = what goes to this invoice; excessPayment = clears old dues
+
+    // Support split payments (paymentsArr) or single payment
+    let paymentRecords = [];
+    if (Array.isArray(paymentsArr) && paymentsArr.length > 0) {
+      paymentRecords = paymentsArr.filter(p => parseFloat(p.amount || 0) > 0);
+    } else if (payment && parseFloat(payment.amount || 0) > 0) {
+      paymentRecords = [payment];
+    }
+    const paidAmount = paymentRecords.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+    const primaryMode = paymentRecords.length > 1 ? 'split' : (paymentRecords[0]?.mode || 'cash');
+
     const directPayment = Math.min(paidAmount, grandTotal);
     const excessPayment = Math.max(0, paidAmount - grandTotal);
     const balance = Math.max(0, grandTotal - directPayment);
@@ -224,7 +233,7 @@ const create = async (req, res, next) => {
       balance,
       previous_balance: previousBalance,
       is_interstate: is_interstate || false,
-      payment_mode: payment?.mode || 'cash',
+      payment_mode: primaryMode,
       payment_status: directPayment >= grandTotal ? 'paid' : directPayment > 0 ? 'partial' : 'unpaid',
       status: 'confirmed',
       notes: notes || null,
@@ -236,20 +245,20 @@ const create = async (req, res, next) => {
       await SaleItem.create({ sale_id: sale.id, ...item }, { transaction: t });
     }
 
-    // Create payment record
-    if (paidAmount > 0) {
+    // Create payment records (one per mode for split payments)
+    for (const p of paymentRecords) {
       await Payment.create({
         firm_id: firmId,
         reference_type: 'sale',
         sale_id: sale.id,
         customer_id: customer_id || null,
         payment_date: invoice_date || new Date(),
-        amount: paidAmount,
-        payment_mode: payment?.mode || 'cash',
-        reference_no: payment?.reference_no || null,
-        bank_name: payment?.bank_name || null,
-        cheque_date: payment?.cheque_date || null,
-        notes: payment?.notes || null,
+        amount: parseFloat(p.amount),
+        payment_mode: p.mode || 'cash',
+        reference_no: p.reference_no || null,
+        bank_name: p.bank_name || null,
+        cheque_date: p.cheque_date || null,
+        notes: p.notes || null,
         created_by: req.userId,
       }, { transaction: t });
     }

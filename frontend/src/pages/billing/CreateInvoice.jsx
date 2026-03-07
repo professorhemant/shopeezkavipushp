@@ -84,17 +84,8 @@ export default function CreateInvoice() {
   const [discountApplied, setDiscountApplied] = useState(0)
   const [coupon,          setCoupon]          = useState('')
 
-  // payment
-  const [payMode,         setPayMode]         = useState('')
-  const [payType,         setPayType]         = useState('full')   // 'full' | 'partial'
-  const [partialAmount,   setPartialAmount]   = useState('')
-  const [showPayPopup,    setShowPayPopup]    = useState(false)
-  const [payRef,          setPayRef]          = useState('')
-  const [cardLast4,       setCardLast4]       = useState('')
-  const [cardBank,        setCardBank]        = useState('')
-  const [onlineBank,      setOnlineBank]      = useState('')
-  const [chequeBank,      setChequeBank]      = useState('')
-  const [chequeDate,      setChequeDate]      = useState('')
+  // payment — split across multiple modes
+  const [splitPay,        setSplitPay]        = useState({ cash: '', card: '', upi: '', cheque: '' })
   const [saving,          setSaving]          = useState(false)
   const [loading,         setLoading]         = useState(isEdit)
   const [showUpiOptions,  setShowUpiOptions]  = useState(false)  // UPI selector panel
@@ -263,8 +254,8 @@ export default function CreateInvoice() {
   const prevBalance = parseFloat(prevBalanceInput) || 0
   const grandTotal  = subTotal + totalTax + parseFloat(shipping || 0) - discountApplied
   const netPayable  = grandTotal + prevBalance
-  const partialPaid = payType === 'partial' ? (parseFloat(partialAmount) || 0) : netPayable
-  const balanceRemaining = Math.max(0, netPayable - partialPaid)
+  const totalSplitPaid = ['cash','card','upi','cheque'].reduce((s, m) => s + (parseFloat(splitPay[m]) || 0), 0)
+  const splitBalance = Math.max(0, netPayable - totalSplitPaid)
 
   const applyDiscount = () => {
     const val = parseFloat(discountVal) || 0
@@ -279,9 +270,13 @@ export default function CreateInvoice() {
   const handlePlaceOrder = async () => {
     const validRows = rows.filter((r) => r.product_id)
     if (!validRows.length) { toast.error('Add at least one product'); return }
-    if (!payMode) { toast.error('Select a payment mode first'); return }
     setSaving(true)
     try {
+      const splitPayments = Object.entries(splitPay)
+        .filter(([, v]) => parseFloat(v) > 0)
+        .map(([mode, v]) => ({ mode, amount: parseFloat(v) }))
+      const primaryMode = splitPayments.length === 1 ? splitPayments[0].mode
+        : splitPayments.length > 1 ? 'split' : 'unpaid'
       const payload = {
         customer_id: selectedCust?.id || null,
         customer_name: selectedCust?.name || custSearch.trim() || 'Walk-in',
@@ -305,21 +300,8 @@ export default function CreateInvoice() {
         discount_amount: discountApplied,
         grand_total: grandTotal,
         status: 'confirmed',
-        payment: {
-          mode: payMode,
-          amount: payType === 'partial'
-            ? (parseFloat(partialAmount) || 0)
-            : netPayable,
-          reference_no: payMode === 'card'
-            ? (cardLast4 ? `XXXX-${cardLast4}` : null)
-            : (payRef || null),
-          bank_name: payMode === 'card' ? (cardBank || null)
-            : payMode === 'upi' ? (onlineBank || null)
-            : payMode === 'cheque' ? (chequeBank || null)
-            : null,
-          cheque_date: payMode === 'cheque' ? (chequeDate || null) : null,
-          notes: payMode === 'card' && payRef ? `Auth Code: ${payRef}` : null,
-        },
+        payment: { mode: primaryMode, amount: totalSplitPaid },
+        payments: splitPayments,
       }
       if (isEdit) {
         await saleAPI.update(id, payload)
@@ -895,7 +877,7 @@ export default function CreateInvoice() {
               {/* UPI ID 1 */}
               {upiIds.upi1 && (
                 <button
-                  onClick={() => { setOnlineBank('GPay/PhonePe'); setPayRef(upiIds.upi1); setShowUpiOptions(false); setShowPayPopup(true) }}
+                  onClick={() => { setSplitPay(p => ({...p, upi: splitBalance > 0 ? splitBalance.toFixed(2) : p.upi})); setShowUpiOptions(false) }}
                   className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
                 >
                   <div className="w-9 h-9 bg-green-500/20 rounded-full flex items-center justify-center shrink-0">
@@ -910,7 +892,7 @@ export default function CreateInvoice() {
               {/* UPI ID 2 */}
               {upiIds.upi2 && (
                 <button
-                  onClick={() => { setOnlineBank('GPay/PhonePe'); setPayRef(upiIds.upi2); setShowUpiOptions(false); setShowPayPopup(true) }}
+                  onClick={() => { setSplitPay(p => ({...p, upi: splitBalance > 0 ? splitBalance.toFixed(2) : p.upi})); setShowUpiOptions(false) }}
                   className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
                 >
                   <div className="w-9 h-9 bg-blue-500/20 rounded-full flex items-center justify-center shrink-0">
@@ -924,7 +906,7 @@ export default function CreateInvoice() {
               )}
               {/* QR Code */}
               <button
-                onClick={() => { setShowUpiOptions(false); setShowQrModal(true) }}
+                onClick={() => { setShowUpiOptions(false); setSplitPay(p => ({...p, upi: splitBalance > 0 ? splitBalance.toFixed(2) : p.upi})); setShowQrModal(true) }}
                 className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
               >
                 <div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center shrink-0">
@@ -964,7 +946,7 @@ export default function CreateInvoice() {
             </div>
             <p className="text-xs text-slate-400 mb-4">GPay · PhonePe · Paytm · Any UPI App</p>
             <button
-              onClick={() => { setShowQrModal(false); setOnlineBank('QR Scan'); setShowPayPopup(true) }}
+              onClick={() => { setShowQrModal(false) }}
               className="w-full bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl text-sm font-semibold"
             >
               Pay
@@ -973,177 +955,76 @@ export default function CreateInvoice() {
         </div>
       )}
 
-      {/* ── Payment popup — shared for all modes ─────────────── */}
-      {showPayPopup && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setShowPayPopup(false)} />
-          <div className="fixed bottom-16 left-0 lg:left-64 z-50 w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl overflow-hidden">
-            <div className="bg-gray-700 px-4 py-2.5 flex items-center justify-between">
-              <span className="text-white text-sm font-bold capitalize">
-                {payMode || 'Select'} Payment
-              </span>
-              <button onClick={() => setShowPayPopup(false)} className="text-gray-400 hover:text-white">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-4 space-y-3">
 
-              {/* Full / Partial toggle */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setPayType('full'); setPartialAmount('') }}
-                  className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-semibold transition-colors ${
-                    payType === 'full'
-                      ? 'border-green-500 bg-green-900/40 text-green-300'
-                      : 'border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500'
-                  }`}
-                >
-                  Full Payment
-                  <div className="text-xs font-normal opacity-70">₹{netPayable.toFixed(2)}</div>
-                </button>
-                <button
-                  onClick={() => setPayType('partial')}
-                  className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-semibold transition-colors ${
-                    payType === 'partial'
-                      ? 'border-yellow-500 bg-yellow-900/40 text-yellow-300'
-                      : 'border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500'
-                  }`}
-                >
-                  Partial
-                  <div className="text-xs font-normal opacity-70">Part now, rest later</div>
-                </button>
-              </div>
+      {/* ── Sticky bottom split-payment bar ──────────────────── */}
+      <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-gray-900 flex items-center z-30 h-14 px-2 gap-1.5">
 
-              {/* Partial amount input */}
-              {payType === 'partial' && (
-                <div className="space-y-1.5">
-                  <input
-                    type="number"
-                    value={partialAmount}
-                    onChange={(e) => setPartialAmount(e.target.value)}
-                    placeholder="Enter amount paid"
-                    min={0}
-                    max={grandTotal}
-                    autoFocus
-                    className="w-full border border-yellow-500 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 placeholder-gray-500"
-                  />
-                  <div className="flex justify-between text-xs px-1">
-                    <span className="text-green-400">Paid: ₹{(parseFloat(partialAmount) || 0).toFixed(2)}</span>
-                    <span className="text-red-400 font-bold">Balance: ₹{balanceRemaining.toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
+        {/* CASH */}
+        <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
+          <Banknote className="h-4 w-4 text-green-400 shrink-0" />
+          <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">Cash</span>
+          <input type="number" min="0" placeholder="0"
+            value={splitPay.cash}
+            onChange={(e) => setSplitPay(p => ({...p, cash: e.target.value}))}
+            className="w-20 bg-gray-800 border border-gray-600 focus:border-green-400 text-white rounded px-2 py-1 text-xs focus:outline-none" />
+        </div>
 
-              {/* Mode-specific reference fields */}
-              {payMode === 'card' && (
-                <div className="space-y-2">
-                  <input type="text" value={cardLast4} onChange={(e) => setCardLast4(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="Last 4 digits" maxLength={4}
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
-                  <input type="text" value={cardBank} onChange={(e) => setCardBank(e.target.value)} placeholder="Bank / Card type"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
-                  <input type="text" value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Auth Code"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
-                </div>
-              )}
-              {payMode === 'upi' && (
-                <div className="space-y-2">
-                  <input type="text" value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="UPI / Transaction Ref"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
-                  <input type="text" value={onlineBank} onChange={(e) => setOnlineBank(e.target.value)} placeholder="Bank / UPI App"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
-                </div>
-              )}
-              {payMode === 'cheque' && (
-                <div className="space-y-2">
-                  <input type="text" value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Cheque No."
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
-                  <input type="text" value={chequeBank} onChange={(e) => setChequeBank(e.target.value)} placeholder="Bank Name"
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder-gray-500" />
-                  <input type="date" value={chequeDate} onChange={(e) => setChequeDate(e.target.value)}
-                    className="w-full border border-gray-600 bg-gray-900 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                </div>
-              )}
+        {/* CARD */}
+        <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
+          <CreditCard className="h-4 w-4 text-blue-400 shrink-0" />
+          <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">Card</span>
+          <input type="number" min="0" placeholder="0"
+            value={splitPay.card}
+            onChange={(e) => setSplitPay(p => ({...p, card: e.target.value}))}
+            className="w-20 bg-gray-800 border border-gray-600 focus:border-blue-400 text-white rounded px-2 py-1 text-xs focus:outline-none" />
+        </div>
 
-              <button
-                onClick={() => setShowPayPopup(false)}
-                disabled={payType === 'partial' && (!partialAmount || parseFloat(partialAmount) <= 0)}
-                className="w-full py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-semibold text-sm rounded-lg transition-colors"
-              >
-                {payType === 'partial' ? 'Confirm Partial Payment' : 'Confirm'}
-              </button>
-            </div>
+        {/* ONLINE / UPI */}
+        <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
+          <Smartphone className="h-4 w-4 text-violet-400 shrink-0" />
+          <button onClick={() => setShowUpiOptions(true)} className="text-xs text-gray-400 hidden sm:block whitespace-nowrap hover:text-violet-300">Online</button>
+          <input type="number" min="0" placeholder="0"
+            value={splitPay.upi}
+            onChange={(e) => setSplitPay(p => ({...p, upi: e.target.value}))}
+            className="w-20 bg-gray-800 border border-gray-600 focus:border-violet-400 text-white rounded px-2 py-1 text-xs focus:outline-none" />
+        </div>
+
+        {/* CHEQUE */}
+        <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
+          <FileText className="h-4 w-4 text-orange-400 shrink-0" />
+          <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">Cheque</span>
+          <input type="number" min="0" placeholder="0"
+            value={splitPay.cheque}
+            onChange={(e) => setSplitPay(p => ({...p, cheque: e.target.value}))}
+            className="w-20 bg-gray-800 border border-gray-600 focus:border-orange-400 text-white rounded px-2 py-1 text-xs focus:outline-none" />
+        </div>
+
+        {/* Paid / Balance summary */}
+        <div className="ml-auto flex items-center gap-3 text-xs pr-2 shrink-0">
+          <div className="text-center hidden md:block">
+            <div className="text-gray-400">Paid</div>
+            <div className="text-green-400 font-bold">₹{totalSplitPaid.toFixed(2)}</div>
           </div>
-        </>
-      )}
-
-      {/* ── Sticky bottom payment bar ─────────────────────────── */}
-      <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-gray-900 flex items-center z-30 h-14">
-        {/* Payment mode buttons */}
-        <div className="flex items-stretch h-full">
-          {PAYMENT_MODES.map((pm) => {
-            const Icon = pm.Icon
-            const active = payMode === pm.key
-            return (
-              <button
-                key={pm.key}
-                onClick={() => {
-                  if (pm.key === 'upi') {
-                    // ONLINE → show UPI options first
-                    setPayMode('upi')
-                    setPayType('full'); setPartialAmount('')
-                    setPayRef(''); setCardLast4(''); setCardBank(''); setOnlineBank(''); setChequeBank(''); setChequeDate('')
-                    setShowPayPopup(false)
-                    setShowUpiOptions(true)
-                  } else if (payMode === pm.key) {
-                    setShowPayPopup((prev) => !prev)
-                  } else {
-                    setPayMode(pm.key)
-                    setPayType('full'); setPartialAmount('')
-                    setPayRef(''); setCardLast4(''); setCardBank(''); setOnlineBank(''); setChequeBank(''); setChequeDate('')
-                    setShowPayPopup(true)
-                  }
-                }}
-                className={`flex items-center gap-1.5 px-4 text-xs font-semibold border-r border-gray-700 transition-colors ${
-                  active ? 'bg-amber-600 text-white' : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {pm.label}
-                {pm.shortcut && (
-                  <span className={`text-xs ${active ? 'text-amber-200' : 'text-gray-500'}`}>({pm.shortcut})</span>
-                )}
-              </button>
-            )
-          })}
+          <div className="text-center hidden md:block">
+            <div className="text-gray-400">Balance</div>
+            <div className={`font-bold ${splitBalance > 0 ? 'text-red-400' : 'text-green-400'}`}>₹{splitBalance.toFixed(2)}</div>
+          </div>
         </div>
 
-        {/* Active mode indicator pill */}
-        <div className="ml-3 flex items-center gap-1.5">
-          {payMode ? (
-            <span className={`text-xs px-2 py-0.5 rounded font-semibold ${payType === 'partial' ? 'bg-yellow-500 text-white' : 'bg-green-600 text-white'}`}>
-              {payType === 'partial' ? `Partial ₹${(parseFloat(partialAmount)||0).toFixed(0)}` : 'Full'}
-            </span>
-          ) : (
-            <span className="text-xs px-2 py-0.5 rounded font-semibold bg-red-500 text-white">Select Mode</span>
-          )}
-        </div>
-
-        {/* Total amount */}
-        <div className={`flex flex-col items-center justify-center px-6 h-full ml-auto ${payType === 'partial' ? 'bg-yellow-600' : 'bg-orange-500'}`}>
-          <span className="text-white font-bold text-lg">₹{netPayable.toFixed(2)}</span>
-          {payType === 'partial' && (
-            <span className="text-yellow-100 text-xs font-medium">Paid: ₹{partialPaid.toFixed(2)}</span>
-          )}
+        {/* Grand Total */}
+        <div className="flex flex-col items-center justify-center px-4 h-full bg-orange-500 shrink-0">
+          <span className="text-white font-bold text-base">₹{netPayable.toFixed(2)}</span>
+          <span className="text-orange-100 text-xs">Total</span>
         </div>
 
         {/* Place Order */}
         <button
           onClick={handlePlaceOrder}
           disabled={saving}
-          className="flex items-center gap-2 h-full px-6 bg-gradient-to-r from-orange-500 to-yellow-400 text-white font-bold text-sm hover:from-orange-600 hover:to-yellow-500 disabled:opacity-60 whitespace-nowrap"
+          className="flex items-center gap-2 h-full px-5 bg-gradient-to-r from-orange-500 to-yellow-400 text-white font-bold text-sm hover:from-orange-600 hover:to-yellow-500 disabled:opacity-60 whitespace-nowrap shrink-0"
         >
           {saving ? <LoadingSpinner size="sm" /> : null}
-          Place Order (Alt + P)
+          Place Order
         </button>
       </div>
 
