@@ -179,7 +179,25 @@ const bulkImport = async (req, res, next) => {
     if (!toCreate.length) {
       return res.status(400).json({ success: false, message: 'No valid products to import. "name" is required for every row.' });
     }
-    const created = await Product.bulkCreate(toCreate, { ignoreDuplicates: true, validate: false });
+
+    console.log('[BI] toCreate0_catid=' + toCreate[0]?.category_id);
+
+    const created = [];
+    for (const p of toCreate) {
+      try {
+        const product = await Product.create(p);
+        created.push(product);
+      } catch (err) {
+        console.error('[BI] create_err=' + err.message);
+      }
+    }
+
+    // Verify first created product has category_id in DB
+    if (created[0]) {
+      const dbCheck = await Product.findOne({ where: { id: created[0].id }, attributes: ['id', 'category_id'] });
+      console.log('[BI] db_catid=' + dbCheck?.category_id);
+    }
+
     return res.status(201).json({
       success: true,
       message: `${created.length} products imported.`,
