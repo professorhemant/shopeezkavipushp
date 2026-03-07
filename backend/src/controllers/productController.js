@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op, fn, col, literal } = require('sequelize');
-const { Product, Category, Brand, Unit, ProductVariant, InventoryBatch, sequelize } = require('../models');
+const { Product, Category, Brand, Unit, ProductVariant, InventoryBatch } = require('../models');
 const barcodeUtils = require('../utils/barcodeUtils');
 
 const paginate = (query) => {
@@ -39,7 +39,7 @@ const getAll = async (req, res, next) => {
         { model: Brand, as: 'Brand', attributes: ['id', 'name'] },
         { model: Unit, as: 'Unit', attributes: ['id', 'name', 'short_name'] },
       ],
-      order: [['name', 'ASC']],
+      order: [['name', 'ASC'], ['barcode', 'ASC']],
       limit,
       offset,
       distinct: true,
@@ -139,14 +139,14 @@ const bulkImport = async (req, res, next) => {
     const categoryNames = [...new Set(
       products.map((p) => (p.category_name || '').trim()).filter(Boolean)
     )];
-    console.log('[BI] names=' + JSON.stringify(categoryNames));
+
     const categoryMap = {};
     if (categoryNames.length > 0) {
       const existing = await Category.findAll({
         where: { firm_id: firmId, name: { [Op.in]: categoryNames } },
         attributes: ['id', 'name'],
       });
-      console.log('[BI] existing=' + JSON.stringify(existing.map(c => c.name)));
+
       existing.forEach((c) => { categoryMap[c.name] = c.id; });
 
       for (const name of categoryNames) {
@@ -154,19 +154,14 @@ const bulkImport = async (req, res, next) => {
         try {
           const cat = await Category.create({ name, firm_id: firmId });
           categoryMap[name] = cat.id;
-          console.log('[BI] created=' + name + ' id=' + cat.id);
+
         } catch (err) {
-          console.error('[BI] cat_err=' + name + ' ' + err.message);
+
           const cat = await Category.findOne({ where: { name, firm_id: firmId } });
           if (cat) categoryMap[name] = cat.id;
         }
       }
     }
-    console.log('[BI] map=' + JSON.stringify(categoryMap));
-
-    // Check if category_id column exists in products table
-    const [cols] = await sequelize.query("SHOW COLUMNS FROM products LIKE 'category_id'");
-    console.log('[BI] category_id_col_exists=' + (cols.length > 0));
 
     const toCreate = products
       .filter((p) => p.name && String(p.name).trim())
@@ -180,22 +175,14 @@ const bulkImport = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No valid products to import. "name" is required for every row.' });
     }
 
-    console.log('[BI] toCreate0_catid=' + toCreate[0]?.category_id);
-
     const created = [];
     for (const p of toCreate) {
       try {
         const product = await Product.create(p);
         created.push(product);
       } catch (err) {
-        console.error('[BI] create_err=' + err.message);
+        console.error('[bulkImport] create error:', err.message);
       }
-    }
-
-    // Verify first created product has category_id in DB
-    if (created[0]) {
-      const dbCheck = await Product.findOne({ where: { id: created[0].id }, attributes: ['id', 'category_id'] });
-      console.log('[BI] db_catid=' + dbCheck?.category_id);
     }
 
     return res.status(201).json({
