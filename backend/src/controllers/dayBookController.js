@@ -130,19 +130,11 @@ const getSummary = async (req, res, next) => {
     const salesOnline = sumPayments(salePayments, p => p.payment_mode !== 'cash');
     const salesTotal  = sumPayments(salePayments, () => true);
 
-    // For bridal bookings/dispatch/refunds: cash + card treated as cash-in-hand; online as bank
-    const bookingCash   = sum(bookings, 'cash') + sum(bookings, 'card');
-    const bookingOnline = sum(bookings, 'online');
-    const dispatchCash   = sum(dispatches, 'cash') + sum(dispatches, 'card');
-    const dispatchOnline = sum(dispatches, 'online');
-    const refundCash   = sum(refunds, 'cash') + sum(refunds, 'card');
-    const refundOnline = sum(refunds, 'online');
-
     const received = {
-      sales:    { cash: salesCash,   online: salesOnline,   total: salesTotal },
-      bookings: { cash: bookingCash, online: bookingOnline, total: bookingCash + bookingOnline },
-      dispatch: { cash: dispatchCash, online: dispatchOnline, total: dispatchCash + dispatchOnline },
-      refunds:  { cash: refundCash,  online: refundOnline,  total: refundCash + refundOnline },
+      sales:    { cash: salesCash, card: sumPayments(salePayments, p => p.payment_mode === 'card'), online: sumPayments(salePayments, p => p.payment_mode !== 'cash' && p.payment_mode !== 'card'), total: salesTotal },
+      bookings: { cash: sum(bookings, 'cash'), card: sum(bookings, 'card'), online: sum(bookings, 'online'), total: sum(bookings) },
+      dispatch: { cash: sum(dispatches, 'cash'), card: sum(dispatches, 'card'), online: sum(dispatches, 'online'), total: sum(dispatches) },
+      refunds:  { cash: sum(refunds, 'cash'),  card: sum(refunds, 'card'),  online: sum(refunds, 'online'),  total: sum(refunds) },
     };
 
     const expenseSummary = {
@@ -153,6 +145,7 @@ const getSummary = async (req, res, next) => {
     };
 
     const totalCashReceived = received.sales.cash + received.bookings.cash + received.dispatch.cash + received.refunds.cash;
+    const totalCardReceived = received.sales.card + received.bookings.card + received.dispatch.card + received.refunds.card;
     const totalOnlineReceived = received.sales.online + received.bookings.online + received.dispatch.online + received.refunds.online;
 
     res.json({
@@ -163,9 +156,10 @@ const getSummary = async (req, res, next) => {
         received,
         expenses: expenseSummary,
         total_cash_received: totalCashReceived,
+        total_card_received: totalCardReceived,
         total_online_received: totalOnlineReceived,
         net_cash: openingBalance + totalCashReceived - expenseSummary.total.cash,
-        net_bank: totalOnlineReceived - expenseSummary.total.online,
+        net_bank: totalCardReceived + totalOnlineReceived - expenseSummary.total.online,
       },
     });
   } catch (err) { next(err); }
