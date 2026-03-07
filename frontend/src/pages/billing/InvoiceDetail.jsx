@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Printer, Download, Edit2, XCircle } from 'lucide-react'
+import { ArrowLeft, Printer, Download, Edit2, XCircle, Share2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { saleAPI } from '../../api'
 import { formatCurrency, formatDate, getPaymentStatusColor } from '../../utils/formatters'
@@ -34,6 +34,35 @@ export default function InvoiceDetail() {
       const a = document.createElement('a'); a.href = url; a.download = `invoice-${id}.pdf`; a.click()
       URL.revokeObjectURL(url)
     } catch { toast.error('Failed to generate PDF') }
+  }
+
+  const handleSharePDF = async () => {
+    try {
+      toast.loading('Preparing PDF…', { id: 'share' })
+      const { data } = await saleAPI.generatePDF(id)
+      const blob = new Blob([data], { type: 'application/pdf' })
+      const fileName = `invoice-${inv?.invoice_no || id}.pdf`
+      const file = new File([blob], fileName, { type: 'application/pdf' })
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        toast.dismiss('share')
+        await navigator.share({
+          files: [file],
+          title: `Invoice ${inv?.invoice_no || ''}`,
+          text: `Invoice from ${inv?.firm?.name || 'us'} — ${fileName}`,
+        })
+      } else {
+        // Fallback: just download the file
+        toast.dismiss('share')
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a'); a.href = url; a.download = fileName; a.click()
+        URL.revokeObjectURL(url)
+        toast('Sharing not supported on this browser — PDF downloaded instead.')
+      }
+    } catch (err) {
+      toast.dismiss('share')
+      if (err?.name !== 'AbortError') toast.error('Failed to share PDF')
+    }
   }
 
   const handleCancel = async () => {
@@ -97,6 +126,10 @@ export default function InvoiceDetail() {
           <button onClick={handleDownloadPDF}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">
             <Download className="h-4 w-4" /> Download
+          </button>
+          <button onClick={handleSharePDF}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm">
+            <Share2 className="h-4 w-4" /> Share PDF
           </button>
           {!isCancelled && (
             <>
