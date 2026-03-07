@@ -35,7 +35,7 @@ export default function DayBookSales() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await saleAPI.getAll({ from_date: date, to_date: date, limit: 500 })
+      const res = await saleAPI.getAll({ from_date: date, to_date: date, limit: 500, include_items: true })
       setSales(res.data.data || [])
     } catch { toast.error('Failed to load sales') }
     finally { setLoading(false) }
@@ -126,7 +126,9 @@ export default function DayBookSales() {
                     <td className="px-4 py-3 font-medium text-amber-600">{s.invoice_no || '-'}</td>
                     <td className="px-4 py-3 text-slate-600">{fmtDate(s.invoice_date)}</td>
                     <td className="px-4 py-3 text-slate-700">{s.customer_name || s.customer?.name || 'Walk-in'}</td>
-                    <td className="px-4 py-3 text-center text-slate-500">-</td>
+                    <td className="px-4 py-3 text-center text-slate-600 text-xs">
+                      {(s.items || []).length === 0 ? '-' : (s.items || []).map((it) => it.barcode || it.product?.barcode || it.product?.sku || it.product_name || '-').join(', ')}
+                    </td>
                     <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurrency(s.total)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-green-600">{formatCurrency(s.paid_amount)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-red-500">{formatCurrency(s.balance)}</td>
