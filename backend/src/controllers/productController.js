@@ -223,12 +223,26 @@ const generateBarcode = async (req, res, next) => {
   }
 };
 
+/**
+ * DELETE /products/all
+ * Hard-deletes all products for this firm.
+ */
+const deleteAllProducts = async (req, res, next) => {
+  try {
+    const deleted = await Product.destroy({ where: { firm_id: req.firmId } });
+    return res.status(200).json({ success: true, message: 'All products deleted.', data: { deleted } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getAll,
   getOne,
   create,
   update,
   delete: deleteProduct,
+  deleteAll: deleteAllProducts,
   bulkImport,
   updateStock,
   getLowStock,

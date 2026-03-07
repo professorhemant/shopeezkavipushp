@@ -70,6 +70,7 @@ export const productAPI = {
   getLowStock: () => api.get('/products/low-stock'),
   generateBarcode: (id) => api.get(`/products/${id}/barcode`),
   bulkImport: (data) => api.post('/products/bulk-import', data),
+  deleteAll: () => api.delete('/products/all'),
 }
 
 // ─── Categories ─────────────────────────────────────────────────────

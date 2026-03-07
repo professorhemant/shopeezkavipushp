@@ -6,6 +6,7 @@ const productController = require('../controllers/productController');
 
 // Special / aggregate routes first (before :id)
 router.get('/low-stock', productController.getLowStock);
+router.delete('/all', productController.deleteAll);
 
 // CRUD routes
 router.get('/', productController.getAll);

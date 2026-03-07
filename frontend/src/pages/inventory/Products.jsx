@@ -276,6 +276,8 @@ export default function Products() {
   const [deleteId, setDeleteId] = useState(null)
   const [showBulkDelete, setShowBulkDelete] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [showDeleteAll, setShowDeleteAll] = useState(false)
+  const [deletingAll, setDeletingAll] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [otpModal, setOtpModal] = useState({ open: false, editId: null })
@@ -357,6 +359,20 @@ export default function Products() {
     }
   }
 
+  const handleDeleteAll = async () => {
+    setDeletingAll(true)
+    try {
+      const { data } = await productAPI.deleteAll()
+      toast.success(`All products deleted (${data.data.deleted} removed)`)
+      setShowDeleteAll(false)
+      fetchProducts()
+    } catch {
+      toast.error('Failed to delete all products')
+    } finally {
+      setDeletingAll(false)
+    }
+  }
+
   const handleBulkDelete = async () => {
     setBulkDeleting(true)
     try {
@@ -427,6 +443,12 @@ export default function Products() {
             className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5"
           >
             <Download className="h-4 w-4" /> {exporting ? 'Exporting...' : 'Export Excel'}
+          </button>
+          <button
+            onClick={() => setShowDeleteAll(true)}
+            className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5"
+          >
+            <Trash2 className="h-4 w-4" /> Delete All
           </button>
           <Link
             to="/inventory/products/add"
@@ -730,6 +752,40 @@ export default function Products() {
               >
                 {bulkDeleting ? <LoadingSpinner size="sm" /> : <Trash2 className="h-4 w-4" />}
                 Delete {selected.length}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Confirmation Modal */}
+      {showDeleteAll && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-sm mx-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800">Delete All Products?</h3>
+                <p className="text-sm text-slate-500">This will permanently delete <strong>all {total} products</strong>. This cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setShowDeleteAll(false)}
+                disabled={deletingAll}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={deletingAll}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {deletingAll ? <LoadingSpinner size="sm" /> : <Trash2 className="h-4 w-4" />}
+                {deletingAll ? 'Deleting...' : 'Yes, Delete All'}
               </button>
             </div>
           </div>
