@@ -1,18 +1,26 @@
 import { useEffect, useState } from 'react'
-import { Plus, Edit2, Trash2, X } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Banknote, CreditCard, Smartphone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { dayBookAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 const today = () => new Date().toISOString().split('T')[0]
-const EMPTY = { slip_no: '', amount: '', payment_mode: 'cash' }
+const EMPTY_SPLIT = { slip_no: '', cash: '', card: '', online: '' }
+const EMPTY_EDIT  = { slip_no: '', amount: '', payment_mode: 'cash' }
+
+const MODE_STYLE = {
+  cash:   'bg-green-100 text-green-700',
+  card:   'bg-blue-100 text-blue-700',
+  online: 'bg-violet-100 text-violet-700',
+}
 
 export default function BridalBookings() {
   const [date, setDate] = useState(today())
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState(EMPTY)
+  const [splitForm, setSplitForm] = useState(EMPTY_SPLIT)   // for Add (split)
+  const [editForm, setEditForm]   = useState(EMPTY_EDIT)    // for Edit (single)
   const [editId, setEditId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -28,24 +36,43 @@ export default function BridalBookings() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.amount) return toast.error('Amount is required')
     setSaving(true)
     try {
-      if (editId) { await dayBookAPI.updateBridalBooking(editId, { ...form, date }); toast.success('Updated') }
-      else { await dayBookAPI.createBridalBooking({ ...form, date }); toast.success('Added') }
-      setForm(EMPTY); setEditId(null); setShowForm(false); load()
+      if (editId) {
+        // editing a single existing entry
+        if (!editForm.amount) { toast.error('Amount is required'); setSaving(false); return }
+        await dayBookAPI.updateBridalBooking(editId, { slip_no: editForm.slip_no, amount: editForm.amount, payment_mode: editForm.payment_mode, date })
+        toast.success('Updated')
+      } else {
+        // creating — one entry per non-zero mode
+        const entries = [
+          { mode: 'cash',   amount: parseFloat(splitForm.cash)   || 0 },
+          { mode: 'card',   amount: parseFloat(splitForm.card)   || 0 },
+          { mode: 'online', amount: parseFloat(splitForm.online) || 0 },
+        ].filter(e => e.amount > 0)
+        if (!entries.length) { toast.error('Enter at least one amount'); setSaving(false); return }
+        for (const entry of entries) {
+          await dayBookAPI.createBridalBooking({ slip_no: splitForm.slip_no, amount: entry.amount, payment_mode: entry.mode, date })
+        }
+        toast.success(`${entries.length} entry/entries added`)
+      }
+      setSplitForm(EMPTY_SPLIT); setEditForm(EMPTY_EDIT); setEditId(null); setShowForm(false); load()
     } catch { toast.error('Failed to save') }
     finally { setSaving(false) }
   }
 
-  const startEdit = (row) => { setForm({ slip_no: row.slip_no || '', amount: row.amount, payment_mode: row.payment_mode }); setEditId(row.id); setShowForm(true) }
+  const startEdit = (row) => {
+    setEditForm({ slip_no: row.slip_no || '', amount: row.amount, payment_mode: row.payment_mode })
+    setEditId(row.id); setShowForm(true)
+  }
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this entry?')) return
     try { await dayBookAPI.deleteBridalBooking(id); toast.success('Deleted'); load() }
     catch { toast.error('Failed to delete') }
   }
 
-  const cashTotal = rows.filter(r => r.payment_mode === 'cash').reduce((a, r) => a + parseFloat(r.amount || 0), 0)
+  const cashTotal   = rows.filter(r => r.payment_mode === 'cash').reduce((a, r) => a + parseFloat(r.amount || 0), 0)
+  const cardTotal   = rows.filter(r => r.payment_mode === 'card').reduce((a, r) => a + parseFloat(r.amount || 0), 0)
   const onlineTotal = rows.filter(r => r.payment_mode === 'online').reduce((a, r) => a + parseFloat(r.amount || 0), 0)
 
   return (
@@ -58,7 +85,7 @@ export default function BridalBookings() {
         <div className="flex flex-wrap items-center gap-2">
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
             className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
-          <button onClick={() => { setForm(EMPTY); setEditId(null); setShowForm(true) }}
+          <button onClick={() => { setSplitForm(EMPTY_SPLIT); setEditForm(EMPTY_EDIT); setEditId(null); setShowForm(true) }}
             className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <Plus className="h-4 w-4" /> Add Entry
           </button>
@@ -67,35 +94,80 @@ export default function BridalBookings() {
 
       {showForm && (
         <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-200">
-          <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-end">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Slip No.</label>
-              <input value={form.slip_no} onChange={(e) => setForm({ ...form, slip_no: e.target.value })}
-                placeholder="Slip number"
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+          <form onSubmit={handleSubmit}>
+            {/* Slip No — always shown */}
+            <div className="flex flex-wrap gap-3 items-end mb-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Slip No.</label>
+                <input
+                  value={editId ? editForm.slip_no : splitForm.slip_no}
+                  onChange={(e) => editId ? setEditForm(f => ({...f, slip_no: e.target.value})) : setSplitForm(f => ({...f, slip_no: e.target.value}))}
+                  placeholder="Slip number"
+                  className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+              </div>
+
+              {editId ? (
+                /* Edit mode — single amount + mode dropdown */
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Amount (₹)</label>
+                    <input type="number" step="0.01" value={editForm.amount} onChange={(e) => setEditForm(f => ({...f, amount: e.target.value}))}
+                      placeholder="0.00" required
+                      className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Mode</label>
+                    <select value={editForm.payment_mode} onChange={(e) => setEditForm(f => ({...f, payment_mode: e.target.value}))}
+                      className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
+                      <option value="cash">Cash</option>
+                      <option value="card">Card</option>
+                      <option value="online">Online</option>
+                    </select>
+                  </div>
+                </>
+              ) : (
+                /* Add mode — separate Cash / Card / Online fields */
+                <>
+                  <div>
+                    <label className="flex items-center gap-1 text-xs font-medium text-green-700 mb-1"><Banknote className="h-3.5 w-3.5" /> Cash (₹)</label>
+                    <input type="number" step="0.01" min="0" value={splitForm.cash} onChange={(e) => setSplitForm(f => ({...f, cash: e.target.value}))}
+                      placeholder="0.00"
+                      className="border-2 border-green-200 focus:border-green-400 rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-green-300" />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-1 text-xs font-medium text-blue-700 mb-1"><CreditCard className="h-3.5 w-3.5" /> Card (₹)</label>
+                    <input type="number" step="0.01" min="0" value={splitForm.card} onChange={(e) => setSplitForm(f => ({...f, card: e.target.value}))}
+                      placeholder="0.00"
+                      className="border-2 border-blue-200 focus:border-blue-400 rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-1 text-xs font-medium text-violet-700 mb-1"><Smartphone className="h-3.5 w-3.5" /> Online (₹)</label>
+                    <input type="number" step="0.01" min="0" value={splitForm.online} onChange={(e) => setSplitForm(f => ({...f, online: e.target.value}))}
+                      placeholder="0.00"
+                      className="border-2 border-violet-200 focus:border-violet-400 rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                  </div>
+                  {(parseFloat(splitForm.cash)||0) + (parseFloat(splitForm.card)||0) + (parseFloat(splitForm.online)||0) > 0 && (
+                    <div className="flex flex-col justify-end pb-2">
+                      <span className="text-xs text-slate-500">Total</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        {formatCurrency((parseFloat(splitForm.cash)||0) + (parseFloat(splitForm.card)||0) + (parseFloat(splitForm.online)||0))}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Amount (₹) *</label>
-              <input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                placeholder="0.00" required
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+
+            <div className="flex gap-2">
+              <button type="submit" disabled={saving}
+                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                {saving ? 'Saving...' : editId ? 'Update' : 'Add'}
+              </button>
+              <button type="button" onClick={() => { setShowForm(false); setEditId(null); setSplitForm(EMPTY_SPLIT); setEditForm(EMPTY_EDIT) }}
+                className="border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-2 rounded-lg text-sm">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Mode</label>
-              <select value={form.payment_mode} onChange={(e) => setForm({ ...form, payment_mode: e.target.value })}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
-                <option value="cash">Cash</option>
-                <option value="online">Online</option>
-              </select>
-            </div>
-            <button type="submit" disabled={saving}
-              className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-              {saving ? 'Saving...' : editId ? 'Update' : 'Add'}
-            </button>
-            <button type="button" onClick={() => { setShowForm(false); setEditId(null); setForm(EMPTY) }}
-              className="border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-2 rounded-lg text-sm">
-              <X className="h-4 w-4" />
-            </button>
           </form>
         </div>
       )}
@@ -121,8 +193,8 @@ export default function BridalBookings() {
                   <td className="px-4 py-3 font-medium text-amber-600">{r.slip_no || '-'}</td>
                   <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurrency(r.amount)}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${r.payment_mode === 'cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {r.payment_mode === 'cash' ? 'Cash' : 'Online'}
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${MODE_STYLE[r.payment_mode] || 'bg-slate-100 text-slate-600'}`}>
+                      {r.payment_mode || '-'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -139,7 +211,11 @@ export default function BridalBookings() {
                 <tr>
                   <td colSpan={2} className="px-4 py-3 text-slate-600">Total</td>
                   <td className="px-4 py-3 text-right text-slate-800">{formatCurrency(cashTotal + onlineTotal)}</td>
-                  <td colSpan={2} className="px-4 py-3 text-slate-500 text-xs font-normal">Cash: {formatCurrency(cashTotal)} · Online: {formatCurrency(onlineTotal)}</td>
+                  <td colSpan={2} className="px-4 py-3 text-slate-500 text-xs font-normal flex flex-wrap gap-2">
+                    {cashTotal > 0   && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Cash: {formatCurrency(cashTotal)}</span>}
+                    {cardTotal > 0   && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Card: {formatCurrency(cardTotal)}</span>}
+                    {onlineTotal > 0 && <span className="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">Online: {formatCurrency(onlineTotal)}</span>}
+                  </td>
                 </tr>
               </tfoot>
             )}
