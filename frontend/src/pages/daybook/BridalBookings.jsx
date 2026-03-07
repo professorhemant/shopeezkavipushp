@@ -175,54 +175,84 @@ export default function BridalBookings() {
       )}
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-        {loading ? <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div> : (
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
-              <tr>
-                <th className="px-4 py-3 text-left">S.No.</th>
-                <th className="px-4 py-3 text-left">Slip No.</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3 text-center">Mode</th>
-                <th className="px-4 py-3 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-12 text-slate-400">No entries for this date</td></tr>
-              ) : rows.map((r, i) => (
-                <tr key={r.id} className="border-b hover:bg-slate-50">
-                  <td className="px-4 py-3 text-slate-500">{i + 1}</td>
-                  <td className="px-4 py-3 font-medium text-amber-600">{r.slip_no || '-'}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurrency(r.amount)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${MODE_STYLE[r.payment_mode] || 'bg-slate-100 text-slate-600'}`}>
-                      {r.payment_mode || '-'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button onClick={() => startEdit(r)} className="p-1.5 rounded hover:bg-amber-50 text-slate-400 hover:text-amber-600"><Edit2 className="h-4 w-4" /></button>
-                      <button onClick={() => handleDelete(r.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            {rows.length > 0 && (
-              <tfoot className="bg-slate-50 text-sm font-semibold">
+        {loading ? <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div> : (() => {
+          // Group rows by slip_no
+          const groups = Object.values(rows.reduce((acc, r) => {
+            const key = r.slip_no || `__nosliip__${r.id}`
+            if (!acc[key]) acc[key] = { slip_no: r.slip_no, entries: [] }
+            acc[key].entries.push(r)
+            return acc
+          }, {}))
+
+          const handleDeleteGroup = async (entries) => {
+            if (!window.confirm('Delete all entries for this slip?')) return
+            for (const e of entries) {
+              try { await dayBookAPI.deleteBridalBooking(e.id) } catch {}
+            }
+            toast.success('Deleted'); load()
+          }
+
+          const startEditGroup = (entries) => {
+            // Open edit form for the first entry in the group
+            const first = entries[0]
+            setEditForm({ slip_no: first.slip_no || '', amount: first.amount, payment_mode: first.payment_mode })
+            setEditId(first.id); setShowForm(true)
+          }
+
+          return (
+            <div className="overflow-x-auto"><table className="w-full text-sm">
+              <thead className="bg-slate-800 text-xs text-slate-200 uppercase">
                 <tr>
-                  <td colSpan={2} className="px-4 py-3 text-slate-600">Total</td>
-                  <td className="px-4 py-3 text-right text-slate-800">{formatCurrency(cashTotal + onlineTotal)}</td>
-                  <td colSpan={2} className="px-4 py-3 text-slate-500 text-xs font-normal flex flex-wrap gap-2">
-                    {cashTotal > 0   && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Cash: {formatCurrency(cashTotal)}</span>}
-                    {cardTotal > 0   && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Card: {formatCurrency(cardTotal)}</span>}
-                    {onlineTotal > 0 && <span className="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">Online: {formatCurrency(onlineTotal)}</span>}
-                  </td>
+                  <th className="px-4 py-3 text-left">#</th>
+                  <th className="px-4 py-3 text-left">Slip No.</th>
+                  <th className="px-4 py-3 text-right text-green-300">Cash</th>
+                  <th className="px-4 py-3 text-right text-blue-300">Card</th>
+                  <th className="px-4 py-3 text-right text-violet-300">Online</th>
+                  <th className="px-4 py-3 text-right">Total</th>
+                  <th className="px-4 py-3 text-center">Actions</th>
                 </tr>
-              </tfoot>
-            )}
-          </table></div>
-        )}
+              </thead>
+              <tbody>
+                {groups.length === 0 ? (
+                  <tr><td colSpan={7} className="text-center py-12 text-slate-400">No entries for this date</td></tr>
+                ) : groups.map((g, i) => {
+                  const cash   = g.entries.filter(e => e.payment_mode === 'cash').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+                  const card   = g.entries.filter(e => e.payment_mode === 'card').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+                  const online = g.entries.filter(e => e.payment_mode === 'online').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+                  const total  = cash + card + online
+                  return (
+                    <tr key={g.slip_no || i} className="border-b hover:bg-slate-50">
+                      <td className="px-4 py-3 text-slate-500">{i + 1}</td>
+                      <td className="px-4 py-3 font-semibold text-amber-600">{g.slip_no || '-'}</td>
+                      <td className="px-4 py-3 text-right text-green-700 font-medium">{cash > 0 ? formatCurrency(cash) : <span className="text-slate-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-blue-700 font-medium">{card > 0 ? formatCurrency(card) : <span className="text-slate-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-violet-700 font-medium">{online > 0 ? formatCurrency(online) : <span className="text-slate-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right font-bold text-slate-800">{formatCurrency(total)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button onClick={() => startEditGroup(g.entries)} className="p-1.5 rounded hover:bg-amber-50 text-slate-400 hover:text-amber-600" title="Edit"><Edit2 className="h-4 w-4" /></button>
+                          <button onClick={() => handleDeleteGroup(g.entries)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              {groups.length > 0 && (
+                <tfoot className="bg-slate-50 text-sm font-semibold border-t-2 border-slate-200">
+                  <tr>
+                    <td colSpan={2} className="px-4 py-3 text-slate-600">Total ({groups.length} slips)</td>
+                    <td className="px-4 py-3 text-right text-green-700">{cashTotal > 0 ? formatCurrency(cashTotal) : '—'}</td>
+                    <td className="px-4 py-3 text-right text-blue-700">{cardTotal > 0 ? formatCurrency(cardTotal) : '—'}</td>
+                    <td className="px-4 py-3 text-right text-violet-700">{onlineTotal > 0 ? formatCurrency(onlineTotal) : '—'}</td>
+                    <td className="px-4 py-3 text-right text-slate-800">{formatCurrency(cashTotal + cardTotal + onlineTotal)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              )}
+            </table></div>
+          )
+        })()}
       </div>
     </div>
   )
