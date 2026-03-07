@@ -30,7 +30,7 @@ export default function Invoices() {
     try {
       const { data } = await saleAPI.getAll({
         search, from_date: startDate, to_date: endDate,
-        status: statusFilter, page, limit: 20,
+        status: statusFilter, page, limit: 20, include_items: true,
       })
       const items = data.data || data.sales || data.results || []
       setInvoices(items)
@@ -162,7 +162,9 @@ export default function Invoices() {
                     </td>
                     <td className={`px-4 py-3 ${isCancelled ? 'text-red-400 line-through' : 'text-gray-600'}`}>{formatDate(inv.invoice_date || inv.date)}</td>
                     <td className={`px-4 py-3 ${isCancelled ? 'text-red-500' : 'text-slate-800'}`}>{inv.customer_name || inv.customer?.name || 'Walk-in'}</td>
-                    <td className={`px-4 py-3 text-right ${isCancelled ? 'text-red-400' : 'text-gray-600'}`}>{inv.items_count ?? '-'}</td>
+                    <td className={`px-4 py-3 text-xs ${isCancelled ? 'text-red-400' : 'text-slate-600'}`}>
+                      {(inv.items || []).length === 0 ? '-' : (inv.items || []).map((it) => it.barcode || it.product?.barcode || it.product?.sku || it.product_name || '-').join(', ')}
+                    </td>
                     <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-500 line-through' : 'text-slate-800'}`}>{formatCurrency(inv.total)}</td>
                     <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-400 line-through' : 'text-green-700'}`}>{formatCurrency(inv.paid_amount)}</td>
                     <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-400 line-through' : 'text-red-600'}`}>{formatCurrency(inv.balance)}</td>
