@@ -6,7 +6,7 @@ const DayBookBridalDispatch = sequelize.define('DayBookBridalDispatch', {
   date: { type: DataTypes.DATEONLY, allowNull: false },
   slip_no: { type: DataTypes.STRING(50) },
   amount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
-  payment_mode: { type: DataTypes.ENUM('cash', 'online'), defaultValue: 'cash' },
+  payment_mode: { type: DataTypes.ENUM('cash', 'online', 'card'), defaultValue: 'cash' },
 }, { tableName: 'daybook_bridal_dispatch' });
 
 module.exports = DayBookBridalDispatch;

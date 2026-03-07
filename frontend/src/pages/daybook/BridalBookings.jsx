@@ -96,7 +96,7 @@ export default function BridalBookings() {
         <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-200">
           <form onSubmit={handleSubmit}>
             {/* Slip No — always shown */}
-            <div className="flex flex-wrap gap-3 items-end mb-3">
+            <div className="flex flex-wrap gap-3 items-end mb-3" onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}>
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">Slip No.</label>
                 <input
@@ -156,18 +156,20 @@ export default function BridalBookings() {
                   )}
                 </>
               )}
+
+              {/* Save / Cancel always visible inline */}
+              <div className="flex flex-col justify-end gap-1 pb-0.5">
+                <button type="submit" disabled={saving}
+                  className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                  {saving ? 'Saving...' : editId ? 'Update' : 'Save'}
+                </button>
+                <button type="button" onClick={() => { setShowForm(false); setEditId(null); setSplitForm(EMPTY_SPLIT); setEditForm(EMPTY_EDIT) }}
+                  className="border border-slate-200 text-slate-500 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs text-center">
+                  Cancel
+                </button>
+              </div>
             </div>
 
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving}
-                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                {saving ? 'Saving...' : editId ? 'Update' : 'Add'}
-              </button>
-              <button type="button" onClick={() => { setShowForm(false); setEditId(null); setSplitForm(EMPTY_SPLIT); setEditForm(EMPTY_EDIT) }}
-                className="border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-2 rounded-lg text-sm">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
           </form>
         </div>
       )}

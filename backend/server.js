@@ -14,6 +14,15 @@ async function startServer() {
     await sequelize.sync();
     console.log('✅ Database synced');
 
+    // Add 'card' to payment_mode ENUM for daybook tables (safe to run multiple times)
+    const alterQueries = [
+      "ALTER TABLE daybook_bridal_bookings MODIFY COLUMN payment_mode ENUM('cash','online','card') NOT NULL DEFAULT 'cash'",
+      "ALTER TABLE daybook_bridal_dispatch  MODIFY COLUMN payment_mode ENUM('cash','online','card') NOT NULL DEFAULT 'cash'",
+    ];
+    for (const q of alterQueries) {
+      try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
+    }
+
     // Seed demo admin user if not present
     await seedFirmAndAdmin();
     console.log('✅ Demo seed checked');
