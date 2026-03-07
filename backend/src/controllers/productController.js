@@ -139,6 +139,7 @@ const bulkImport = async (req, res, next) => {
     const categoryNames = [...new Set(
       products.map((p) => (p.category_name || '').trim()).filter(Boolean)
     )];
+    console.log('[bulkImport] categoryNames:', categoryNames);
     const categoryMap = {};
     if (categoryNames.length > 0) {
       // Fetch already-existing categories for this firm
@@ -146,6 +147,7 @@ const bulkImport = async (req, res, next) => {
         where: { firm_id: firmId, name: { [Op.in]: categoryNames } },
         attributes: ['id', 'name'],
       });
+      console.log('[bulkImport] existing categories found:', existing.map(c => ({ id: c.id, name: c.name })));
       existing.forEach((c) => { categoryMap[c.name] = c.id; });
 
       // Create any that don't exist yet
@@ -154,13 +156,16 @@ const bulkImport = async (req, res, next) => {
         try {
           const cat = await Category.create({ name, firm_id: firmId });
           categoryMap[name] = cat.id;
-        } catch {
-          // Already created by concurrent request — fetch it
+          console.log('[bulkImport] created category:', name, cat.id);
+        } catch (err) {
+          console.error('[bulkImport] category create error:', name, err.message);
           const cat = await Category.findOne({ where: { name, firm_id: firmId } });
           if (cat) categoryMap[name] = cat.id;
         }
       }
     }
+    console.log('[bulkImport] categoryMap:', categoryMap);
+    console.log('[bulkImport] sample category_id:', categoryMap[(products[0]?.category_name || '').trim()]);
 
     const toCreate = products
       .filter((p) => p.name && String(p.name).trim())
