@@ -86,11 +86,10 @@ export default function CreateInvoice() {
 
   // payment — split across multiple modes
   const [splitPay,        setSplitPay]        = useState({ cash: '', card: '', upi: '', cheque: '' })
-  const [cardLast4,       setCardLast4]       = useState('')
-  const [cardBank,        setCardBank]        = useState('')
-  const [upiRef,          setUpiRef]          = useState('')
-  const [chequeNo,        setChequeNo]        = useState('')
-  const [chequeBank,      setChequeBank]      = useState('')
+  const [cardDetails,     setCardDetails]     = useState({ last4: '', bank: '', authCode: '' })
+  const [upiDetails,      setUpiDetails]      = useState({ ref: '', app: '' })
+  const [chequeDetails,   setChequeDetails]   = useState({ no: '', bank: '', date: '' })
+  const [activePayPopup,  setActivePayPopup]  = useState(null) // 'cash'|'card'|'upi'|'cheque'|null
   const [saving,          setSaving]          = useState(false)
   const [loading,         setLoading]         = useState(isEdit)
   const [showUpiOptions,  setShowUpiOptions]  = useState(false)  // UPI selector panel
@@ -281,8 +280,13 @@ export default function CreateInvoice() {
         .filter(([, v]) => parseFloat(v) > 0)
         .map(([mode, v]) => ({
           mode, amount: parseFloat(v),
-          reference_no: mode === 'card' ? (cardLast4 ? `XXXX-${cardLast4}` : null) : mode === 'upi' ? (upiRef || null) : mode === 'cheque' ? (chequeNo || null) : null,
-          bank_name: mode === 'card' ? (cardBank || null) : mode === 'cheque' ? (chequeBank || null) : null,
+          reference_no: mode === 'card' ? (cardDetails.last4 ? `XXXX-${cardDetails.last4}` : cardDetails.authCode || null)
+            : mode === 'upi' ? (upiDetails.ref || null)
+            : mode === 'cheque' ? (chequeDetails.no || null) : null,
+          bank_name: mode === 'card' ? (cardDetails.bank || null)
+            : mode === 'upi' ? (upiDetails.app || null)
+            : mode === 'cheque' ? (chequeDetails.bank || null) : null,
+          cheque_date: mode === 'cheque' ? (chequeDetails.date || null) : null,
         }))
       const primaryMode = splitPayments.length === 1 ? splitPayments[0].mode
         : splitPayments.length > 1 ? 'split' : 'unpaid'
@@ -886,7 +890,7 @@ export default function CreateInvoice() {
               {/* UPI ID 1 */}
               {upiIds.upi1 && (
                 <button
-                  onClick={() => { setSplitPay(p => ({...p, upi: splitBalance > 0 ? splitBalance.toFixed(2) : p.upi})); setShowUpiOptions(false) }}
+                  onClick={() => { setUpiDetails(d => ({...d, app: upiIds.upi1, ref: d.ref})); setShowUpiOptions(false); setActivePayPopup('upi') }}
                   className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
                 >
                   <div className="w-9 h-9 bg-green-500/20 rounded-full flex items-center justify-center shrink-0">
@@ -901,7 +905,7 @@ export default function CreateInvoice() {
               {/* UPI ID 2 */}
               {upiIds.upi2 && (
                 <button
-                  onClick={() => { setSplitPay(p => ({...p, upi: splitBalance > 0 ? splitBalance.toFixed(2) : p.upi})); setShowUpiOptions(false) }}
+                  onClick={() => { setUpiDetails(d => ({...d, app: upiIds.upi2, ref: d.ref})); setShowUpiOptions(false); setActivePayPopup('upi') }}
                   className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
                 >
                   <div className="w-9 h-9 bg-blue-500/20 rounded-full flex items-center justify-center shrink-0">
@@ -915,7 +919,7 @@ export default function CreateInvoice() {
               )}
               {/* QR Code */}
               <button
-                onClick={() => { setShowUpiOptions(false); setSplitPay(p => ({...p, upi: splitBalance > 0 ? splitBalance.toFixed(2) : p.upi})); setShowQrModal(true) }}
+                onClick={() => { setShowUpiOptions(false); setUpiDetails(d => ({...d, app: 'QR Scan'})); setShowQrModal(true) }}
                 className="w-full flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
               >
                 <div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center shrink-0">
@@ -965,109 +969,198 @@ export default function CreateInvoice() {
       )}
 
 
-      {/* ── Card / Cheque / UPI details row (shown when amounts entered) ── */}
-      {(parseFloat(splitPay.card) > 0 || parseFloat(splitPay.cheque) > 0 || parseFloat(splitPay.upi) > 0) && (
-        <div className="fixed bottom-14 left-0 lg:left-64 right-0 bg-gray-800 border-t border-gray-600 flex items-center z-30 px-3 py-1.5 gap-4 flex-wrap">
-          {parseFloat(splitPay.card) > 0 && (
-            <div className="flex items-center gap-1.5">
-              <CreditCard className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-              <input type="text" value={cardLast4} onChange={(e) => setCardLast4(e.target.value.replace(/\D/g,'').slice(0,4))}
-                placeholder="Last 4 digits" maxLength={4}
-                className="w-24 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-blue-400 placeholder-gray-500" />
-              <input type="text" value={cardBank} onChange={(e) => setCardBank(e.target.value)}
-                placeholder="Bank / Card type"
-                className="w-28 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-blue-400 placeholder-gray-500" />
+      {/* ── Payment mode popups ───────────────────────────────── */}
+      {activePayPopup && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setActivePayPopup(null)} />
+          <div className="fixed bottom-16 left-0 lg:left-64 z-50 w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl overflow-hidden">
+
+            {/* Popup header */}
+            <div className={`px-4 py-3 flex items-center justify-between ${
+              activePayPopup === 'cash' ? 'bg-green-800' :
+              activePayPopup === 'card' ? 'bg-blue-800' :
+              activePayPopup === 'upi'  ? 'bg-violet-800' : 'bg-orange-800'
+            }`}>
+              <div className="flex items-center gap-2">
+                {activePayPopup === 'cash'   && <Banknote className="h-4 w-4 text-white" />}
+                {activePayPopup === 'card'   && <CreditCard className="h-4 w-4 text-white" />}
+                {activePayPopup === 'upi'    && <Smartphone className="h-4 w-4 text-white" />}
+                {activePayPopup === 'cheque' && <FileText className="h-4 w-4 text-white" />}
+                <span className="text-white font-bold text-sm capitalize">{activePayPopup === 'upi' ? 'Online / UPI' : activePayPopup} Payment</span>
+              </div>
+              <button onClick={() => setActivePayPopup(null)} className="text-white/60 hover:text-white"><X className="h-4 w-4" /></button>
             </div>
-          )}
-          {parseFloat(splitPay.upi) > 0 && (
-            <div className="flex items-center gap-1.5">
-              <Smartphone className="h-3.5 w-3.5 text-violet-400 shrink-0" />
-              <input type="text" value={upiRef} onChange={(e) => setUpiRef(e.target.value)}
-                placeholder="UPI / Transaction Ref"
-                className="w-36 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-violet-400 placeholder-gray-500" />
+
+            <div className="p-4 space-y-3">
+              {/* Amount field for all modes */}
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Amount (₹)</label>
+                <div className="flex gap-2">
+                  <input type="number" min="0" autoFocus
+                    value={splitPay[activePayPopup]}
+                    onChange={(e) => setSplitPay(p => ({...p, [activePayPopup]: e.target.value}))}
+                    placeholder="0.00"
+                    className="flex-1 bg-gray-900 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder-gray-500" />
+                  <button onClick={() => setSplitPay(p => ({...p, [activePayPopup]: splitBalance > 0 ? (parseFloat(p[activePayPopup]||0) + splitBalance).toFixed(2) : p[activePayPopup]}))}
+                    className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg whitespace-nowrap">
+                    +Remaining
+                  </button>
+                </div>
+                <div className="flex justify-between text-xs mt-1 px-1">
+                  <span className="text-green-400">Paid so far: ₹{totalSplitPaid.toFixed(2)}</span>
+                  <span className="text-red-400">Remaining: ₹{splitBalance.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* CARD details */}
+              {activePayPopup === 'card' && (
+                <>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Last 4 Digits of Card</label>
+                    <input type="text" maxLength={4}
+                      value={cardDetails.last4}
+                      onChange={(e) => setCardDetails(d => ({...d, last4: e.target.value.replace(/\D/g,'').slice(0,4)}))}
+                      placeholder="e.g. 1234"
+                      className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Bank / Card Type</label>
+                    <input type="text"
+                      value={cardDetails.bank}
+                      onChange={(e) => setCardDetails(d => ({...d, bank: e.target.value}))}
+                      placeholder="e.g. HDFC Visa, SBI Mastercard"
+                      className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Auth / Approval Code</label>
+                    <input type="text"
+                      value={cardDetails.authCode}
+                      onChange={(e) => setCardDetails(d => ({...d, authCode: e.target.value}))}
+                      placeholder="Authorization code"
+                      className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-gray-500" />
+                  </div>
+                </>
+              )}
+
+              {/* UPI details */}
+              {activePayPopup === 'upi' && (
+                <>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">UPI App / Bank</label>
+                    <input type="text"
+                      value={upiDetails.app}
+                      onChange={(e) => setUpiDetails(d => ({...d, app: e.target.value}))}
+                      placeholder="GPay, PhonePe, Paytm..."
+                      className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400 placeholder-gray-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Transaction Reference</label>
+                    <input type="text"
+                      value={upiDetails.ref}
+                      onChange={(e) => setUpiDetails(d => ({...d, ref: e.target.value}))}
+                      placeholder="UPI transaction ID"
+                      className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400 placeholder-gray-500" />
+                  </div>
+                  <button onClick={() => setShowUpiOptions(true)} className="w-full py-2 bg-violet-700 hover:bg-violet-600 text-white text-sm rounded-lg">
+                    Select UPI ID / QR Code
+                  </button>
+                </>
+              )}
+
+              {/* CHEQUE details */}
+              {activePayPopup === 'cheque' && (
+                <>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Cheque No.</label>
+                    <input type="text"
+                      value={chequeDetails.no}
+                      onChange={(e) => setChequeDetails(d => ({...d, no: e.target.value}))}
+                      placeholder="Cheque number"
+                      className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400 placeholder-gray-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Bank Name</label>
+                    <input type="text"
+                      value={chequeDetails.bank}
+                      onChange={(e) => setChequeDetails(d => ({...d, bank: e.target.value}))}
+                      placeholder="Bank name"
+                      className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400 placeholder-gray-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Cheque Date</label>
+                    <input type="date"
+                      value={chequeDetails.date}
+                      onChange={(e) => setChequeDetails(d => ({...d, date: e.target.value}))}
+                      className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                  </div>
+                </>
+              )}
+
+              <button onClick={() => setActivePayPopup(null)}
+                className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm rounded-lg">
+                Confirm
+              </button>
             </div>
-          )}
-          {parseFloat(splitPay.cheque) > 0 && (
-            <div className="flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5 text-orange-400 shrink-0" />
-              <input type="text" value={chequeNo} onChange={(e) => setChequeNo(e.target.value)}
-                placeholder="Cheque No."
-                className="w-24 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-orange-400 placeholder-gray-500" />
-              <input type="text" value={chequeBank} onChange={(e) => setChequeBank(e.target.value)}
-                placeholder="Bank Name"
-                className="w-28 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-orange-400 placeholder-gray-500" />
-            </div>
-          )}
-        </div>
+          </div>
+        </>
       )}
 
-      {/* ── Sticky bottom split-payment bar ──────────────────── */}
-      <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-gray-900 flex items-center z-30 h-14 px-2 gap-1.5">
+      {/* ── Sticky bottom payment bar — mode buttons ─────────── */}
+      <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-gray-900 flex items-center z-30 h-14">
 
         {/* CASH */}
-        <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
-          <Banknote className="h-4 w-4 text-green-400 shrink-0" />
-          <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">Cash</span>
-          <input type="number" min="0" placeholder="0"
-            value={splitPay.cash}
-            onChange={(e) => setSplitPay(p => ({...p, cash: e.target.value}))}
-            className="w-20 bg-gray-800 border border-gray-600 focus:border-green-400 text-white rounded px-2 py-1 text-xs focus:outline-none" />
-        </div>
+        <button onClick={() => setActivePayPopup('cash')}
+          className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.cash) > 0 ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+          <Banknote className="h-4 w-4" />
+          <span className="text-xs font-semibold">CASH</span>
+          {parseFloat(splitPay.cash) > 0 && <span className="text-xs text-green-200">₹{parseFloat(splitPay.cash).toFixed(0)}</span>}
+        </button>
 
         {/* CARD */}
-        <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
-          <CreditCard className="h-4 w-4 text-blue-400 shrink-0" />
-          <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">Card</span>
-          <input type="number" min="0" placeholder="0"
-            value={splitPay.card}
-            onChange={(e) => setSplitPay(p => ({...p, card: e.target.value}))}
-            className="w-20 bg-gray-800 border border-gray-600 focus:border-blue-400 text-white rounded px-2 py-1 text-xs focus:outline-none" />
-        </div>
+        <button onClick={() => setActivePayPopup('card')}
+          className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.card) > 0 ? 'bg-blue-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+          <CreditCard className="h-4 w-4" />
+          <span className="text-xs font-semibold">CARD</span>
+          {parseFloat(splitPay.card) > 0 && <span className="text-xs text-blue-200">₹{parseFloat(splitPay.card).toFixed(0)}</span>}
+        </button>
 
-        {/* ONLINE / UPI */}
-        <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
-          <Smartphone className="h-4 w-4 text-violet-400 shrink-0" />
-          <button onClick={() => setShowUpiOptions(true)} className="text-xs text-gray-400 hidden sm:block whitespace-nowrap hover:text-violet-300">Online</button>
-          <input type="number" min="0" placeholder="0"
-            value={splitPay.upi}
-            onChange={(e) => setSplitPay(p => ({...p, upi: e.target.value}))}
-            className="w-20 bg-gray-800 border border-gray-600 focus:border-violet-400 text-white rounded px-2 py-1 text-xs focus:outline-none" />
-        </div>
+        {/* ONLINE */}
+        <button onClick={() => setActivePayPopup('upi')}
+          className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.upi) > 0 ? 'bg-violet-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+          <Smartphone className="h-4 w-4" />
+          <span className="text-xs font-semibold">ONLINE</span>
+          {parseFloat(splitPay.upi) > 0 && <span className="text-xs text-violet-200">₹{parseFloat(splitPay.upi).toFixed(0)}</span>}
+        </button>
 
         {/* CHEQUE */}
-        <div className="flex items-center gap-1 border-r border-gray-700 pr-2">
-          <FileText className="h-4 w-4 text-orange-400 shrink-0" />
-          <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">Cheque</span>
-          <input type="number" min="0" placeholder="0"
-            value={splitPay.cheque}
-            onChange={(e) => setSplitPay(p => ({...p, cheque: e.target.value}))}
-            className="w-20 bg-gray-800 border border-gray-600 focus:border-orange-400 text-white rounded px-2 py-1 text-xs focus:outline-none" />
-        </div>
+        <button onClick={() => setActivePayPopup('cheque')}
+          className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.cheque) > 0 ? 'bg-orange-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+          <FileText className="h-4 w-4" />
+          <span className="text-xs font-semibold">CHEQUE</span>
+          {parseFloat(splitPay.cheque) > 0 && <span className="text-xs text-orange-200">₹{parseFloat(splitPay.cheque).toFixed(0)}</span>}
+        </button>
 
-        {/* Paid / Balance summary */}
-        <div className="ml-auto flex items-center gap-3 text-xs pr-2 shrink-0">
-          <div className="text-center hidden md:block">
+        {/* Paid / Balance */}
+        <div className="flex items-center gap-4 px-4 text-xs">
+          <div className="text-center">
             <div className="text-gray-400">Paid</div>
             <div className="text-green-400 font-bold">₹{totalSplitPaid.toFixed(2)}</div>
           </div>
-          <div className="text-center hidden md:block">
+          <div className="text-center">
             <div className="text-gray-400">Balance</div>
             <div className={`font-bold ${splitBalance > 0 ? 'text-red-400' : 'text-green-400'}`}>₹{splitBalance.toFixed(2)}</div>
           </div>
         </div>
 
         {/* Grand Total */}
-        <div className="flex flex-col items-center justify-center px-4 h-full bg-orange-500 shrink-0">
+        <div className="flex flex-col items-center justify-center px-4 h-full bg-orange-500 ml-auto shrink-0">
           <span className="text-white font-bold text-base">₹{netPayable.toFixed(2)}</span>
           <span className="text-orange-100 text-xs">Total</span>
         </div>
 
         {/* Place Order */}
-        <button
-          onClick={handlePlaceOrder}
-          disabled={saving}
-          className="flex items-center gap-2 h-full px-5 bg-gradient-to-r from-orange-500 to-yellow-400 text-white font-bold text-sm hover:from-orange-600 hover:to-yellow-500 disabled:opacity-60 whitespace-nowrap shrink-0"
-        >
+        <button onClick={handlePlaceOrder} disabled={saving}
+          className="flex items-center gap-2 h-full px-5 bg-gradient-to-r from-orange-500 to-yellow-400 text-white font-bold text-sm hover:from-orange-600 hover:to-yellow-500 disabled:opacity-60 whitespace-nowrap shrink-0">
           {saving ? <LoadingSpinner size="sm" /> : null}
           Place Order
         </button>
