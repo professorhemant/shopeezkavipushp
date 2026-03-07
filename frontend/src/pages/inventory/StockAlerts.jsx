@@ -31,8 +31,8 @@ export default function StockAlerts() {
         inventoryAPI.getLowStockAlerts(),
         inventoryAPI.getExpiryAlerts(30),
       ])
-      setLowStock(lowRes.data.alerts || lowRes.data || [])
-      setExpiryAlerts(expiryRes.data.alerts || expiryRes.data || [])
+      setLowStock(lowRes.data.data || [])
+      setExpiryAlerts(expiryRes.data.data || [])
     } catch {
       toast.error('Failed to load alerts')
     } finally {

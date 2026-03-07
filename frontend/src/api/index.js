@@ -145,8 +145,8 @@ export const purchaseAPI = {
 // ─── Inventory ──────────────────────────────────────────────────────
 export const inventoryAPI = {
   getStockSummary: (params) => api.get('/inventory/stock', { params }),
-  getLowStockAlerts: () => api.get('/inventory/alerts/low-stock'),
-  getExpiryAlerts: (days) => api.get('/inventory/alerts/expiry', { params: { days } }),
+  getLowStockAlerts: () => api.get('/inventory/low-stock-alerts'),
+  getExpiryAlerts: (days) => api.get('/inventory/expiry-alerts', { params: { days } }),
   getStockLedger: (productId, params) => api.get(`/inventory/ledger/${productId}`, { params }),
   adjustStock: (data) => api.post('/inventory/adjust', data),
   resetAllInventory: () => api.delete('/inventory/reset-all'),
