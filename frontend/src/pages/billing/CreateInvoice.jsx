@@ -86,6 +86,11 @@ export default function CreateInvoice() {
 
   // payment — split across multiple modes
   const [splitPay,        setSplitPay]        = useState({ cash: '', card: '', upi: '', cheque: '' })
+  const [cardLast4,       setCardLast4]       = useState('')
+  const [cardBank,        setCardBank]        = useState('')
+  const [upiRef,          setUpiRef]          = useState('')
+  const [chequeNo,        setChequeNo]        = useState('')
+  const [chequeBank,      setChequeBank]      = useState('')
   const [saving,          setSaving]          = useState(false)
   const [loading,         setLoading]         = useState(isEdit)
   const [showUpiOptions,  setShowUpiOptions]  = useState(false)  // UPI selector panel
@@ -274,7 +279,11 @@ export default function CreateInvoice() {
     try {
       const splitPayments = Object.entries(splitPay)
         .filter(([, v]) => parseFloat(v) > 0)
-        .map(([mode, v]) => ({ mode, amount: parseFloat(v) }))
+        .map(([mode, v]) => ({
+          mode, amount: parseFloat(v),
+          reference_no: mode === 'card' ? (cardLast4 ? `XXXX-${cardLast4}` : null) : mode === 'upi' ? (upiRef || null) : mode === 'cheque' ? (chequeNo || null) : null,
+          bank_name: mode === 'card' ? (cardBank || null) : mode === 'cheque' ? (chequeBank || null) : null,
+        }))
       const primaryMode = splitPayments.length === 1 ? splitPayments[0].mode
         : splitPayments.length > 1 ? 'split' : 'unpaid'
       const payload = {
@@ -955,6 +964,42 @@ export default function CreateInvoice() {
         </div>
       )}
 
+
+      {/* ── Card / Cheque / UPI details row (shown when amounts entered) ── */}
+      {(parseFloat(splitPay.card) > 0 || parseFloat(splitPay.cheque) > 0 || parseFloat(splitPay.upi) > 0) && (
+        <div className="fixed bottom-14 left-0 lg:left-64 right-0 bg-gray-800 border-t border-gray-600 flex items-center z-30 px-3 py-1.5 gap-4 flex-wrap">
+          {parseFloat(splitPay.card) > 0 && (
+            <div className="flex items-center gap-1.5">
+              <CreditCard className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+              <input type="text" value={cardLast4} onChange={(e) => setCardLast4(e.target.value.replace(/\D/g,'').slice(0,4))}
+                placeholder="Last 4 digits" maxLength={4}
+                className="w-24 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-blue-400 placeholder-gray-500" />
+              <input type="text" value={cardBank} onChange={(e) => setCardBank(e.target.value)}
+                placeholder="Bank / Card type"
+                className="w-28 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-blue-400 placeholder-gray-500" />
+            </div>
+          )}
+          {parseFloat(splitPay.upi) > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Smartphone className="h-3.5 w-3.5 text-violet-400 shrink-0" />
+              <input type="text" value={upiRef} onChange={(e) => setUpiRef(e.target.value)}
+                placeholder="UPI / Transaction Ref"
+                className="w-36 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-violet-400 placeholder-gray-500" />
+            </div>
+          )}
+          {parseFloat(splitPay.cheque) > 0 && (
+            <div className="flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+              <input type="text" value={chequeNo} onChange={(e) => setChequeNo(e.target.value)}
+                placeholder="Cheque No."
+                className="w-24 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-orange-400 placeholder-gray-500" />
+              <input type="text" value={chequeBank} onChange={(e) => setChequeBank(e.target.value)}
+                placeholder="Bank Name"
+                className="w-28 bg-gray-900 border border-gray-600 text-white rounded px-2 py-0.5 text-xs focus:outline-none focus:border-orange-400 placeholder-gray-500" />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Sticky bottom split-payment bar ──────────────────── */}
       <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-gray-900 flex items-center z-30 h-14 px-2 gap-1.5">
