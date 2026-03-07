@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op, fn, col, literal } = require('sequelize');
-const { Product, Category, Brand, Unit, ProductVariant, InventoryBatch } = require('../models');
+const { Product, Category, Brand, Unit, ProductVariant, InventoryBatch, sequelize } = require('../models');
 const barcodeUtils = require('../utils/barcodeUtils');
 
 const paginate = (query) => {
@@ -139,33 +139,34 @@ const bulkImport = async (req, res, next) => {
     const categoryNames = [...new Set(
       products.map((p) => (p.category_name || '').trim()).filter(Boolean)
     )];
-    console.log('[bulkImport] categoryNames:', categoryNames);
+    console.log('[BI] names=' + JSON.stringify(categoryNames));
     const categoryMap = {};
     if (categoryNames.length > 0) {
-      // Fetch already-existing categories for this firm
       const existing = await Category.findAll({
         where: { firm_id: firmId, name: { [Op.in]: categoryNames } },
         attributes: ['id', 'name'],
       });
-      console.log('[bulkImport] existing categories found:', existing.map(c => ({ id: c.id, name: c.name })));
+      console.log('[BI] existing=' + JSON.stringify(existing.map(c => c.name)));
       existing.forEach((c) => { categoryMap[c.name] = c.id; });
 
-      // Create any that don't exist yet
       for (const name of categoryNames) {
         if (categoryMap[name]) continue;
         try {
           const cat = await Category.create({ name, firm_id: firmId });
           categoryMap[name] = cat.id;
-          console.log('[bulkImport] created category:', name, cat.id);
+          console.log('[BI] created=' + name + ' id=' + cat.id);
         } catch (err) {
-          console.error('[bulkImport] category create error:', name, err.message);
+          console.error('[BI] cat_err=' + name + ' ' + err.message);
           const cat = await Category.findOne({ where: { name, firm_id: firmId } });
           if (cat) categoryMap[name] = cat.id;
         }
       }
     }
-    console.log('[bulkImport] categoryMap:', categoryMap);
-    console.log('[bulkImport] sample category_id:', categoryMap[(products[0]?.category_name || '').trim()]);
+    console.log('[BI] map=' + JSON.stringify(categoryMap));
+
+    // Check if category_id column exists in products table
+    const [cols] = await sequelize.query("SHOW COLUMNS FROM products LIKE 'category_id'");
+    console.log('[BI] category_id_col_exists=' + (cols.length > 0));
 
     const toCreate = products
       .filter((p) => p.name && String(p.name).trim())
