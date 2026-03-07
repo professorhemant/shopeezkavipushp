@@ -30,17 +30,39 @@ export default function Invoices() {
     try {
       const { data } = await saleAPI.getAll({
         search, from_date: startDate, to_date: endDate,
-        status: statusFilter, page, limit: 20, include_items: true,
+        status: statusFilter, page, limit: 20, include_items: true, include_payments: true,
       })
       const items = data.data || data.sales || data.results || []
       setInvoices(items)
       setTotalPages(data.pagination?.pages || data.total_pages || 1)
       const active = items.filter((i) => i.status !== 'cancelled')
+      const modeAgg = { cash: 0, card: 0, upi: 0, cheque: 0, other: 0 }
+      active.forEach((inv) => {
+        const payments = inv.payments || []
+        if (payments.length > 0) {
+          payments.forEach((p) => {
+            const m = p.payment_mode || 'other'
+            if (m === 'cash') modeAgg.cash += parseFloat(p.amount || 0)
+            else if (m === 'card') modeAgg.card += parseFloat(p.amount || 0)
+            else if (m === 'upi' || m === 'online') modeAgg.upi += parseFloat(p.amount || 0)
+            else if (m === 'cheque') modeAgg.cheque += parseFloat(p.amount || 0)
+            else modeAgg.other += parseFloat(p.amount || 0)
+          })
+        } else if (parseFloat(inv.paid_amount) > 0) {
+          const m = inv.payment_mode || 'other'
+          if (m === 'cash') modeAgg.cash += parseFloat(inv.paid_amount || 0)
+          else if (m === 'card') modeAgg.card += parseFloat(inv.paid_amount || 0)
+          else if (m === 'upi' || m === 'online') modeAgg.upi += parseFloat(inv.paid_amount || 0)
+          else if (m === 'cheque') modeAgg.cheque += parseFloat(inv.paid_amount || 0)
+          else modeAgg.other += parseFloat(inv.paid_amount || 0)
+        }
+      })
       setSummary({
         count: data.pagination?.total || data.count || items.length,
         total:    active.reduce((s, i) => s + parseFloat(i.total        || 0), 0),
         received: active.reduce((s, i) => s + parseFloat(i.paid_amount  || 0), 0),
         balance:  active.reduce((s, i) => s + parseFloat(i.balance      || 0), 0),
+        modeAgg,
       })
     } catch {
       toast.error('Failed to load invoices')
@@ -207,10 +229,17 @@ export default function Invoices() {
         {/* Summary */}
         {!loading && invoices.length > 0 && (
           <div className="border-t border-slate-100 px-4 py-3 bg-slate-50">
-            <div className="flex flex-wrap gap-6 text-sm">
+            <div className="flex flex-wrap gap-4 text-sm">
               <div><span className="text-slate-500">Total Invoices:</span> <span className="font-semibold text-slate-800">{summary.count}</span></div>
               <div><span className="text-slate-500">Total Amount:</span> <span className="font-semibold text-slate-800">{formatCurrency(summary.total)}</span></div>
-              <div><span className="text-slate-500">Received:</span> <span className="font-semibold text-green-700">{formatCurrency(summary.received)}</span></div>
+              <div className="border-l border-slate-200 pl-4 flex flex-wrap gap-3">
+                <span className="text-slate-500">Received <span className="font-semibold text-green-700">{formatCurrency(summary.received)}</span> —</span>
+                {summary.modeAgg?.cash  > 0 && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Cash: {formatCurrency(summary.modeAgg.cash)}</span>}
+                {summary.modeAgg?.card  > 0 && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Card: {formatCurrency(summary.modeAgg.card)}</span>}
+                {summary.modeAgg?.upi   > 0 && <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">Online: {formatCurrency(summary.modeAgg.upi)}</span>}
+                {summary.modeAgg?.cheque > 0 && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Cheque: {formatCurrency(summary.modeAgg.cheque)}</span>}
+                {summary.modeAgg?.other  > 0 && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">Other: {formatCurrency(summary.modeAgg.other)}</span>}
+              </div>
               <div><span className="text-slate-500">Balance:</span> <span className="font-semibold text-red-600">{formatCurrency(summary.balance)}</span></div>
             </div>
           </div>

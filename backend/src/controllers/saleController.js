@@ -17,7 +17,7 @@ const paginate = (q) => {
 const getAll = async (req, res, next) => {
   try {
     const { limit, offset, page } = paginate(req.query);
-    const { search, customer_id, status, from_date, to_date, include_items } = req.query;
+    const { search, customer_id, status, from_date, to_date, include_items, include_payments } = req.query;
 
     const where = { firm_id: req.firmId };
     if (customer_id) where.customer_id = customer_id;
@@ -37,6 +37,13 @@ const getAll = async (req, res, next) => {
         as: 'items',
         attributes: ['id', 'product_name', 'barcode'],
         include: [{ model: Product, as: 'product', attributes: ['barcode', 'sku'] }],
+      });
+    }
+    if (include_payments === 'true') {
+      includes.push({
+        model: Payment,
+        as: 'payments',
+        attributes: ['id', 'payment_mode', 'amount'],
       });
     }
 
