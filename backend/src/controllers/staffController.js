@@ -212,7 +212,7 @@ const createRole = async (req, res, next) => {
       firm_id: req.firmId,
       name,
       description: description || null,
-      permissions: JSON.stringify(permissions || []),
+      permissions: permissions || [],
     });
     return res.status(201).json({ success: true, message: 'Role created.', data: role });
   } catch (err) {
@@ -232,7 +232,7 @@ const updateRole = async (req, res, next) => {
     await role.update({
       name: name || role.name,
       description: description !== undefined ? description : role.description,
-      permissions: permissions ? JSON.stringify(permissions) : role.permissions,
+      permissions: permissions !== undefined ? permissions : role.permissions,
     });
     return res.status(200).json({ success: true, message: 'Role updated.', data: role });
   } catch (err) {
