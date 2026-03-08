@@ -16,6 +16,7 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 // CORS
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
+  'https://frontend-production-34b0.up.railway.app',
   'https://shopeezkavipushp-production.up.railway.app',
   'http://localhost:5173',
   'http://localhost:3000',

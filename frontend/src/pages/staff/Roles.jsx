@@ -22,7 +22,8 @@ export default function Roles() {
       const [{ data: r }, { data: p }] = await Promise.all([staffAPI.getRoles(), staffAPI.getPermissions()])
       setRoles(r.data || r.roles || [])
       setPermissions(p.data || p.permissions || [])
-    } catch {
+    } catch (err) {
+      console.error('Failed to load roles:', err?.response?.data || err?.message || err)
       toast.error('Failed to load roles')
     } finally {
       setLoading(false)
@@ -32,7 +33,7 @@ export default function Roles() {
   useEffect(() => { fetchData() }, [])
 
   const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
-  const openEdit = (r) => { setEditing(r.id); setForm({ name: r.name || '', description: r.description || '', permissions: r.permissions || [] }); setShowModal(true) }
+  const openEdit = (r) => { setEditing(r.id); setForm({ name: r.name || '', description: r.description || '', permissions: Array.isArray(r.permissions) ? r.permissions : [] }); setShowModal(true) }
 
   const togglePermission = (perm) => {
     setForm((f) => ({
@@ -112,10 +113,10 @@ export default function Roles() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-1">
-                {(role.permissions || []).slice(0, 6).map((p, i) => (
+                {(Array.isArray(role.permissions) ? role.permissions : []).slice(0, 6).map((p, i) => (
                   <span key={i} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{p}</span>
                 ))}
-                {(role.permissions || []).length > 6 && (
+                {(Array.isArray(role.permissions) ? role.permissions : []).length > 6 && (
                   <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded">+{role.permissions.length - 6} more</span>
                 )}
               </div>

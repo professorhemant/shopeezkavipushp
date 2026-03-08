@@ -37,7 +37,8 @@ const useAuthStore = create(
         if (!token) return false
         try {
           const { data } = await authAPI.getProfile()
-          set({ user: data.user, firm: data.firm, isAuthenticated: true })
+          const userData = data.data
+          set({ user: userData, firm: userData?.firm, isAuthenticated: true })
           return true
         } catch {
           get().logout()

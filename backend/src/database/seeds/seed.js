@@ -281,7 +281,7 @@ async function seedRoles(firmId) {
         firm_id: firmId,
         name: roleData.name,
         description: roleData.description,
-        permissions: JSON.stringify(roleData.permissions),
+        permissions: roleData.permissions,
       },
     });
     if (wasCreated) created++;
