@@ -1,7 +1,7 @@
 require('dotenv').config();
 const app = require('./src/app');
-const { sequelize } = require('./src/models');
-const { seedFirmAndAdmin } = require('./src/database/seeds/seed');
+const { sequelize, Firm } = require('./src/models');
+const { seedFirmAndAdmin, seedRoles } = require('./src/database/seeds/seed');
 
 const PORT = process.env.PORT || 5000;
 
@@ -27,6 +27,13 @@ async function startServer() {
     // Seed demo admin user if not present
     await seedFirmAndAdmin();
     console.log('✅ Demo seed checked');
+
+    // Seed default roles for all firms (idempotent - uses findOrCreate)
+    const firms = await Firm.findAll({ attributes: ['id'] });
+    for (const firm of firms) {
+      await seedRoles(firm.id);
+    }
+    console.log(`✅ Default roles seeded for ${firms.length} firm(s)`);
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);

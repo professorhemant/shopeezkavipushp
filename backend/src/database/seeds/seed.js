@@ -345,4 +345,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { seedFirmAndAdmin };
+module.exports = { seedFirmAndAdmin, seedRoles };
