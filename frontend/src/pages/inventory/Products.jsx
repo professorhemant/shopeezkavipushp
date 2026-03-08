@@ -12,7 +12,6 @@ import toast from 'react-hot-toast'
 import { productAPI, categoryAPI, brandAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
-import EditOtpModal from '../../components/common/EditOtpModal'
 
 // Exact CSV column headers (must match file header row)
 const CSV_HEADER = 'type,name,bar_code,hsn_code,sell_price,mrp,cost_price,sku,categories,stock_qty,tax_type,tax_rate,brand,variants,show_on_website,trending,tags'
@@ -286,7 +285,6 @@ export default function Products() {
   const [deletingAll, setDeletingAll] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [otpModal, setOtpModal] = useState({ open: false, editId: null })
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
@@ -610,7 +608,7 @@ export default function Products() {
                       </td>
                       <td className="px-3 py-2 max-w-[180px]">
                         <button
-                          onClick={() => setOtpModal({ open: true, editId: p.id })}
+                          onClick={() => navigate(`/inventory/products/${p.id}/edit`)}
                           className="font-medium text-amber-600 hover:underline text-left truncate block max-w-[180px]"
                         >
                           {p.name}
@@ -634,7 +632,7 @@ export default function Products() {
                           <span className="text-xs text-amber-600 font-medium">Yes</span>
                         ) : (
                           <button
-                            onClick={() => setOtpModal({ open: true, editId: p.id })}
+                            onClick={() => navigate(`/inventory/products/${p.id}/edit`)}
                             className="text-xs text-amber-500 hover:underline"
                           >
                             + Add More
@@ -644,7 +642,7 @@ export default function Products() {
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-center gap-1">
                           <button
-                            onClick={() => setOtpModal({ open: true, editId: p.id })}
+                            onClick={() => navigate(`/inventory/products/${p.id}/edit`)}
                             className="p-1.5 rounded hover:bg-amber-50 text-gray-400 hover:text-amber-600"
                             title="Edit"
                           >
@@ -796,14 +794,6 @@ export default function Products() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* OTP Modal */}
-      {otpModal.open && (
-        <EditOtpModal
-          onVerified={() => { setOtpModal({ open: false, editId: null }); navigate(`/inventory/products/${otpModal.editId}/edit`) }}
-          onClose={() => setOtpModal({ open: false, editId: null })}
-        />
       )}
 
       {/* Delete Confirmation Modal */}
