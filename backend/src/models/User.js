@@ -5,8 +5,8 @@ const sequelize = require('../config/database');
 const User = sequelize.define('User', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   name: { type: DataTypes.STRING(100), allowNull: false },
-  email: { type: DataTypes.STRING(150), unique: true, allowNull: false },
-  phone: { type: DataTypes.STRING(20), unique: true },
+  email: { type: DataTypes.STRING(150), allowNull: false },
+  phone: { type: DataTypes.STRING(20) },
   password: { type: DataTypes.STRING(255), allowNull: false },
   firm_id: { type: DataTypes.UUID },
   role_name: { type: DataTypes.ENUM('super_admin', 'admin', 'manager', 'staff', 'billing'), defaultValue: 'staff' },

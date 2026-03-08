@@ -17,6 +17,17 @@ async function startServer() {
     // Ensure Role model columns are up to date (alter only this table, safe)
     try { await Role.sync({ alter: true }); } catch (e) { console.warn('⚠️ Role sync skipped:', e.message); }
 
+    // Drop global unique constraints from users table (phone/email should be firm-scoped)
+    const dropIndexQueries = [
+      "ALTER TABLE users DROP INDEX email",
+      "ALTER TABLE users DROP INDEX phone",
+      "ALTER TABLE users DROP INDEX users_email",
+      "ALTER TABLE users DROP INDEX users_phone",
+    ];
+    for (const q of dropIndexQueries) {
+      try { await sequelize.query(q); } catch (_) { /* index may not exist */ }
+    }
+
     // Add 'card' to payment_mode ENUM for daybook tables (safe to run multiple times)
     const alterQueries = [
       "ALTER TABLE daybook_bridal_bookings MODIFY COLUMN payment_mode ENUM('cash','online','card') NOT NULL DEFAULT 'cash'",
