@@ -29,11 +29,15 @@ async function startServer() {
     console.log('✅ Demo seed checked');
 
     // Seed default roles for all firms (idempotent - uses findOrCreate)
-    const firms = await Firm.findAll({ attributes: ['id'] });
-    for (const firm of firms) {
-      await seedRoles(firm.id);
+    try {
+      const firms = await Firm.findAll({ attributes: ['id'] });
+      for (const firm of firms) {
+        try { await seedRoles(firm.id); } catch (e) { console.warn('⚠️ Role seed skipped for firm:', firm.id, e.message); }
+      }
+      console.log(`✅ Default roles seeded for ${firms.length} firm(s)`);
+    } catch (e) {
+      console.warn('⚠️ Role seeding skipped:', e.message);
     }
-    console.log(`✅ Default roles seeded for ${firms.length} firm(s)`);
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
