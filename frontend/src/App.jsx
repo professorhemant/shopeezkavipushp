@@ -137,11 +137,11 @@ function App() {
           <Route path="billing/eway-bills" element={<EWayBills />} />
           <Route path="billing/einvoicing" element={<EInvoicing />} />
 
-          {/* Purchases - restricted to admin/manager/super_admin */}
-          <Route path="purchases" element={<RoleRoute allowedRoles={['super_admin','admin','manager']}><Purchases /></RoleRoute>} />
-          <Route path="purchases/create" element={<RoleRoute allowedRoles={['super_admin','admin','manager']}><CreatePurchase /></RoleRoute>} />
-          <Route path="purchases/:id/edit" element={<RoleRoute allowedRoles={['super_admin','admin','manager']}><CreatePurchase /></RoleRoute>} />
-          <Route path="purchases/orders" element={<RoleRoute allowedRoles={['super_admin','admin','manager']}><PurchaseOrders /></RoleRoute>} />
+          {/* Purchases - restricted to admin/super_admin only */}
+          <Route path="purchases" element={<RoleRoute allowedRoles={['super_admin','admin']}><Purchases /></RoleRoute>} />
+          <Route path="purchases/create" element={<RoleRoute allowedRoles={['super_admin','admin']}><CreatePurchase /></RoleRoute>} />
+          <Route path="purchases/:id/edit" element={<RoleRoute allowedRoles={['super_admin','admin']}><CreatePurchase /></RoleRoute>} />
+          <Route path="purchases/orders" element={<RoleRoute allowedRoles={['super_admin','admin']}><PurchaseOrders /></RoleRoute>} />
 
           {/* Customers */}
           <Route path="customers" element={<Customers />} />

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { dayBookAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import useAuthStore from '../../store/authStore'
 
 const today = () => new Date().toISOString().split('T')[0]
 const ROUTINE_CATEGORIES = ['Milk', 'Polythin', 'Stationery', 'Phynol', 'Pocha', 'Spray Paint', 'Nail Paint Remover', 'Others']
@@ -69,6 +70,8 @@ function ExpenseSection({ title, type, rows, onAdd, onEdit, onDelete }) {
 }
 
 export default function DayBookExpenses() {
+  const { user } = useAuthStore()
+  const canViewHistory = ['admin', 'super_admin'].includes(user?.role_name)
   const [date, setDate] = useState(today())
   const [expenses, setExpenses] = useState([])
   const [refunds, setRefunds] = useState([])
@@ -159,8 +162,10 @@ export default function DayBookExpenses() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Day Book — Expenses</h1>
           <p className="text-sm text-slate-500 mt-0.5">Total: {formatCurrency(grandTotal)}</p>
         </div>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+        <input type="date" value={date} onChange={(e) => canViewHistory && setDate(e.target.value)}
+          disabled={!canViewHistory}
+          title={!canViewHistory ? 'Only admin Swechha can view previous dates' : ''}
+          className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 ${!canViewHistory ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-slate-200'}`} />
       </div>
 
       {/* Add/Edit Expense Form */}

@@ -55,7 +55,7 @@ const MENU = [
   },
   {
     id: 'purchase', label: 'Purchase', icon: ShoppingCart,
-    allowedRoles: ['super_admin', 'admin', 'manager'],
+    allowedRoles: ['super_admin', 'admin'],
     children: [
       { label: 'Purchase Invoices', path: '/purchases',        icon: FileText },
       { label: 'Purchase Orders',   path: '/purchases/orders', icon: Clipboard },

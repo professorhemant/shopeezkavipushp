@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { dayBookAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import useAuthStore from '../../store/authStore'
 
 const today = () => new Date().toISOString().split('T')[0]
 
@@ -19,6 +20,8 @@ function Row({ label, cash, card, online, total, highlight }) {
 }
 
 export default function TotalReceived() {
+  const { user } = useAuthStore()
+  const canViewHistory = ['admin', 'super_admin'].includes(user?.role_name)
   const [date, setDate] = useState(today())
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,8 +42,10 @@ export default function TotalReceived() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Day Book — Total Received</h1>
           <p className="text-sm text-slate-500 mt-0.5">Daily summary</p>
         </div>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+        <input type="date" value={date} onChange={(e) => canViewHistory && setDate(e.target.value)}
+          disabled={!canViewHistory}
+          title={!canViewHistory ? 'Only admin Swechha can view previous dates' : ''}
+          className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 ${!canViewHistory ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-slate-200'}`} />
       </div>
 
       {loading ? (
