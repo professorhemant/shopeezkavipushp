@@ -55,6 +55,7 @@ const MENU = [
   },
   {
     id: 'purchase', label: 'Purchase', icon: ShoppingCart,
+    allowedRoles: ['super_admin', 'admin', 'manager'],
     children: [
       { label: 'Purchase Invoices', path: '/purchases',        icon: FileText },
       { label: 'Purchase Orders',   path: '/purchases/orders', icon: Clipboard },
@@ -183,6 +184,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const { firm, user } = useAuthStore()
   const navigate = useNavigate()
 
+  const role = user?.role_name || 'staff'
+  const visibleMenu = MENU.filter(item => !item.allowedRoles || item.allowedRoles.includes(role))
+
   const SidebarContent = ({ onClose }) => (
     <div className="flex flex-col h-full bg-slate-900">
       {/* Logo */}
@@ -207,7 +211,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
-        {MENU.map((item) => (
+        {visibleMenu.map((item) => (
           <MenuItem key={item.id} item={item} />
         ))}
       </nav>

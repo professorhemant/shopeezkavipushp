@@ -78,6 +78,14 @@ const ProtectedRoute = ({ children }) => {
   return children
 }
 
+// Role-restricted route wrapper
+const RoleRoute = ({ children, allowedRoles }) => {
+  const { isAuthenticated, user } = useAuthStore()
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (!allowedRoles.includes(user?.role_name)) return <Navigate to="/dashboard" replace />
+  return children
+}
+
 // Public route wrapper (redirect if logged in)
 const PublicRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore()
@@ -129,11 +137,11 @@ function App() {
           <Route path="billing/eway-bills" element={<EWayBills />} />
           <Route path="billing/einvoicing" element={<EInvoicing />} />
 
-          {/* Purchases */}
-          <Route path="purchases" element={<Purchases />} />
-          <Route path="purchases/create" element={<CreatePurchase />} />
-          <Route path="purchases/:id/edit" element={<CreatePurchase />} />
-          <Route path="purchases/orders" element={<PurchaseOrders />} />
+          {/* Purchases - restricted to admin/manager/super_admin */}
+          <Route path="purchases" element={<RoleRoute allowedRoles={['super_admin','admin','manager']}><Purchases /></RoleRoute>} />
+          <Route path="purchases/create" element={<RoleRoute allowedRoles={['super_admin','admin','manager']}><CreatePurchase /></RoleRoute>} />
+          <Route path="purchases/:id/edit" element={<RoleRoute allowedRoles={['super_admin','admin','manager']}><CreatePurchase /></RoleRoute>} />
+          <Route path="purchases/orders" element={<RoleRoute allowedRoles={['super_admin','admin','manager']}><PurchaseOrders /></RoleRoute>} />
 
           {/* Customers */}
           <Route path="customers" element={<Customers />} />
