@@ -95,13 +95,12 @@ const create = async (req, res, next) => {
     const existing = await User.findOne({ where: { email, firm_id: req.firmId } });
     if (existing) return res.status(409).json({ success: false, message: 'Email already in use by another staff member.' });
 
-    const passwordHash = await bcrypt.hash(password, 12);
     const staff = await User.create({
       firm_id: req.firmId,
       name,
       email,
       phone: phone || null,
-      password: passwordHash,
+      password,
       role_name: role_name || 'staff',
       is_active: true,
     });
@@ -121,13 +120,14 @@ const update = async (req, res, next) => {
     const staff = await User.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
     if (!staff) return res.status(404).json({ success: false, message: 'Staff member not found.' });
 
-    const { name, email, phone, role_name, is_active } = req.body;
+    const { name, email, phone, role_name, is_active, password } = req.body;
     const body = {};
     if (name !== undefined) body.name = name;
     if (email !== undefined) body.email = email;
     if (phone !== undefined) body.phone = phone || null;
     if (role_name !== undefined) body.role_name = role_name;
     if (is_active !== undefined) body.is_active = is_active;
+    if (password && password.trim()) body.password = password;
     await staff.update(body);
 
     const updated = await User.findByPk(staff.id, { attributes: { exclude: ['password', 'otp', 'otp_expires'] } });
