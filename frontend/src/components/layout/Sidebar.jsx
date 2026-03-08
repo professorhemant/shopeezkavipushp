@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import EditOtpModal from '../common/EditOtpModal'
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Truck,
   UserCog, BarChart3, Settings, Building2, ChevronDown,
@@ -13,8 +12,6 @@ import {
   BarChart2
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
-
-const PROTECTED_IDS = new Set(['sales', 'inventory', 'purchase', 'accounting', 'settings'])
 
 const MENU = [
   { id: 'dashboard', label: 'Dashboard',         icon: LayoutDashboard, path: '/dashboard' },
@@ -103,9 +100,8 @@ const MENU = [
   },
 ]
 
-function MenuItem({ item, onProtectedClick }) {
+function MenuItem({ item }) {
   const location = useLocation()
-  const navigate = useNavigate()
 
   const hasActiveChild = item.children?.some((c) =>
     !c.noActive && (location.pathname === c.path || location.pathname.startsWith(c.path + '/'))
@@ -115,15 +111,7 @@ function MenuItem({ item, onProtectedClick }) {
   const Icon = item.icon
 
   const handleParentClick = () => {
-    if (!expanded && item.children && PROTECTED_IDS.has(item.id) && onProtectedClick) {
-      onProtectedClick(() => {
-        setExpanded(true)
-        const firstChild = item.children.find((c) => c.path)
-        if (firstChild) navigate(firstChild.path)
-      })
-    } else {
-      setExpanded((v) => !v)
-    }
+    setExpanded((v) => !v)
   }
 
   if (!item.children) {
@@ -194,11 +182,6 @@ function MenuItem({ item, onProtectedClick }) {
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const { firm, user } = useAuthStore()
   const navigate = useNavigate()
-  const [otpModal, setOtpModal] = useState({ open: false, onSuccess: null })
-
-  const requestOtp = (onSuccess) => {
-    setOtpModal({ open: true, onSuccess })
-  }
 
   const SidebarContent = ({ onClose }) => (
     <div className="flex flex-col h-full bg-slate-900">
@@ -225,7 +208,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
         {MENU.map((item) => (
-          <MenuItem key={item.id} item={item} onProtectedClick={requestOtp} />
+          <MenuItem key={item.id} item={item} />
         ))}
       </nav>
 
@@ -255,12 +238,6 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
         <SidebarContent onClose={onMobileClose} />
       </aside>
 
-      {otpModal.open && (
-        <EditOtpModal
-          onVerified={() => { const cb = otpModal.onSuccess; setOtpModal({ open: false, onSuccess: null }); cb?.() }}
-          onClose={() => setOtpModal({ open: false, onSuccess: null })}
-        />
-      )}
     </>
   )
 }
