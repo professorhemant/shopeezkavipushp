@@ -54,8 +54,8 @@ export default function Staff() {
       }
       setShowModal(false)
       fetchStaff()
-    } catch {
-      toast.error('Failed to save staff')
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to save staff')
     } finally {
       setSaving(false)
     }

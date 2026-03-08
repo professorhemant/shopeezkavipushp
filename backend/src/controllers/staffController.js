@@ -92,8 +92,8 @@ const create = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'name, email and password are required.' });
     }
 
-    const existing = await User.findOne({ where: { email } });
-    if (existing) return res.status(409).json({ success: false, message: 'Email already in use.' });
+    const existing = await User.findOne({ where: { email, firm_id: req.firmId } });
+    if (existing) return res.status(409).json({ success: false, message: 'Email already in use by another staff member.' });
 
     const passwordHash = await bcrypt.hash(password, 12);
     const staff = await User.create({
