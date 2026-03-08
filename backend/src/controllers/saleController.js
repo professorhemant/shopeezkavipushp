@@ -17,11 +17,12 @@ const paginate = (q) => {
 const getAll = async (req, res, next) => {
   try {
     const { limit, offset, page } = paginate(req.query);
-    const { search, customer_id, status, from_date, to_date, include_items, include_payments } = req.query;
+    const { search, customer_id, status, payment_mode, from_date, to_date, include_items, include_payments } = req.query;
 
     const where = { firm_id: req.firmId };
     if (customer_id) where.customer_id = customer_id;
     if (status) where.status = status;
+    if (payment_mode) where.payment_mode = payment_mode;
     if (from_date && to_date) where.invoice_date = { [Op.between]: [new Date(from_date), new Date(to_date)] };
     if (search) {
       where[Op.or] = [

@@ -20,6 +20,7 @@ export default function Invoices() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [paymentModeFilter, setPaymentModeFilter] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [summary, setSummary] = useState({ count: 0, total: 0, received: 0, balance: 0 })
@@ -30,7 +31,7 @@ export default function Invoices() {
     try {
       const { data } = await saleAPI.getAll({
         search, from_date: startDate, to_date: endDate,
-        status: statusFilter, page, limit: 20, include_items: true, include_payments: true,
+        status: statusFilter, payment_mode: paymentModeFilter, page, limit: 20, include_items: true, include_payments: true,
       })
       const items = data.data || data.sales || data.results || []
       setInvoices(items)
@@ -69,7 +70,7 @@ export default function Invoices() {
     } finally {
       setLoading(false)
     }
-  }, [search, startDate, endDate, statusFilter, page])
+  }, [search, startDate, endDate, statusFilter, paymentModeFilter, page])
 
   useEffect(() => { fetchInvoices() }, [fetchInvoices])
 
@@ -139,8 +140,17 @@ export default function Invoices() {
             <option value="unpaid">Unpaid</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          {(search || startDate || endDate || statusFilter) && (
-            <button onClick={() => { setSearch(''); setStartDate(''); setEndDate(''); setStatusFilter(''); setPage(1) }}
+          <select value={paymentModeFilter} onChange={(e) => { setPaymentModeFilter(e.target.value); setPage(1) }}
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
+            <option value="">All Payment Modes</option>
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="upi">UPI</option>
+            <option value="cheque">Cheque</option>
+            <option value="online">Online</option>
+          </select>
+          {(search || startDate || endDate || statusFilter || paymentModeFilter) && (
+            <button onClick={() => { setSearch(''); setStartDate(''); setEndDate(''); setStatusFilter(''); setPaymentModeFilter(''); setPage(1) }}
               className="text-sm text-slate-500 hover:text-slate-700 px-3 py-2">Clear</button>
           )}
         </div>
