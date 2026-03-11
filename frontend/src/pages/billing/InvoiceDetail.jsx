@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Printer, Download, Edit2, XCircle, Share2, FileText, Copy, Check, X } from 'lucide-react'
+import { ArrowLeft, Printer, Download, Edit2, XCircle, Share2, FileText, Copy, Check, X, MessageCircle, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saleAPI } from '../../api'
+import { saleAPI, whatsappAPI } from '../../api'
 import { formatCurrency, formatDate, getPaymentStatusColor } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 export default function InvoiceDetail() {
@@ -13,6 +13,8 @@ export default function InvoiceDetail() {
   const [error, setError] = useState('')
   const [showShareModal, setShowShareModal] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sentOk, setSentOk] = useState(false)
 
   useEffect(() => {
     saleAPI.getOne(id)
@@ -40,6 +42,7 @@ export default function InvoiceDetail() {
   const handleSharePDF = () => {
     setShowShareModal(true)
     setCopied(false)
+    setSentOk(false)
   }
 
   const handleCopyLink = async () => {
@@ -96,6 +99,27 @@ export default function InvoiceDetail() {
     } catch (err) {
       toast.dismiss('share')
       if (err?.name !== 'AbortError') toast.error('Failed to share PDF')
+    }
+  }
+
+  const handleSendToCustomer = async () => {
+    const phone = inv?.customer_phone || inv?.customer?.phone
+    if (!phone) {
+      toast.error('No phone number found for this customer')
+      return
+    }
+    setSending(true)
+    setSentOk(false)
+    try {
+      await whatsappAPI.sendInvoice(id)
+      setSentOk(true)
+      toast.success(`PDF sent to ${phone} successfully!`)
+      setTimeout(() => { setSentOk(false); setShowShareModal(false) }, 2000)
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Failed to send. Check customer phone number.'
+      toast.error(msg)
+    } finally {
+      setSending(false)
     }
   }
 
@@ -166,8 +190,28 @@ export default function InvoiceDetail() {
             </div>
 
             <div className="flex flex-col gap-2">
+              {/* Send to Customer WhatsApp */}
+              {(inv?.customer_phone || inv?.customer?.phone) ? (
+                <button onClick={handleSendToCustomer} disabled={sending || sentOk}
+                  className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg text-white text-sm font-semibold transition-colors
+                    ${sentOk ? 'bg-emerald-500' : 'bg-green-600 hover:bg-green-700'}
+                    disabled:opacity-70`}>
+                  {sentOk
+                    ? <><Check className="h-4 w-4" /> PDF Sent Successfully!</>
+                    : sending
+                      ? <><Send className="h-4 w-4 animate-pulse" /> Sending…</>
+                      : <><MessageCircle className="h-4 w-4" /> Send to Customer ({inv?.customer_phone || inv?.customer?.phone})</>
+                  }
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-xs">
+                  <MessageCircle className="h-4 w-4 shrink-0" />
+                  No phone number on this customer — add one to enable WhatsApp sending.
+                </div>
+              )}
+
               <button onClick={handleShareDownload}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold">
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm">
                 <Download className="h-4 w-4" /> Download PDF
               </button>
               {navigator.canShare && (
