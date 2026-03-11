@@ -106,6 +106,7 @@ export const customerAPI = {
   delete: (id) => api.delete(`/customers/${id}`),
   getLedger: (id, params) => api.get(`/customers/${id}/ledger`, { params }),
   getOutstanding: () => api.get('/customers/outstanding'),
+  collectPayment: (id, data) => api.post(`/customers/${id}/collect-payment`, data),
 }
 
 // ─── Suppliers ──────────────────────────────────────────────────────

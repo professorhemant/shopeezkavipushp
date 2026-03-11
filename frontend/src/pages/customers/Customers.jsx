@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Trash2, Users, Phone, ChevronLeft, ChevronRight, MessageCircle, X, Send, Clock, Loader2 } from 'lucide-react'
+import { Plus, Search, Trash2, Users, Phone, ChevronLeft, ChevronRight, MessageCircle, X, Send, Clock, Loader2, Wallet } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { customerAPI, whatsappAPI, saleAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -25,6 +25,12 @@ export default function Customers() {
   const [showNameDrop, setShowNameDrop] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
+  const [collectCust,   setCollectCust]   = useState(null)  // customer for balance collection
+  const [collectAmt,    setCollectAmt]    = useState('')
+  const [collectMode,   setCollectMode]   = useState('cash')
+  const [collectRef,    setCollectRef]    = useState('')
+  const [collecting,    setCollecting]    = useState(false)
+
   const [waCustomer,  setWaCustomer]  = useState(null)   // customer whose history is shown
   const [waMessages,  setWaMessages]  = useState([])
   const [waLoading,   setWaLoading]   = useState(false)
@@ -85,6 +91,34 @@ export default function Customers() {
       fetchCustomers()
     } catch {
       toast.error('Failed to delete customer')
+    }
+  }
+
+  const openCollect = (c) => {
+    setCollectCust(c)
+    setCollectAmt(parseFloat(c.outstanding_balance || 0).toFixed(2))
+    setCollectMode('cash')
+    setCollectRef('')
+  }
+
+  const handleCollectPayment = async (e) => {
+    e.preventDefault()
+    const amt = parseFloat(collectAmt)
+    if (!amt || amt <= 0) return toast.error('Enter a valid amount')
+    setCollecting(true)
+    try {
+      const { data } = await customerAPI.collectPayment(collectCust.id, {
+        amount: amt,
+        payment_mode: collectMode,
+        reference_no: collectRef || undefined,
+      })
+      toast.success(data.message || 'Payment collected')
+      setCollectCust(null)
+      fetchCustomers()
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to collect payment')
+    } finally {
+      setCollecting(false)
     }
   }
 
@@ -209,6 +243,9 @@ export default function Customers() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
+                        {parseFloat(c.outstanding_balance || 0) > 0 && (
+                          <button onClick={() => openCollect(c)} title="Collect balance payment" className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600"><Wallet className="h-4 w-4" /></button>
+                        )}
                         <button onClick={() => setDeleteId(c.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
@@ -413,6 +450,75 @@ export default function Customers() {
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Collect Balance Payment Modal */}
+      {collectCust && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-green-600" />
+                <h2 className="text-base font-semibold text-slate-800">Collect Balance Payment</h2>
+              </div>
+              <button onClick={() => setCollectCust(null)} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={handleCollectPayment} className="p-5 space-y-4">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3">
+                <p className="text-xs text-orange-600 font-medium">Customer</p>
+                <p className="font-semibold text-slate-800">{collectCust.name}</p>
+                {collectCust.phone && <p className="text-xs text-slate-500">{collectCust.phone}</p>}
+                <div className="flex justify-between items-center mt-2 pt-2 border-t border-orange-200">
+                  <span className="text-xs text-orange-700 font-medium">Outstanding Balance</span>
+                  <span className="font-bold text-red-600">{formatCurrency(collectCust.outstanding_balance || 0)}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Amount Collected (₹) *</label>
+                <input
+                  type="number" min="0.01" step="0.01" required
+                  value={collectAmt}
+                  onChange={(e) => setCollectAmt(e.target.value)}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Payment Mode</label>
+                <select
+                  value={collectMode}
+                  onChange={(e) => setCollectMode(e.target.value)}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="upi">UPI / Online</option>
+                  <option value="card">Card</option>
+                  <option value="cheque">Cheque</option>
+                  <option value="neft">NEFT / RTGS</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Reference No. (optional)</label>
+                <input
+                  type="text"
+                  value={collectRef}
+                  onChange={(e) => setCollectRef(e.target.value)}
+                  placeholder="UPI ref / Cheque no / Transaction ID"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setCollectCust(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
+                <button type="submit" disabled={collecting} className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50">
+                  {collecting ? 'Collecting...' : 'Collect Payment'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -18,5 +18,6 @@ router.delete('/:id', customerController.delete);
 
 // Sub-resource
 router.get('/:id/ledger', customerController.getLedger);
+router.post('/:id/collect-payment', customerController.collectPayment);
 
 module.exports = router;

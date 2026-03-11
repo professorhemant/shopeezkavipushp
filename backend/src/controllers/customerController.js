@@ -312,4 +312,78 @@ const bulkImport = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, getOne, create, update, delete: deleteCustomer, getLedger, getOutstanding, bulkImport };
+/**
+ * POST /customers/:id/collect-payment
+ * Collect a balance payment from a customer (no new products).
+ * Applies payment: first reduces opening_balance, then clears oldest unpaid sales.
+ */
+const collectPayment = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const customer = await Customer.findOne({ where: { id: req.params.id, firm_id: req.firmId }, transaction: t });
+    if (!customer) { await t.rollback(); return res.status(404).json({ success: false, message: 'Customer not found.' }); }
+
+    const amount = parseFloat(req.body.amount) || 0;
+    if (amount <= 0) { await t.rollback(); return res.status(400).json({ success: false, message: 'Amount must be greater than 0.' }); }
+
+    let remaining = amount;
+
+    // 1. Reduce opening_balance first (oldest debt)
+    const openingBal = parseFloat(customer.opening_balance || 0);
+    if (openingBal > 0 && remaining > 0) {
+      const reduce = Math.min(remaining, openingBal);
+      await customer.update({ opening_balance: parseFloat((openingBal - reduce).toFixed(2)) }, { transaction: t });
+      remaining = parseFloat((remaining - reduce).toFixed(2));
+    }
+
+    // 2. Apply remaining to unpaid sales, oldest invoice first
+    if (remaining > 0) {
+      const unpaidSales = await Sale.findAll({
+        where: { customer_id: customer.id, firm_id: req.firmId, balance: { [Op.gt]: 0 }, status: { [Op.notIn]: ['cancelled', 'returned'] } },
+        order: [['invoice_date', 'ASC']],
+        transaction: t,
+      });
+      for (const sale of unpaidSales) {
+        if (remaining <= 0) break;
+        const saleBalance = parseFloat(sale.balance || 0);
+        const payAmt = parseFloat(Math.min(remaining, saleBalance).toFixed(2));
+        const newPaid = parseFloat((parseFloat(sale.paid_amount || 0) + payAmt).toFixed(2));
+        const newBalance = parseFloat((saleBalance - payAmt).toFixed(2));
+        await sale.update({ paid_amount: newPaid, balance: newBalance, payment_status: newBalance <= 0 ? 'paid' : 'partial' }, { transaction: t });
+        remaining = parseFloat((remaining - payAmt).toFixed(2));
+      }
+    }
+
+    // 3. Record the payment
+    const applied = parseFloat((amount - remaining).toFixed(2));
+    await Payment.create({
+      firm_id: req.firmId,
+      customer_id: customer.id,
+      amount: applied,
+      payment_date: new Date().toISOString().split('T')[0],
+      payment_mode: req.body.payment_mode || 'cash',
+      reference_type: 'advance',
+      reference_no: req.body.reference_no || null,
+      notes: req.body.notes || 'Balance payment collected',
+    }, { transaction: t });
+
+    await t.commit();
+
+    // Return updated outstanding balance
+    const updated = await Customer.findOne({
+      where: { id: customer.id, firm_id: req.firmId },
+      attributes: { include: [[literal(`(COALESCE((SELECT SUM(s.balance) FROM sales s WHERE s.customer_id = Customer.id AND s.status NOT IN ('cancelled', 'returned')), 0) + COALESCE(Customer.opening_balance, 0))`), 'outstanding_balance']] },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `₹${applied.toFixed(2)} collected successfully.`,
+      data: { applied, outstanding_balance: parseFloat(updated?.dataValues?.outstanding_balance || 0) },
+    });
+  } catch (err) {
+    await t.rollback();
+    next(err);
+  }
+};
+
+module.exports = { getAll, getOne, create, update, delete: deleteCustomer, getLedger, getOutstanding, bulkImport, collectPayment };
