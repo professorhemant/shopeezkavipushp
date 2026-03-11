@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Printer, Download, Edit2, XCircle, Share2 } from 'lucide-react'
+import { ArrowLeft, Printer, Download, Edit2, XCircle, Share2, FileText, Copy, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { saleAPI } from '../../api'
 import { formatCurrency, formatDate, getPaymentStatusColor } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
-
 export default function InvoiceDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [inv, setInv] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     saleAPI.getOne(id)
@@ -36,28 +37,61 @@ export default function InvoiceDetail() {
     } catch { toast.error('Failed to generate PDF') }
   }
 
-  const handleSharePDF = async () => {
+  const handleSharePDF = () => {
+    setShowShareModal(true)
+    setCopied(false)
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      toast.success('Link copied!')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Fallback for browsers that don't support clipboard API
+      const input = document.createElement('input')
+      input.value = window.location.href
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      document.body.removeChild(input)
+      setCopied(true)
+      toast.success('Link copied!')
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleShareDownload = async () => {
+    try {
+      toast.loading('Preparing PDF…', { id: 'share' })
+      const { data } = await saleAPI.generatePDF(id)
+      const blob = new Blob([data], { type: 'application/pdf' })
+      const fileName = `invoice-${inv?.invoice_no || id}.pdf`
+      toast.dismiss('share')
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = fileName; a.click()
+      URL.revokeObjectURL(url)
+      setShowShareModal(false)
+    } catch {
+      toast.dismiss('share')
+      toast.error('Failed to generate PDF')
+    }
+  }
+
+  const handleNativeShare = async () => {
     try {
       toast.loading('Preparing PDF…', { id: 'share' })
       const { data } = await saleAPI.generatePDF(id)
       const blob = new Blob([data], { type: 'application/pdf' })
       const fileName = `invoice-${inv?.invoice_no || id}.pdf`
       const file = new File([blob], fileName, { type: 'application/pdf' })
-
+      toast.dismiss('share')
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        toast.dismiss('share')
-        await navigator.share({
-          files: [file],
-          title: `Invoice ${inv?.invoice_no || ''}`,
-          text: `Invoice from ${inv?.firm?.name || 'us'} — ${fileName}`,
-        })
+        setShowShareModal(false)
+        await navigator.share({ files: [file], title: `Invoice ${inv?.invoice_no || ''}` })
       } else {
-        // Fallback: just download the file
-        toast.dismiss('share')
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a'); a.href = url; a.download = fileName; a.click()
-        URL.revokeObjectURL(url)
-        toast('Sharing not supported on this browser — PDF downloaded instead.')
+        toast('Native sharing not supported on this browser.')
       }
     } catch (err) {
       toast.dismiss('share')
@@ -102,6 +136,50 @@ export default function InvoiceDetail() {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowShareModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-80 p-6 relative"
+            onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowShareModal(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="flex flex-col items-center gap-2 mb-5">
+              <div className="bg-red-100 rounded-full p-4">
+                <FileText className="h-8 w-8 text-red-500" />
+              </div>
+              <h2 className="text-base font-bold text-slate-800">Share Invoice</h2>
+              <p className="text-xs text-gray-400 text-center">{inv?.invoice_no || `#${id}`}</p>
+            </div>
+
+            {/* Copy Link Row */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 mb-4">
+              <span className="flex-1 text-xs text-slate-500 truncate">{window.location.href}</span>
+              <button onClick={handleCopyLink}
+                className="flex items-center gap-1 text-xs font-semibold text-green-600 hover:text-green-700 shrink-0">
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button onClick={handleShareDownload}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold">
+                <Download className="h-4 w-4" /> Download PDF
+              </button>
+              {navigator.canShare && (
+                <button onClick={handleNativeShare}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm">
+                  <Share2 className="h-4 w-4" /> Share via Device
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
