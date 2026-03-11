@@ -256,17 +256,28 @@ export default function CreateInvoice() {
   const subTotal    = rows.reduce((s, r) => s + (r.total_before || 0), 0)
   const totalTax    = rows.reduce((s, r) => s + (r.tax_amt || 0), 0)
   const prevBalance = parseFloat(prevBalanceInput) || 0
-  const grandTotal  = subTotal + totalTax + parseFloat(shipping || 0) - discountApplied
+  const shippingAmt = parseFloat(shipping || 0)
+  // Before-tax discount: reduces the taxable base, so GST is also reduced proportionally
+  const discountOnSubtotal = discountType === 'before_tax' ? Math.min(discountApplied, subTotal) : 0
+  const discountOnTotal    = discountType === 'after_tax'  ? discountApplied : 0
+  const effectiveTax       = discountType === 'before_tax' && subTotal > 0
+    ? parseFloat((totalTax * Math.max(0, subTotal - discountOnSubtotal) / subTotal).toFixed(2))
+    : totalTax
+  const grandTotal  = subTotal - discountOnSubtotal + effectiveTax + shippingAmt - discountOnTotal
   const netPayable  = grandTotal + prevBalance
   const totalSplitPaid = ['cash','card','upi','cheque'].reduce((s, m) => s + (parseFloat(splitPay[m]) || 0), 0)
   const splitBalance = Math.max(0, netPayable - totalSplitPaid)
 
   const applyDiscount = () => {
     const val = parseFloat(discountVal) || 0
+    // Use pre-discount base so clicking Apply multiple times gives the same result
+    const base = discountType === 'before_tax'
+      ? subTotal
+      : (subTotal + totalTax + shippingAmt)
     if (discountMode === 'percent') {
-      setDiscountApplied((grandTotal * val) / 100)
+      setDiscountApplied(parseFloat(((base * val) / 100).toFixed(2)))
     } else {
-      setDiscountApplied(val)
+      setDiscountApplied(parseFloat(val.toFixed(2)))
     }
   }
 
@@ -310,7 +321,7 @@ export default function CreateInvoice() {
         subtotal: subTotal,
         tax_total: totalTax,
         shipping_charges: parseFloat(shipping) || 0,
-        discount_amount: discountApplied,
+        discount_amount: parseFloat((subTotal + totalTax - (grandTotal - shippingAmt)).toFixed(2)),
         grand_total: grandTotal,
         status: 'confirmed',
         payment: { mode: primaryMode, amount: totalSplitPaid },
@@ -773,7 +784,7 @@ export default function CreateInvoice() {
               <div className="w-1.5 h-5 rounded-full bg-yellow-400 shrink-0" />
               <span className="text-gray-600 font-medium">Tax</span>
             </div>
-            <span className="font-bold text-yellow-600 text-sm">+₹{totalTax.toFixed(2)}</span>
+            <span className="font-bold text-yellow-600 text-sm">+₹{effectiveTax.toFixed(2)}</span>
           </div>
 
           {/* Previous Balance */}
@@ -818,7 +829,7 @@ export default function CreateInvoice() {
             <div className="flex items-center gap-1.5">
               <select
                 value={discountType}
-                onChange={(e) => setDiscountType(e.target.value)}
+                onChange={(e) => { setDiscountType(e.target.value); setDiscountApplied(0); setDiscountVal('') }}
                 className="flex-1 border-2 border-orange-300 rounded-lg px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
               >
                 <option value="after_tax">After Tax</option>
