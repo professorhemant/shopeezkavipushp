@@ -18,7 +18,7 @@ export default function Profile() {
   useEffect(() => {
     authAPI.getProfile()
       .then(({ data }) => {
-        const u = data.user || data
+        const u = data.data || data.user || data
         setProfile({ name: u.name || '', email: u.email || '', phone: u.phone || '' })
       })
       .catch(() => toast.error('Failed to load profile'))
@@ -32,7 +32,7 @@ export default function Profile() {
     try {
       const { data } = await authAPI.updateProfile(profile)
       toast.success('Profile updated')
-      if (updateUser) updateUser(data.user || data)
+      if (updateUser) updateUser(data.data || data.user || data)
     } catch {
       toast.error('Failed to update profile')
     } finally {
