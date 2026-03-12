@@ -127,7 +127,14 @@ export default function CreateInvoice() {
         setMobile(s.customer_phone || s.mobile || '')
         if (s.customer) setSelectedCust(s.customer)
         setOrderType(s.order_type || 'takeaway')
-        setPayMode(s.payment?.mode || s.payment_mode || 'cash')
+        if (s.payments && s.payments.length) {
+          const split = { cash: '', card: '', upi: '', cheque: '' }
+          s.payments.forEach((p) => {
+            const mode = p.payment_mode || p.mode
+            if (mode in split) split[mode] = String(p.amount)
+          })
+          setSplitPay(split)
+        }
         setShipping(s.shipping_charges || 0)
         setDiscountApplied(s.discount_amount || 0)
         setRows(
