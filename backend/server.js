@@ -32,6 +32,7 @@ async function startServer() {
     const alterQueries = [
       "ALTER TABLE daybook_bridal_bookings MODIFY COLUMN payment_mode ENUM('cash','online','card') NOT NULL DEFAULT 'cash'",
       "ALTER TABLE daybook_bridal_dispatch  MODIFY COLUMN payment_mode ENUM('cash','online','card') NOT NULL DEFAULT 'cash'",
+      "ALTER TABLE daybook_expenses MODIFY COLUMN expense_type ENUM('routine','incentive','salary','advance_salary') NOT NULL",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
