@@ -53,6 +53,7 @@ const MENU = [
       { label: 'Mfg Dashboard',     path: '/dashboard',            icon: Factory,      noActive: true },
     ],
   },
+  { id: 'inventory-manual', label: 'Inventory Manually', icon: Hammer, path: '/inventory/add-manual' },
   {
     id: 'purchase', label: 'Purchase', icon: ShoppingCart,
     allowedRoles: ['super_admin', 'admin'],
