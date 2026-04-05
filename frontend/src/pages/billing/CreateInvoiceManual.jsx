@@ -898,11 +898,11 @@ export default function CreateInvoiceManual() {
           <span className="text-orange-100 text-xs">Total</span>
         </div>
 
-        {/* Place Order */}
+        {/* Create Bill */}
         <button onClick={handlePlaceOrder} disabled={saving}
           className="flex items-center gap-2 h-full px-5 bg-gradient-to-r from-orange-500 to-yellow-400 text-white font-bold text-sm hover:from-orange-600 hover:to-yellow-500 disabled:opacity-60 whitespace-nowrap shrink-0">
           {saving ? <LoadingSpinner size="sm" /> : null}
-          Place Order
+          Create Bill
         </button>
       </div>
 
