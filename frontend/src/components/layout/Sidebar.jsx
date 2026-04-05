@@ -35,16 +35,6 @@ const MENU = [
     ],
   },
   {
-    id: 'sales', label: 'Sales', icon: TrendingUp,
-    children: [
-      { label: 'Estimates',        path: '/billing/invoices',     icon: FileText,     noActive: true },
-      { label: 'Credit Notes',     path: '/billing/credit-notes', icon: CreditCard },
-      { label: 'Job Cards',        path: '/billing/pos',          icon: ClipboardList },
-      { label: 'Delivery Chalans', path: '/billing/eway-bills',   icon: Truck },
-      { label: 'Fast Bills',       path: '/billing/pos',          icon: Zap,          noActive: true },
-    ],
-  },
-  {
     id: 'inventory', label: 'Inventory', icon: Package,
     children: [
       { label: 'Products',          path: '/inventory/products',   icon: Boxes },
