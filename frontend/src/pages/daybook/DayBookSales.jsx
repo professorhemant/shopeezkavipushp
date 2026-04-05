@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Printer, Pencil, XCircle, Trash2 } from 'lucide-react'
+import { Eye, Printer, Pencil, XCircle, Trash2, Plus, ScanBarcode, ClipboardList } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { saleAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -34,6 +34,7 @@ export default function DayBookSales() {
   const [date, setDate] = useState(today())
   const [sales, setSales] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showInvoiceTypeModal, setShowInvoiceTypeModal] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -81,11 +82,61 @@ export default function DayBookSales() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Day Book — Sales</h1>
           <p className="text-sm text-slate-500 mt-0.5">{sales.length} invoice{sales.length !== 1 ? 's' : ''}</p>
         </div>
-        <input type="date" value={date} onChange={(e) => canViewHistory && setDate(e.target.value)}
-          disabled={!canViewHistory}
-          title={!canViewHistory ? 'Only admin Swechha can view previous dates' : ''}
-          className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 ${!canViewHistory ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-slate-200'}`} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowInvoiceTypeModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
+          >
+            <Plus className="h-4 w-4" /> Add First Item
+          </button>
+          <input type="date" value={date} onChange={(e) => canViewHistory && setDate(e.target.value)}
+            disabled={!canViewHistory}
+            title={!canViewHistory ? 'Only admin Swechha can view previous dates' : ''}
+            className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 ${!canViewHistory ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-slate-200'}`} />
+        </div>
       </div>
+
+      {/* Invoice Type Choice Modal */}
+      {showInvoiceTypeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-1 text-center">Create New Invoice</h2>
+            <p className="text-sm text-slate-500 text-center mb-6">How would you like to create this invoice?</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => { setShowInvoiceTypeModal(false); navigate('/billing/invoices/create') }}
+                className="flex items-center gap-4 p-4 rounded-xl border-2 border-amber-300 bg-amber-50 hover:bg-amber-100 text-left transition-colors"
+              >
+                <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center shrink-0">
+                  <ScanBarcode className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800 text-sm">Create Invoice Auto</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Scan barcode or search products from inventory</p>
+                </div>
+              </button>
+              <button
+                onClick={() => { setShowInvoiceTypeModal(false); navigate('/billing/invoices/create-manual') }}
+                className="flex items-center gap-4 p-4 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-colors"
+              >
+                <div className="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center shrink-0">
+                  <ClipboardList className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800 text-sm">Create Invoice Manually</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Type item name, code, price, tax etc. manually</p>
+                </div>
+              </button>
+              <button
+                onClick={() => setShowInvoiceTypeModal(false)}
+                className="mt-1 text-sm text-slate-400 hover:text-slate-600 text-center py-2"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment mode summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

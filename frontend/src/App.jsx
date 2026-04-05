@@ -21,6 +21,7 @@ const StockAlerts = lazy(() => import('./pages/inventory/StockAlerts'))
 const Invoices = lazy(() => import('./pages/billing/Invoices'))
 const InvoiceDetail = lazy(() => import('./pages/billing/InvoiceDetail'))
 const CreateInvoice = lazy(() => import('./pages/billing/CreateInvoice'))
+const CreateInvoiceManual = lazy(() => import('./pages/billing/CreateInvoiceManual'))
 const POS = lazy(() => import('./pages/billing/POS'))
 const CreditNotes = lazy(() => import('./pages/billing/CreditNotes'))
 const EWayBills = lazy(() => import('./pages/billing/EWayBills'))
@@ -130,6 +131,7 @@ function App() {
           {/* Billing */}
           <Route path="billing/invoices" element={<Invoices />} />
           <Route path="billing/invoices/create" element={<CreateInvoice />} />
+          <Route path="billing/invoices/create-manual" element={<CreateInvoiceManual />} />
           <Route path="billing/invoices/:id" element={<InvoiceDetail />} />
           <Route path="billing/invoices/:id/edit" element={<CreateInvoice />} />
           <Route path="billing/pos" element={<POS />} />
