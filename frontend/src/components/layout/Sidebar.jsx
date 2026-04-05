@@ -9,7 +9,7 @@ import {
   Calculator, FileSpreadsheet, Zap, User, DollarSign,
   Landmark, Wrench, Store, Hammer, Warehouse, BookOpen,
   ClipboardList, Factory, MessageSquare, Calendar,
-  BarChart2
+  BarChart2, Bookmark
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 
@@ -26,7 +26,13 @@ const MENU = [
     ],
   },
   { id: 'customers', label: 'Customers',          icon: Users,           path: '/customers' },
-  { id: 'invoices',  label: 'Invoices',           icon: Receipt,         path: '/billing/invoices' },
+  {
+    id: 'invoices', label: 'Invoices', icon: Receipt,
+    children: [
+      { label: 'All Invoices',   path: '/billing/invoices',        icon: FileText },
+      { label: 'Saved Invoices', path: '/billing/saved-invoices',  icon: Bookmark },
+    ],
+  },
   {
     id: 'sales', label: 'Sales', icon: TrendingUp,
     children: [

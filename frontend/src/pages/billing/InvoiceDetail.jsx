@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Printer, Download, Edit2, XCircle, Share2, FileText, Copy, Check, X, MessageCircle, Send } from 'lucide-react'
+import { ArrowLeft, Printer, Download, Edit2, XCircle, Share2, FileText, Copy, Check, X, MessageCircle, Send, Bookmark, BookmarkCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { saleAPI, whatsappAPI } from '../../api'
 import { formatCurrency, formatDate, getPaymentStatusColor } from '../../utils/formatters'
@@ -15,6 +15,12 @@ export default function InvoiceDetail() {
   const [copied, setCopied] = useState(false)
   const [sending, setSending] = useState(false)
   const [sentOk, setSentOk] = useState(false)
+  const [saved, setSaved] = useState(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem('saved_invoices') || '[]')
+      return list.some((s) => s.id === id)
+    } catch { return false }
+  })
 
   useEffect(() => {
     saleAPI.getOne(id)
@@ -121,6 +127,32 @@ export default function InvoiceDetail() {
     } finally {
       setSending(false)
     }
+  }
+
+  const handleSaveInvoice = () => {
+    try {
+      const list = JSON.parse(localStorage.getItem('saved_invoices') || '[]')
+      if (saved) {
+        const updated = list.filter((s) => s.id !== id)
+        localStorage.setItem('saved_invoices', JSON.stringify(updated))
+        setSaved(false)
+        toast.success('Removed from Saved Invoices')
+      } else {
+        const entry = {
+          id,
+          invoice_no: inv?.invoice_no || id,
+          customer_name: inv?.customer_name || 'Walk-in',
+          total: inv?.total || 0,
+          invoice_date: inv?.invoice_date,
+          payment_status: inv?.payment_status,
+          savedAt: new Date().toISOString(),
+        }
+        list.unshift(entry)
+        localStorage.setItem('saved_invoices', JSON.stringify(list))
+        setSaved(true)
+        toast.success('Invoice saved!')
+      }
+    } catch { toast.error('Failed to save invoice') }
   }
 
   const handleCancel = async () => {
@@ -241,6 +273,11 @@ export default function InvoiceDetail() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={handleSaveInvoice}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${saved ? 'bg-amber-500 text-white hover:bg-amber-600' : 'border border-amber-400 text-amber-600 hover:bg-amber-50'}`}>
+            {saved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+            {saved ? 'Saved' : 'Save Invoice'}
+          </button>
           <button onClick={handleDownloadPDF}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">
             <Printer className="h-4 w-4" /> Print
