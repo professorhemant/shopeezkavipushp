@@ -177,9 +177,8 @@ export default function DayBookExpenses() {
               <select value={form.expense_type} onChange={(e) => setForm({ ...form, expense_type: e.target.value, category: e.target.value === 'routine' ? 'Milk' : '', description: '' })}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                 <option value="routine">Routine Expense</option>
-                <option value="advance_salary">Advance Salary</option>
+                <option value="advance_salary">Salary</option>
                 <option value="incentive">Incentive</option>
-                <option value="salary">Salary</option>
               </select>
             </div>
             {form.expense_type === 'routine' ? (
@@ -263,9 +262,8 @@ export default function DayBookExpenses() {
       {loading ? <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div> : (
         <>
           <ExpenseSection title="Routine Expenses" type="routine" rows={byType('routine')} onAdd={openAdd} onEdit={startEdit} onDelete={handleDelete} />
-          <ExpenseSection title="Advance Salary" type="advance_salary" rows={byType('advance_salary')} onAdd={openAdd} onEdit={startEdit} onDelete={handleDelete} />
+          <ExpenseSection title="Salary" type="advance_salary" rows={byType('advance_salary')} onAdd={openAdd} onEdit={startEdit} onDelete={handleDelete} />
           <ExpenseSection title="Incentives" type="incentive" rows={byType('incentive')} onAdd={openAdd} onEdit={startEdit} onDelete={handleDelete} />
-          <ExpenseSection title="Salary" type="salary" rows={byType('salary')} onAdd={openAdd} onEdit={startEdit} onDelete={handleDelete} />
 
           {/* Security Refund section */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
