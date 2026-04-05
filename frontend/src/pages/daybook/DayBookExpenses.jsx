@@ -8,6 +8,7 @@ import useAuthStore from '../../store/authStore'
 
 const today = () => new Date().toISOString().split('T')[0]
 const ROUTINE_CATEGORIES = ['Milk', 'Polythin', 'Stationery', 'Phynol', 'Pocha', 'Spray Paint', 'Nail Paint Remover', 'Others']
+const SALARY_CATEGORIES = ['Salary', 'Advance Salary']
 const EMPTY = { expense_type: 'routine', category: 'Milk', description: '', amount: '', payment_mode: 'cash' }
 const EMPTY_REFUND = { slip_no: '', amount: '', payment_mode: 'cash' }
 
@@ -27,7 +28,7 @@ function ExpenseSection({ title, type, rows, onAdd, onEdit, onDelete }) {
         <thead className="text-xs text-slate-500 uppercase">
           <tr>
             <th className="px-4 py-2 text-left">S.No.</th>
-            {type === 'routine' ? <th className="px-4 py-2 text-left">Category</th> : <th className="px-4 py-2 text-left">Employee / Description</th>}
+            {type === 'routine' ? <th className="px-4 py-2 text-left">Category</th> : type === 'salary' ? <><th className="px-4 py-2 text-left">Type</th><th className="px-4 py-2 text-left">Employee</th></> : <th className="px-4 py-2 text-left">Employee / Description</th>}
             <th className="px-4 py-2 text-right">Amount</th>
             <th className="px-4 py-2 text-center">Mode</th>
             <th className="px-4 py-2 text-center">Actions</th>
@@ -35,11 +36,15 @@ function ExpenseSection({ title, type, rows, onAdd, onEdit, onDelete }) {
         </thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr><td colSpan={5} className="text-center py-6 text-slate-400 text-xs">No entries</td></tr>
+            <tr><td colSpan={type === 'salary' ? 6 : 5} className="text-center py-6 text-slate-400 text-xs">No entries</td></tr>
           ) : rows.map((r, i) => (
             <tr key={r.id} className="border-b hover:bg-slate-50">
               <td className="px-4 py-2 text-slate-500">{i + 1}</td>
-              <td className="px-4 py-2 text-slate-700">{type === 'routine' ? (r.category || '-') : (r.description || '-')}</td>
+              {type === 'salary' ? (
+                <><td className="px-4 py-2 text-slate-700">{r.category || 'Salary'}</td><td className="px-4 py-2 text-slate-700">{r.description || '-'}</td></>
+              ) : (
+                <td className="px-4 py-2 text-slate-700">{type === 'routine' ? (r.category || '-') : (r.description || '-')}</td>
+              )}
               <td className="px-4 py-2 text-right font-semibold text-slate-800">{formatCurrency(r.amount)}</td>
               <td className="px-4 py-2 text-center">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.payment_mode === 'cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -58,7 +63,7 @@ function ExpenseSection({ title, type, rows, onAdd, onEdit, onDelete }) {
         {rows.length > 0 && (
           <tfoot className="bg-slate-50 text-xs font-semibold">
             <tr>
-              <td colSpan={2} className="px-4 py-2 text-slate-600">Total</td>
+              <td colSpan={type === 'salary' ? 3 : 2} className="px-4 py-2 text-slate-600">Total</td>
               <td className="px-4 py-2 text-right text-slate-800">{formatCurrency(cashTotal + onlineTotal)}</td>
               <td colSpan={2} className="px-4 py-2 text-slate-500 font-normal">Cash: {formatCurrency(cashTotal)} · Online: {formatCurrency(onlineTotal)}</td>
             </tr>
@@ -102,7 +107,7 @@ export default function DayBookExpenses() {
   useEffect(() => { load() }, [date])
 
   const openAdd = (type) => {
-    setForm({ ...EMPTY, expense_type: type, category: type === 'routine' ? 'Milk' : '', description: '' })
+    setForm({ ...EMPTY, expense_type: type, category: type === 'routine' ? 'Milk' : type === 'salary' ? 'Salary' : '', description: '' })
     setEditId(null); setShowForm(true)
   }
   const startEdit = (row) => {
@@ -174,7 +179,7 @@ export default function DayBookExpenses() {
           <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Type</label>
-              <select value={form.expense_type} onChange={(e) => setForm({ ...form, expense_type: e.target.value, category: e.target.value === 'routine' ? 'Milk' : '', description: '' })}
+              <select value={form.expense_type} onChange={(e) => setForm({ ...form, expense_type: e.target.value, category: e.target.value === 'routine' ? 'Milk' : e.target.value === 'salary' ? 'Salary' : '', description: '' })}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                 <option value="routine">Routine Expense</option>
                 <option value="incentive">Incentive</option>
@@ -189,6 +194,22 @@ export default function DayBookExpenses() {
                   {ROUTINE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+            ) : form.expense_type === 'salary' ? (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Salary Type</label>
+                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
+                    {SALARY_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Employee Name</label>
+                  <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Employee name"
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                </div>
+              </>
             ) : (
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">Employee / Description</label>
