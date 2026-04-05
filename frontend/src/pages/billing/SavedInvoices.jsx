@@ -81,8 +81,8 @@ export default function SavedInvoices() {
               </thead>
               <tbody>
                 {list.map((s) => (
-                  <tr key={s.id} className="border-b hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-amber-600">{s.invoice_no}</td>
+                  <tr key={s.id} className="border-b hover:bg-slate-50 cursor-pointer" onClick={() => navigate(`/billing/invoices/${s.id}`)}>
+                    <td className="px-4 py-3 font-medium text-amber-600 hover:underline">{s.invoice_no}</td>
                     <td className="px-4 py-3 text-slate-600">{formatDate(s.invoice_date)}</td>
                     <td className="px-4 py-3 text-slate-700">{s.customer_name || 'Walk-in'}</td>
                     <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurrency(s.total)}</td>
@@ -96,11 +96,11 @@ export default function SavedInvoices() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => navigate(`/billing/invoices/${s.id}`)}
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/billing/invoices/${s.id}`) }}
                           title="View" className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700">
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button onClick={() => handleRemove(s.id)}
+                        <button onClick={(e) => { e.stopPropagation(); handleRemove(s.id) }}
                           title="Remove from saved" className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500">
                           <Trash2 className="h-4 w-4" />
                         </button>
