@@ -590,7 +590,7 @@ export default function Products() {
               </thead>
               <tbody>
                 {products.map((p) => {
-                  const isLow = p.stock != null && p.min_stock != null && parseFloat(p.stock) <= parseFloat(p.min_stock)
+                  const isLow = p.stock != null && p.min_stock != null && parseFloat(p.stock) < parseFloat(p.min_stock)
                   const categoryName = p.Category?.name || p.category_name || '-'
                   return (
                     <tr key={p.id} className={`border-b hover:bg-slate-50 ${selected.includes(p.id) ? 'bg-amber-50' : ''}`}>

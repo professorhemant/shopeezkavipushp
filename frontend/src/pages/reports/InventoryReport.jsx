@@ -105,7 +105,7 @@ export default function InventoryReport() {
                     <td className="px-4 py-3 text-slate-500 font-mono text-xs">{item.sku || '-'}</td>
                     <td className="px-4 py-3 text-slate-600">{item.category_name || '-'}</td>
                     <td className="px-4 py-3 text-right">
-                      <span className={`font-semibold ${item.is_low_stock || item.current_stock <= (item.min_stock || 0) ? 'text-red-600' : 'text-slate-800'}`}>
+                      <span className={`font-semibold ${item.is_low_stock || item.current_stock < (item.min_stock || 0) ? 'text-red-600' : 'text-slate-800'}`}>
                         {item.current_stock ?? item.stock_qty ?? 0}
                       </span>
                     </td>
