@@ -7,7 +7,8 @@ import LoadingSpinner from '../../components/common/LoadingSpinner'
 import useAuthStore from '../../store/authStore'
 
 const today = () => new Date().toISOString().split('T')[0]
-const EMPTY = { expense_type: 'advance_salary', category: '', description: '', amount: '', payment_mode: 'cash' }
+const ROUTINE_CATEGORIES = ['Milk', 'Polythin', 'Stationery', 'Phynol', 'Pocha', 'Spray Paint', 'Nail Paint Remover', 'Others']
+const EMPTY = { expense_type: 'routine', category: 'Milk', description: '', amount: '', payment_mode: 'cash' }
 const EMPTY_REFUND = { slip_no: '', amount: '', payment_mode: 'cash' }
 
 function ExpenseSection({ title, type, rows, onAdd, onEdit, onDelete }) {
@@ -26,7 +27,7 @@ function ExpenseSection({ title, type, rows, onAdd, onEdit, onDelete }) {
         <thead className="text-xs text-slate-500 uppercase">
           <tr>
             <th className="px-4 py-2 text-left">S.No.</th>
-            <th className="px-4 py-2 text-left">Employee / Description</th>
+            {type === 'routine' ? <th className="px-4 py-2 text-left">Category</th> : <th className="px-4 py-2 text-left">Employee / Description</th>}
             <th className="px-4 py-2 text-right">Amount</th>
             <th className="px-4 py-2 text-center">Mode</th>
             <th className="px-4 py-2 text-center">Actions</th>
@@ -38,7 +39,7 @@ function ExpenseSection({ title, type, rows, onAdd, onEdit, onDelete }) {
           ) : rows.map((r, i) => (
             <tr key={r.id} className="border-b hover:bg-slate-50">
               <td className="px-4 py-2 text-slate-500">{i + 1}</td>
-              <td className="px-4 py-2 text-slate-700">{r.description || '-'}</td>
+              <td className="px-4 py-2 text-slate-700">{type === 'routine' ? (r.category || '-') : (r.description || '-')}</td>
               <td className="px-4 py-2 text-right font-semibold text-slate-800">{formatCurrency(r.amount)}</td>
               <td className="px-4 py-2 text-center">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.payment_mode === 'cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -101,7 +102,7 @@ export default function DayBookExpenses() {
   useEffect(() => { load() }, [date])
 
   const openAdd = (type) => {
-    setForm({ ...EMPTY, expense_type: type, category: '', description: '' })
+    setForm({ ...EMPTY, expense_type: type, category: type === 'routine' ? 'Milk' : '', description: '' })
     setEditId(null); setShowForm(true)
   }
   const startEdit = (row) => {
@@ -173,19 +174,30 @@ export default function DayBookExpenses() {
           <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Type</label>
-              <select value={form.expense_type} onChange={(e) => setForm({ ...form, expense_type: e.target.value, category: '', description: '' })}
+              <select value={form.expense_type} onChange={(e) => setForm({ ...form, expense_type: e.target.value, category: e.target.value === 'routine' ? 'Milk' : '', description: '' })}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
+                <option value="routine">Routine Expense</option>
                 <option value="advance_salary">Advance Salary</option>
                 <option value="incentive">Incentive</option>
                 <option value="salary">Salary</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Employee / Description</label>
-              <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Employee name"
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
-            </div>
+            {form.expense_type === 'routine' ? (
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Category</label>
+                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
+                  {ROUTINE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Employee / Description</label>
+                <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Employee name"
+                  className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Amount (₹) *</label>
               <input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
@@ -250,6 +262,7 @@ export default function DayBookExpenses() {
 
       {loading ? <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div> : (
         <>
+          <ExpenseSection title="Routine Expenses" type="routine" rows={byType('routine')} onAdd={openAdd} onEdit={startEdit} onDelete={handleDelete} />
           <ExpenseSection title="Advance Salary" type="advance_salary" rows={byType('advance_salary')} onAdd={openAdd} onEdit={startEdit} onDelete={handleDelete} />
           <ExpenseSection title="Incentives" type="incentive" rows={byType('incentive')} onAdd={openAdd} onEdit={startEdit} onDelete={handleDelete} />
           <ExpenseSection title="Salary" type="salary" rows={byType('salary')} onAdd={openAdd} onEdit={startEdit} onDelete={handleDelete} />
