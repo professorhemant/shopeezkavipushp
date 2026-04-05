@@ -134,13 +134,16 @@ const create = async (req, res, next) => {
     const processedItems = [];
 
     for (const item of items) {
-      const product = await Product.findOne({ where: { id: item.product_id, firm_id: firmId }, transaction: t });
-      if (!product) throw new Error(`Product ${item.product_id} not found.`);
+      let product = null;
+      if (item.product_id) {
+        product = await Product.findOne({ where: { id: item.product_id, firm_id: firmId }, transaction: t });
+        if (!product) throw new Error(`Product ${item.product_id} not found.`);
+      }
 
       const qty = parseFloat(item.quantity);
-      const rate = parseFloat(item.rate || item.unit_price || product.sale_price || 0);
+      const rate = parseFloat(item.rate || item.unit_price || product?.sale_price || 0);
       const itemDiscount = parseFloat(item.discount_amount || 0);
-      const taxRate = parseFloat(item.tax_rate || product.tax_rate || 0);
+      const taxRate = parseFloat(item.tax_rate || product?.tax_rate || 0);
       const isInclusive = item.is_tax_inclusive === true; // frontend always sends exclusive prices
 
       const baseAmount = qty * rate - itemDiscount;
@@ -152,10 +155,10 @@ const create = async (req, res, next) => {
       totalIGST += gst.igst;
 
       processedItems.push({
-        product_id: product.id,
-        product_name: product.name,
-        hsn_code: product.hsn_code || null,
-        barcode: product.barcode || null,
+        product_id: product?.id || null,
+        product_name: item.product_name || product?.name || 'Item',
+        hsn_code: item.hsn_code || product?.hsn_code || null,
+        barcode: item.barcode || product?.barcode || null,
         quantity: qty,
         unit_price: rate,
         discount_amount: itemDiscount,
@@ -170,8 +173,8 @@ const create = async (req, res, next) => {
         total: gst.total,
       });
 
-      // Deduct stock (product uses 'stock' field)
-      if (product.track_inventory) {
+      // Deduct stock only for linked products
+      if (product && product.track_inventory) {
         const newStock = parseFloat(product.stock || 0) - qty;
         if (newStock < 0) throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
         await product.update({ stock: newStock }, { transaction: t });
