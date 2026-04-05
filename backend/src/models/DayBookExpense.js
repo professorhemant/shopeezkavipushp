@@ -9,6 +9,7 @@ const DayBookExpense = sequelize.define('DayBookExpense', {
   description: { type: DataTypes.STRING(255) }, // for incentive/salary: employee name
   amount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
   payment_mode: { type: DataTypes.ENUM('cash', 'online'), defaultValue: 'cash' },
+  paid_by: { type: DataTypes.STRING(100) }, // who paid (for salary/advance_salary)
 }, { tableName: 'daybook_expenses' });
 
 module.exports = DayBookExpense;

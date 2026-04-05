@@ -72,6 +72,7 @@ export default function DayBookExpenses() {
   const emptyForm = (type) => {
     if (type === 'routine') return { expense_type: 'routine', category: 'Milk', description: '', amount: '', payment_mode: 'cash' }
     if (type === 'refund')  return { slip_no: '', amount: '', payment_mode: 'cash' }
+    if (['salary', 'advance_salary'].includes(type)) return { expense_type: type, category: '', description: '', amount: '', payment_mode: 'cash', paid_by: '' }
     return { expense_type: type, category: '', description: '', amount: '', payment_mode: 'cash' }
   }
 
@@ -81,6 +82,8 @@ export default function DayBookExpenses() {
   const startEdit = (type, row) => {
     if (type === 'refund') {
       setForm({ slip_no: row.slip_no || '', amount: row.amount, payment_mode: row.payment_mode })
+    } else if (['salary', 'advance_salary'].includes(type)) {
+      setForm({ expense_type: row.expense_type, category: row.category || '', description: row.description || '', amount: row.amount, payment_mode: row.payment_mode, paid_by: row.paid_by || '' })
     } else {
       setForm({ expense_type: row.expense_type, category: row.category || '', description: row.description || '', amount: row.amount, payment_mode: row.payment_mode })
     }
@@ -182,6 +185,14 @@ export default function DayBookExpenses() {
                   className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${COLOR[activeCardDef.color].ring}`} />
               </div>
             )}
+            {['salary', 'advance_salary'].includes(activeCard) && (
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Who Paid This</label>
+                <input value={form.paid_by || ''} onChange={(e) => setForm({ ...form, paid_by: e.target.value })}
+                  placeholder="Name of person who paid"
+                  className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${COLOR[activeCardDef.color].ring}`} />
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Amount (₹) *</label>
               <input type="number" step="0.01" value={form.amount || ''} onChange={(e) => setForm({ ...form, amount: e.target.value })}
@@ -231,6 +242,7 @@ export default function DayBookExpenses() {
                         {type === 'routine' && <th className="px-4 py-2 text-left">Category</th>}
                         {type === 'refund'  && <th className="px-4 py-2 text-left">Slip No.</th>}
                         {!['routine','refund'].includes(type) && <th className="px-4 py-2 text-left">Employee / Description</th>}
+                        {['salary','advance_salary'].includes(type) && <th className="px-4 py-2 text-left">Who Paid</th>}
                         <th className="px-4 py-2 text-right">Amount</th>
                         <th className="px-4 py-2 text-center">Mode</th>
                         <th className="px-4 py-2 text-center">Actions</th>
@@ -245,6 +257,7 @@ export default function DayBookExpenses() {
                           {type === 'routine' && <td className="px-4 py-2 text-slate-700">{r.category || '-'}</td>}
                           {type === 'refund'  && <td className="px-4 py-2 text-amber-600 font-medium">{r.slip_no || '-'}</td>}
                           {!['routine','refund'].includes(type) && <td className="px-4 py-2 text-slate-700">{r.description || '-'}</td>}
+                          {['salary','advance_salary'].includes(type) && <td className="px-4 py-2 text-slate-600">{r.paid_by || '-'}</td>}
                           <td className="px-4 py-2 text-right font-semibold text-slate-800">{formatCurrency(r.amount)}</td>
                           <td className="px-4 py-2 text-center">
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.payment_mode === 'cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
