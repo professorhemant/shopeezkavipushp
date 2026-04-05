@@ -24,7 +24,7 @@ export default function AddProduct() {
   const [imagePreview, setImagePreview] = useState(null)
   const [imageFile, setImageFile] = useState(null)
 
-  const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, control, watch } = useForm({
     defaultValues: {
       name: '', sku: '', barcode: '', hsn_code: '', description: '',
       category_id: '', brand_id: '', unit_id: '',
@@ -134,13 +134,12 @@ export default function AddProduct() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Product Name *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Product Name</label>
               <input
-                {...register('name', { required: 'Name is required' })}
+                {...register('name')}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
                 placeholder="Enter product name"
               />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">SKU</label>
