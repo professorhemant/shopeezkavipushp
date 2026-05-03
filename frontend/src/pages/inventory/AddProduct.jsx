@@ -93,15 +93,25 @@ export default function AddProduct() {
     setSaving(true)
     try {
       const payload = { ...data }
-      // Convert numeric strings to numbers
       ;['purchase_price', 'sale_price', 'mrp', 'wholesale_price', 'tax_rate',
         'stock', 'min_stock', 'max_stock', 'opening_stock'].forEach((k) => {
         if (payload[k] !== '' && payload[k] != null) payload[k] = parseFloat(payload[k]) || 0
       })
-      // Convert empty string IDs to null
       ;['category_id', 'brand_id', 'unit_id'].forEach((k) => {
         if (payload[k] === '') payload[k] = null
       })
+
+      if (imageFile) {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result)
+          reader.onerror = reject
+          reader.readAsDataURL(imageFile)
+        })
+        payload.images = [base64]
+      } else if (imagePreview && isEdit) {
+        payload.images = [imagePreview]
+      }
 
       if (isEdit) {
         await productAPI.update(id, payload)
