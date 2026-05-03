@@ -18,6 +18,7 @@ const Categories = lazy(() => import('./pages/inventory/Categories'))
 const Brands = lazy(() => import('./pages/inventory/Brands'))
 const Units = lazy(() => import('./pages/inventory/Units'))
 const StockAlerts = lazy(() => import('./pages/inventory/StockAlerts'))
+const ProductsWithImage = lazy(() => import('./pages/inventory/ProductsWithImage'))
 
 const Invoices = lazy(() => import('./pages/billing/Invoices'))
 const SavedInvoices = lazy(() => import('./pages/billing/SavedInvoices'))
@@ -130,6 +131,7 @@ function App() {
           <Route path="inventory/brands" element={<Brands />} />
           <Route path="inventory/units" element={<Units />} />
           <Route path="inventory/alerts" element={<StockAlerts />} />
+          <Route path="inventory/products-gallery" element={<ProductsWithImage />} />
 
           {/* Billing */}
           <Route path="billing/invoices" element={<Invoices />} />

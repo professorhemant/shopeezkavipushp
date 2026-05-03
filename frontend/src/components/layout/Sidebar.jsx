@@ -9,7 +9,7 @@ import {
   Calculator, FileSpreadsheet, Zap, User, DollarSign,
   Landmark, Wrench, Store, Hammer, Warehouse, BookOpen,
   ClipboardList, Factory, MessageSquare, Calendar,
-  BarChart2, Bookmark, Plus
+  BarChart2, Bookmark, Plus, LayoutGrid
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 
@@ -37,10 +37,11 @@ const MENU = [
   {
     id: 'inventory', label: 'Inventory', icon: Package,
     children: [
-      { label: 'Products',     path: '/inventory/products',   icon: Boxes },
-      { label: 'Categories',   path: '/inventory/categories', icon: Tag },
-      { label: 'Units',        path: '/inventory/units',      icon: Clipboard },
-      { label: 'Stock Audits', path: '/inventory/alerts',     icon: ClipboardList },
+      { label: 'Products',            path: '/inventory/products',         icon: Boxes },
+      { label: 'Products with Image', path: '/inventory/products-gallery', icon: LayoutGrid },
+      { label: 'Categories',          path: '/inventory/categories',        icon: Tag },
+      { label: 'Units',               path: '/inventory/units',             icon: Clipboard },
+      { label: 'Stock Audits',        path: '/inventory/alerts',            icon: ClipboardList },
     ],
   },
   { id: 'inventory-manual', label: 'Inventory Manually', icon: Hammer, path: '/inventory/add-manual' },
