@@ -24,7 +24,7 @@ export default function AddProduct() {
   const [imagePreview, setImagePreview] = useState(null)
   const [imageFile, setImageFile] = useState(null)
 
-  const { register, handleSubmit, reset, control, watch } = useForm({
+  const { register, handleSubmit, reset, control, watch, setValue } = useForm({
     defaultValues: {
       name: '', sku: '', barcode: '', hsn_code: '', description: '',
       category_id: '', brand_id: '', unit_id: '',
@@ -81,6 +81,13 @@ export default function AddProduct() {
         .finally(() => setLoading(false))
     }
   }, [id, isEdit, reset])
+
+  const generateSKU = () => {
+    const name = watch('name') || ''
+    const prefix = name.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase() || 'PROD'
+    const num = String(Math.floor(Math.random() * 900) + 100)
+    setValue('sku', `KVP-${prefix}-${num}`)
+  }
 
   const onSubmit = async (data) => {
     setSaving(true)
@@ -142,12 +149,23 @@ export default function AddProduct() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">SKU</label>
-              <input
-                {...register('sku')}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
-                placeholder="Auto-generate or enter SKU"
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                SKU <span className="text-xs text-slate-400 font-normal">(Stock Keeping Unit — unique product code)</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  {...register('sku')}
+                  className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                  placeholder="e.g. KVP-RING-001"
+                />
+                <button
+                  type="button"
+                  onClick={generateSKU}
+                  className="shrink-0 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap"
+                >
+                  Auto Generate
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Barcode</label>
