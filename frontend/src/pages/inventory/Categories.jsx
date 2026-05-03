@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Edit2, Trash2, FolderOpen, X, Save } from 'lucide-react'
+import { Plus, Edit2, Trash2, FolderOpen, X, Save, Trash } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { categoryAPI } from '../../api'
@@ -12,6 +12,8 @@ export default function Categories() {
   const [editItem, setEditItem] = useState(null)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
+  const [showDeleteAll, setShowDeleteAll] = useState(false)
+  const [deletingAll, setDeletingAll] = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
 
@@ -31,13 +33,13 @@ export default function Categories() {
 
   const openAdd = () => {
     setEditItem(null)
-    reset({ name: '', description: '', parent: '' })
+    reset({ name: '', description: '', parent_id: '' })
     setShowModal(true)
   }
 
   const openEdit = (cat) => {
     setEditItem(cat)
-    reset({ name: cat.name, description: cat.description || '', parent: cat.parent || '' })
+    reset({ name: cat.name, description: cat.description || '', parent_id: cat.parent_id || '' })
     setShowModal(true)
   }
 
@@ -66,8 +68,22 @@ export default function Categories() {
       toast.success('Category deleted')
       setDeleteId(null)
       fetchCategories()
-    } catch {
-      toast.error('Failed to delete category')
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to delete category')
+    }
+  }
+
+  const handleDeleteAll = async () => {
+    setDeletingAll(true)
+    try {
+      await categoryAPI.deleteAll()
+      toast.success('All categories deleted')
+      setShowDeleteAll(false)
+      fetchCategories()
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to delete all categories')
+    } finally {
+      setDeletingAll(false)
     }
   }
 
@@ -85,9 +101,16 @@ export default function Categories() {
           <h1 className="text-2xl font-bold text-slate-800">Categories</h1>
           <p className="text-sm text-slate-500 mt-0.5">{categories.length} categories</p>
         </div>
-        <button onClick={openAdd} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-          <Plus className="h-4 w-4" /> Add Category
-        </button>
+        <div className="flex gap-2">
+          {categories.length > 0 && (
+            <button onClick={() => setShowDeleteAll(true)} className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Trash className="h-4 w-4" /> Delete All
+            </button>
+          )}
+          <button onClick={openAdd} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <Plus className="h-4 w-4" /> Add Category
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
@@ -155,7 +178,7 @@ export default function Categories() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Parent Category</label>
-                <select {...register('parent')} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
+                <select {...register('parent_id')} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
                   <option value="">None (Root Category)</option>
                   {parentCategories.filter((c) => c.id !== editItem?.id).map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -173,6 +196,22 @@ export default function Categories() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Confirm */}
+      {showDeleteAll && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 shadow-xl w-full max-w-sm mx-4">
+            <h3 className="font-semibold text-slate-800 mb-2">Delete All Categories?</h3>
+            <p className="text-sm text-slate-500 mb-5">All {categories.length} categories will be permanently deleted. Products will be unlinked but not deleted.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteAll(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
+              <button onClick={handleDeleteAll} disabled={deletingAll} className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">
+                {deletingAll ? 'Deleting…' : 'Delete All'}
+              </button>
+            </div>
           </div>
         </div>
       )}

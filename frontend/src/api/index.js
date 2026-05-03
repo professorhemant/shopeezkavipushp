@@ -79,6 +79,7 @@ export const categoryAPI = {
   create: (data) => api.post('/categories', data),
   update: (id, data) => api.put(`/categories/${id}`, data),
   delete: (id) => api.delete(`/categories/${id}`),
+  deleteAll: () => api.delete('/categories/all'),
 }
 
 // ─── Brands ─────────────────────────────────────────────────────────

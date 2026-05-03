@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { Category } = require('../models');
+const { Category, Product } = require('../models');
 const { Op } = require('sequelize');
 
 const paginate = (q) => {
@@ -72,11 +72,24 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
+// DELETE /categories/all
+router.delete('/all', async (req, res, next) => {
+  try {
+    await Product.update({ category_id: null }, { where: { firm_id: req.firmId } });
+    const deleted = await Category.destroy({ where: { firm_id: req.firmId } });
+    return res.status(200).json({ success: true, message: `${deleted} categories deleted.` });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /categories/:id
 router.delete('/:id', async (req, res, next) => {
   try {
     const category = await Category.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
     if (!category) return res.status(404).json({ success: false, message: 'Category not found.' });
+    // Unlink products from this category before deleting
+    await Product.update({ category_id: null }, { where: { firm_id: req.firmId, category_id: req.params.id } });
     await category.destroy();
     return res.status(200).json({ success: true, message: 'Category deleted.' });
   } catch (err) {
