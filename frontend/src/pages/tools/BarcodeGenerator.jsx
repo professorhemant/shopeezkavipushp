@@ -16,11 +16,8 @@ export default function BarcodeGenerator() {
     setLoading(true)
     try {
       const { data } = await toolsAPI.generateBarcode(form)
-      if (data.url || data.image || data.barcode_url) {
-        setBarcodeUrl(data.url || data.image || data.barcode_url)
-      } else if (data.base64 || data.data) {
-        setBarcodeUrl(`data:image/png;base64,${data.base64 || data.data}`)
-      }
+      const barcode = data?.data?.barcode
+      if (barcode) setBarcodeUrl(barcode)
       toast.success('Barcode generated!')
     } catch {
       toast.error('Failed to generate barcode')

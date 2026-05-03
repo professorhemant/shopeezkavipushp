@@ -262,6 +262,6 @@ export const dayBookAPI = {
 
 // ─── Tools ──────────────────────────────────────────────────────────
 export const toolsAPI = {
-  generateBarcode: (data) => api.post('/tools/barcode', data),
-  generateQR: (data) => api.post('/tools/qr', data),
+  generateBarcode: (data) => api.get('/tools/barcode', { params: data }),
+  generateQR: (data) => api.get('/tools/qr', { params: data }),
 }

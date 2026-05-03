@@ -18,6 +18,7 @@ const generateBarcode = (text, type = 'code128', options = {}) => {
       code39: 'code39',
       ean13: 'ean13',
       ean8: 'ean8',
+      upc: 'upca',
       upca: 'upca',
       upce: 'upce',
       qr: 'qrcode',
