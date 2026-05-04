@@ -29,6 +29,8 @@ const csvRowToProduct = (row) => {
   const rawTaxType = (row.tax_type || '').trim().toLowerCase()
   const taxType = rawTaxType.includes('exclusive') ? 'exclusive' : 'inclusive'
 
+  const photoUrl = (row.photo || row.image || row.image_url || '').trim()
+
   return {
     name:           (row.name || '').trim()       || undefined,
     sku:            (row.sku  || '').trim()       || undefined,
@@ -44,6 +46,7 @@ const csvRowToProduct = (row) => {
     show_on_website: (row.show_on_website || '').trim().toUpperCase() === 'Y',
     trending:        (row.trending || '').trim().toUpperCase() === 'Y',
     category_name:  (row.category || row.categories || row.category_name || '').trim() || undefined,
+    ...(photoUrl ? { images: [photoUrl] } : {}),
   }
 }
 
