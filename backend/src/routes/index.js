@@ -25,6 +25,8 @@ const settingsRoutes = require('./settings');
 const gstRoutes = require('./gst');
 const toolsRoutes = require('./tools');
 const dayBookRoutes = require('./daybook');
+const upload = require('../middleware/upload');
+const path = require('path');
 
 // Public routes
 router.use('/auth', authRoutes);
@@ -49,6 +51,17 @@ router.use('/settings', authenticate, settingsRoutes);
 router.use('/gst', authenticate, gstRoutes);
 router.use('/tools', authenticate, toolsRoutes);
 router.use('/daybook', authenticate, dayBookRoutes);
+
+// Image upload endpoint
+router.post('/upload', authenticate, (req, res, next) => {
+  req.uploadFolder = 'products';
+  next();
+}, upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+  const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+  const url = `${baseUrl}/uploads/products/${req.file.filename}`;
+  res.status(200).json({ success: true, url });
+});
 
 // Health check
 router.get('/health', (req, res) => {
