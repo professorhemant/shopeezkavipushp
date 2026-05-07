@@ -19,6 +19,7 @@ const Brands = lazy(() => import('./pages/inventory/Brands'))
 const Units = lazy(() => import('./pages/inventory/Units'))
 const StockAlerts = lazy(() => import('./pages/inventory/StockAlerts'))
 const ProductsWithImage = lazy(() => import('./pages/inventory/ProductsWithImage'))
+const ImageEditor = lazy(() => import('./pages/inventory/ImageEditor'))
 
 const Invoices = lazy(() => import('./pages/billing/Invoices'))
 const SavedInvoices = lazy(() => import('./pages/billing/SavedInvoices'))
@@ -132,6 +133,7 @@ function App() {
           <Route path="inventory/units" element={<Units />} />
           <Route path="inventory/alerts" element={<StockAlerts />} />
           <Route path="inventory/products-gallery" element={<ProductsWithImage />} />
+          <Route path="inventory/image-editor" element={<ImageEditor />} />
 
           {/* Billing */}
           <Route path="billing/invoices" element={<Invoices />} />
