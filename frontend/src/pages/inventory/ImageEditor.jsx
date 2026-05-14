@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useDropzone } from 'react-dropzone'
 import toast from 'react-hot-toast'
@@ -91,6 +91,41 @@ export default function ImageEditor() {
     setQueue([])
     setDoneCount(0)
   }
+
+  // ── paste support (Ctrl+V from WhatsApp Web) ────────────────────────────────
+
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (!file) continue
+          if (tab === 'single') {
+            setSingleFile(file)
+            toast.success('Image pasted — enter the barcode and click Post.')
+          } else {
+            // add to bulk queue with empty barcode so user types it
+            setQueue(prev => [...prev, {
+              id: `${Date.now()}-${Math.random()}`,
+              file,
+              objectUrl: URL.createObjectURL(file),
+              barcode: '',
+              price: '',
+              status: 'pending',
+              message: '',
+              productName: '',
+            }])
+            toast.success('Image pasted into queue — enter the barcode.')
+          }
+          break
+        }
+      }
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [tab])
 
   // ── drop zone ───────────────────────────────────────────────────────────────
 
@@ -267,10 +302,9 @@ export default function ImageEditor() {
           <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-800">
             <Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
             <span>
-              Name your image files with the barcode, e.g.{' '}
-              <code className="bg-amber-100 px-1 rounded font-mono">Acko001.jpg</code> or{' '}
-              <code className="bg-amber-100 px-1 rounded font-mono">Acko001_2500.jpg</code>.
-              The barcode is auto-extracted from the filename and matched to the existing product row.
+              <strong>From WhatsApp Web:</strong> right-click any image → Copy Image, then press <kbd className="bg-amber-100 border border-amber-200 rounded px-1 font-mono text-xs">Ctrl+V</kbd> here — it lands in the queue instantly. &nbsp;
+              Or drag files / browse. Name files with barcode e.g.{' '}
+              <code className="bg-amber-100 px-1 rounded font-mono">Acko001.jpg</code> for auto-extraction.
             </span>
           </div>
 
@@ -486,9 +520,10 @@ export default function ImageEditor() {
             <div className="bg-amber-50 rounded-xl border border-amber-100 p-4">
               <h3 className="text-xs font-semibold text-amber-700 mb-2.5 uppercase tracking-wide">How to use</h3>
               <ol className="space-y-2 text-xs text-amber-800">
-                <li className="flex gap-2"><span className="font-bold shrink-0">1.</span> Select a product image file.</li>
-                <li className="flex gap-2"><span className="font-bold shrink-0">2.</span> Enter the exact barcode for the product.</li>
-                <li className="flex gap-2"><span className="font-bold shrink-0">3.</span> Click Post — the image is uploaded and added to the product's IMAGE column.</li>
+                <li className="flex gap-2"><span className="font-bold shrink-0">1.</span> Open WhatsApp Web, right-click a product image → <strong>Copy Image</strong>, then press <strong>Ctrl+V</strong> on this page.</li>
+                <li className="flex gap-2"><span className="font-bold shrink-0">2.</span> Or click the left area to browse a file from your computer.</li>
+                <li className="flex gap-2"><span className="font-bold shrink-0">3.</span> Enter the exact barcode for the product.</li>
+                <li className="flex gap-2"><span className="font-bold shrink-0">4.</span> Click Post — the image is uploaded and added to the product's IMAGE column.</li>
               </ol>
             </div>
           </div>
