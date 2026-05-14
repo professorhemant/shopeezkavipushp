@@ -129,7 +129,9 @@ export default function ImageEditor() {
       // 2. Upload image file
       const formData = new FormData()
       formData.append('image', item.file)
-      const uploadRes = await api.post('/upload', formData)
+      const uploadRes = await api.post('/upload', formData, {
+        headers: { 'Content-Type': undefined },
+      })
       const imageUrl = uploadRes.data?.url || uploadRes.url
 
       // 3. Merge with existing images and update product
@@ -181,7 +183,9 @@ export default function ImageEditor() {
 
       const formData = new FormData()
       formData.append('image', singleFile)
-      const uploadRes = await api.post('/upload', formData)
+      const uploadRes = await api.post('/upload', formData, {
+        headers: { 'Content-Type': undefined },
+      })
       const imageUrl = uploadRes.data?.url || uploadRes.url
 
       let existing = []
