@@ -43,8 +43,6 @@ const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: 'Email already registered.' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
-
     // Create firm
     const firm = await Firm.create({
       name: firm_name,
@@ -55,13 +53,13 @@ const register = async (req, res, next) => {
       is_active: true,
     });
 
-    // Create admin user
+    // Create admin user (beforeCreate hook in User model handles hashing)
     const user = await User.create({
       firm_id: firm.id,
       name,
       email,
       phone: phone || null,
-      password: passwordHash,
+      password,
       role_name: 'admin',
       is_active: true,
     });
@@ -208,8 +206,7 @@ const resetPassword = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
     }
 
-    const passwordHash = await bcrypt.hash(new_password, 12);
-    await user.update({ password: passwordHash, otp: null, otp_expires: null });
+    await user.update({ password: new_password, otp: null, otp_expires: null });
 
     return res.status(200).json({ success: true, message: 'Password reset successful.' });
   } catch (err) {
@@ -239,8 +236,7 @@ const changePassword = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Current password is incorrect.' });
     }
 
-    const passwordHash = await bcrypt.hash(new_password, 12);
-    await user.update({ password: passwordHash });
+    await user.update({ password: new_password });
 
     return res.status(200).json({ success: true, message: 'Password changed successfully.' });
   } catch (err) {
