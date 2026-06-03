@@ -32,22 +32,28 @@ const getAll = async (req, res, next) => {
       ];
     }
 
-    // Exclude large base64 images from list by default; pass ?with_images=true for gallery
-    const attributes = with_images === 'true' ? undefined : { exclude: ['images'] };
+    // Gallery mode: include images but skip JOINs so MySQL can use primary key index
+    // without building a large temporary table (avoids sort_buffer OOM on Railway)
+    const isGallery = with_images === 'true';
 
-    const { count, rows } = await Product.findAndCountAll({
+    const queryOptions = {
       where,
-      attributes,
-      include: [
-        { model: Category, as: 'Category', attributes: ['id', 'name'] },
-        { model: Brand, as: 'Brand', attributes: ['id', 'name'] },
-        { model: Unit, as: 'Unit', attributes: ['id', 'name', 'short_name'] },
-      ],
+      attributes: isGallery ? undefined : { exclude: ['images'] },
       order: [['id', 'DESC']],
       limit,
       offset,
       distinct: true,
-    });
+    };
+
+    if (!isGallery) {
+      queryOptions.include = [
+        { model: Category, as: 'Category', attributes: ['id', 'name'] },
+        { model: Brand, as: 'Brand', attributes: ['id', 'name'] },
+        { model: Unit, as: 'Unit', attributes: ['id', 'name', 'short_name'] },
+      ];
+    }
+
+    const { count, rows } = await Product.findAndCountAll(queryOptions);
 
     return res.status(200).json({
       success: true,

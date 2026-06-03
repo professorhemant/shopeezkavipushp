@@ -169,7 +169,7 @@ export default function ProductsWithImage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {products.map((p, idx) => {
             const isLow = p.stock != null && p.min_stock != null && parseFloat(p.stock) < parseFloat(p.min_stock)
-            const categoryName = p.Category?.name || p.category_name || null
+            const categoryName = p.Category?.name || p.category_name || categories.find(c => c.id === p.category_id)?.name || null
             const imageUrl = p.images?.[0] || p.image || null
 
             // Cycle through accent colors for card top border
