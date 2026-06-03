@@ -17,7 +17,7 @@ const getAll = async (req, res, next) => {
   try {
     const firmId = req.firmId;
     const { limit, offset, page } = paginate(req.query);
-    const { search, category_id, brand_id, is_active } = req.query;
+    const { search, category_id, brand_id, is_active, with_images } = req.query;
 
     const where = { firm_id: firmId };
     if (is_active !== undefined) where.is_active = is_active === 'true';
@@ -32,8 +32,12 @@ const getAll = async (req, res, next) => {
       ];
     }
 
+    // Exclude large base64 images from list by default; pass ?with_images=true for gallery
+    const attributes = with_images === 'true' ? undefined : { exclude: ['images'] };
+
     const { count, rows } = await Product.findAndCountAll({
       where,
+      attributes,
       include: [
         { model: Category, as: 'Category', attributes: ['id', 'name'] },
         { model: Brand, as: 'Brand', attributes: ['id', 'name'] },

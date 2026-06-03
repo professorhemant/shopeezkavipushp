@@ -33,6 +33,7 @@ export default function ProductsWithImage() {
         page,
         limit: PER_PAGE,
         is_active: tab === 'active',
+        with_images: true,
       })
       setProducts(data.data || data.products || data.results || [])
       setTotalPages(data.pagination?.pages || 1)
