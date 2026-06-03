@@ -39,7 +39,7 @@ const getAll = async (req, res, next) => {
         { model: Brand, as: 'Brand', attributes: ['id', 'name'] },
         { model: Unit, as: 'Unit', attributes: ['id', 'name', 'short_name'] },
       ],
-      order: [['name', 'ASC'], ['barcode', 'ASC']],
+      order: [['id', 'DESC']],
       limit,
       offset,
       distinct: true,
