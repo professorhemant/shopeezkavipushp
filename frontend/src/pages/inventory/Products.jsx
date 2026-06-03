@@ -4,7 +4,7 @@ import {
   Plus, Search, Edit2, Trash2, Barcode, Upload,
   Package, ChevronLeft, ChevronRight, AlertTriangle,
   Printer, Archive, ArchiveRestore, X, FileText,
-  CheckCircle, AlertCircle, Download
+  CheckCircle, AlertCircle, Download, FolderOpen, Image as ImageIcon
 } from 'lucide-react'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
@@ -12,6 +12,27 @@ import toast from 'react-hot-toast'
 import { productAPI, categoryAPI, brandAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+
+// Build a lookup map: normalised filename (no ext, no price suffix) → File object
+const buildImageMap = (files) => {
+  const map = {}
+  for (const f of files) {
+    const lower = f.name.toLowerCase()
+    map[lower] = f                               // full: "czr001.png"
+    const noExt = lower.replace(/\.[^.]+$/, '')  // "czr001"
+    map[noExt] = f
+    const firstToken = noExt.split(' ')[0]       // "czr005" from "czr005 1699"
+    if (firstToken !== noExt) map[firstToken] = f
+  }
+  return map
+}
+
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(reader.result)
+  reader.onerror = reject
+  reader.readAsDataURL(file)
+})
 
 // Exact CSV column headers (must match file header row)
 const CSV_HEADER = 'type,name,bar_code,hsn_code,sell_price,mrp,cost_price,sku,categories,stock_qty,tax_type,tax_rate,brand,variants,show_on_website,trending,tags'
@@ -29,8 +50,6 @@ const csvRowToProduct = (row) => {
   const rawTaxType = (row.tax_type || '').trim().toLowerCase()
   const taxType = rawTaxType.includes('exclusive') ? 'exclusive' : 'inclusive'
 
-  const photoUrl = (row.photo || row.image || row.image_url || '').trim()
-
   return {
     name:           (row.name || '').trim()       || undefined,
     sku:            (row.sku  || '').trim()       || undefined,
@@ -41,23 +60,47 @@ const csvRowToProduct = (row) => {
     purchase_price: parseFloat(row.cost_price)    || 0,
     stock:          parseFloat(row.stock_qty)     || 0,
     tax_type:       taxType,
-    tax_rate:       parseFloat(row.tax_rate)      || 0,
+    // Support both "tax_rate" and "TAX RATE " (normalized to "tax rate" by PapaParse)
+    tax_rate:       parseFloat(row.tax_rate || row['tax rate']) || 0,
     color:          (row.color || '').trim()      || undefined,
     show_on_website: (row.show_on_website || '').trim().toUpperCase() === 'Y',
     trending:        (row.trending || '').trim().toUpperCase() === 'Y',
     category_name:  (row.category || row.categories || row.category_name || '').trim() || undefined,
-    ...(photoUrl ? { images: [photoUrl] } : {}),
+    // _photo is used for image matching; stripped before sending to backend
+    _photo:         (row.photo || row.image || row.image_url || '').trim(),
   }
 }
 
 function ImportModal({ onClose, onSuccess }) {
   const fileRef = useRef()
+  const folderRef = useRef()
   const [file, setFile] = useState(null)
   const [rows, setRows] = useState([])
   const [errors, setErrors] = useState([])
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [imageFiles, setImageFiles] = useState({})   // normalised key → File
+  const [progress, setProgress] = useState(0)
+
+  // Set webkitdirectory on the folder input so user can pick an entire folder
+  useEffect(() => {
+    if (folderRef.current) folderRef.current.setAttribute('webkitdirectory', '')
+  }, [])
+
+  const findImageForRow = useCallback((photo, barcode, sku) => {
+    const checks = []
+    if (photo) {
+      const pl = photo.toLowerCase()
+      checks.push(pl, pl.replace(/\.[^.]+$/, ''))
+    }
+    if (barcode) checks.push(barcode.toLowerCase())
+    if (sku) checks.push(sku.toLowerCase())
+    for (const key of checks) {
+      if (imageFiles[key]) return imageFiles[key]
+    }
+    return null
+  }, [imageFiles])
 
   const parseFile = (f) => {
     setFile(f)
@@ -100,9 +143,37 @@ function ImportModal({ onClose, onSuccess }) {
     if (!rows.length) return toast.error('No valid product rows found in the CSV')
     if (errors.length) return toast.error('Fix errors before importing')
     setImporting(true)
+    setProgress(0)
     try {
-      const { data } = await productAPI.bulkImport({ products: rows })
-      setResult(data.data || { imported: 0 })
+      const BATCH = 20
+      let done = 0
+
+      // Convert matched images to base64 and strip _photo from each row
+      const enriched = await Promise.all(rows.map(async (row) => {
+        const { _photo, ...product } = row
+        const imgFile = findImageForRow(_photo, row.barcode, row.sku)
+        if (imgFile) {
+          try {
+            const base64 = await fileToBase64(imgFile)
+            return { ...product, images: [base64] }
+          } catch { /* skip image on error */ }
+        }
+        // If photo column is a URL, use it directly
+        if (_photo && _photo.startsWith('http')) {
+          return { ...product, images: [_photo] }
+        }
+        return product
+      }))
+
+      // Import in batches of 20 to stay within the 50MB body limit
+      for (let i = 0; i < enriched.length; i += BATCH) {
+        const batch = enriched.slice(i, i + BATCH)
+        await productAPI.bulkImport({ products: batch })
+        done += batch.length
+        setProgress(Math.round((done / enriched.length) * 100))
+      }
+
+      setResult({ imported: done })
       onSuccess()
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Import failed')
@@ -186,12 +257,70 @@ function ImportModal({ onClose, onSuccess }) {
             </div>
           )}
 
+          {/* Image Folder Picker */}
+          <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <FolderOpen className="h-5 w-5 text-amber-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-700">Product Images Folder</p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {Object.keys(imageFiles).length > 0
+                      ? (() => {
+                          const totalFiles = Object.values(imageFiles).filter((v, i, a) => a.indexOf(v) === i).length
+                          const matched = rows.filter(r => findImageForRow(r._photo, r.barcode, r.sku)).length
+                          return `${totalFiles} images loaded · ${matched}/${rows.length} products matched`
+                        })()
+                      : 'Select "Photo Inventory" folder — images auto-matched by barcode'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => folderRef.current?.click()}
+                className="shrink-0 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5"
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+                {Object.keys(imageFiles).length > 0 ? 'Change' : 'Select Folder'}
+              </button>
+            </div>
+            <input
+              ref={folderRef}
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files)
+                if (!files.length) return
+                setImageFiles(buildImageMap(files))
+                toast.success(`${files.length} images loaded`)
+              }}
+            />
+          </div>
+
           {/* Errors */}
           {errors.length > 0 && (
             <div className="bg-red-50 rounded-lg p-3 space-y-1">
               <p className="text-xs font-semibold text-red-700 flex items-center gap-1.5"><AlertCircle className="h-4 w-4" /> {errors.length} error{errors.length > 1 ? 's' : ''} found</p>
               {errors.slice(0, 5).map((e, i) => <p key={i} className="text-xs text-red-600 ml-5">• {e}</p>)}
               {errors.length > 5 && <p className="text-xs text-red-400 ml-5">...and {errors.length - 5} more</p>}
+            </div>
+          )}
+
+          {/* Import progress */}
+          {importing && (
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Importing products with images...</span>
+                <span className="font-medium">{progress}%</span>
+              </div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
           )}
 
@@ -215,27 +344,39 @@ function ImportModal({ onClose, onSuccess }) {
                   <thead className="bg-slate-50 sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-left text-slate-500">#</th>
-                      {['Name','Barcode','HSN','Cost Price','Sell Price','MRP','Stock','Tax Type'].map((h) => (
+                      {['Name','Barcode','HSN','Cost Price','Sell Price','MRP','Stock','Tax%','Image'].map((h) => (
                         <th key={h} className="px-3 py-2 text-left text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.slice(0, 20).map((row, i) => (
-                      <tr key={i} className="border-t border-slate-100 hover:bg-slate-50">
-                        <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
-                        <td className="px-3 py-1.5 font-medium text-slate-800 max-w-[140px] truncate">{row.name || <span className="text-red-400">MISSING</span>}</td>
-                        <td className="px-3 py-1.5 font-mono text-slate-500">{row.barcode || '-'}</td>
-                        <td className="px-3 py-1.5 text-slate-500">{row.hsn_code || '-'}</td>
-                        <td className="px-3 py-1.5 text-slate-700">₹{row.purchase_price ?? '-'}</td>
-                        <td className="px-3 py-1.5 text-slate-700">₹{row.sale_price ?? '-'}</td>
-                        <td className="px-3 py-1.5 text-slate-700">₹{row.mrp ?? '-'}</td>
-                        <td className="px-3 py-1.5 text-slate-600">{row.stock ?? '-'}</td>
-                        <td className="px-3 py-1.5 text-slate-500">{row.tax_type || '-'}</td>
-                      </tr>
-                    ))}
+                    {rows.slice(0, 20).map((row, i) => {
+                      const hasImg = !!findImageForRow(row._photo, row.barcode, row.sku)
+                      return (
+                        <tr key={i} className="border-t border-slate-100 hover:bg-slate-50">
+                          <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
+                          <td className="px-3 py-1.5 font-medium text-slate-800 max-w-[140px] truncate">{row.name || <span className="text-red-400">MISSING</span>}</td>
+                          <td className="px-3 py-1.5 font-mono text-slate-500">{row.barcode || '-'}</td>
+                          <td className="px-3 py-1.5 text-slate-500">{row.hsn_code || '-'}</td>
+                          <td className="px-3 py-1.5 text-slate-700">₹{row.purchase_price ?? '-'}</td>
+                          <td className="px-3 py-1.5 text-slate-700">₹{row.sale_price ?? '-'}</td>
+                          <td className="px-3 py-1.5 text-slate-700">₹{row.mrp ?? '-'}</td>
+                          <td className="px-3 py-1.5 text-slate-600">{row.stock ?? '-'}</td>
+                          <td className="px-3 py-1.5 text-slate-500">{row.tax_rate ?? '-'}%</td>
+                          <td className="px-3 py-1.5">
+                            {Object.keys(imageFiles).length > 0 ? (
+                              hasImg
+                                ? <span className="text-green-600 font-medium">✓</span>
+                                : <span className="text-gray-300">—</span>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
                     {rows.length > 20 && (
-                      <tr><td colSpan={8} className="px-3 py-2 text-center text-gray-400 text-xs">...and {rows.length - 20} more rows</td></tr>
+                      <tr><td colSpan={10} className="px-3 py-2 text-center text-gray-400 text-xs">...and {rows.length - 20} more rows</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -497,9 +638,9 @@ export default function Products() {
           </select>
           <button
             onClick={() => { setSearch(''); setCategoryFilter(''); setBrandFilter(''); setPage(1) }}
-            className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            className="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
           >
-            SEARCH
+            Reset
           </button>
 
           <div className="ml-auto flex items-center gap-2">
