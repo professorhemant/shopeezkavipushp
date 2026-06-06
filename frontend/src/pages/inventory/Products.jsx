@@ -121,6 +121,12 @@ function ImportModal({ onClose, onSuccess }) {
           if (!product.name) errs.push(`Row ${i + 2}: "name" is required`)
           return product
         })
+        // Sort rows by category name so import is serial category-wise
+        clean.sort((a, b) => {
+          const ca = (a.category_name || '').toLowerCase()
+          const cb = (b.category_name || '').toLowerCase()
+          return ca < cb ? -1 : ca > cb ? 1 : 0
+        })
         setRows(clean)
         setErrors(parseErrors.map((e) => e.message).concat(errs))
       },
@@ -344,7 +350,7 @@ function ImportModal({ onClose, onSuccess }) {
                   <thead className="bg-slate-50 sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-left text-slate-500">#</th>
-                      {['Name','Barcode','HSN','Cost Price','Sell Price','MRP','Stock','Tax%','Image'].map((h) => (
+                      {['Name','Category','Barcode','HSN','Cost Price','Sell Price','MRP','Stock','Tax%','Image'].map((h) => (
                         <th key={h} className="px-3 py-2 text-left text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -356,6 +362,7 @@ function ImportModal({ onClose, onSuccess }) {
                         <tr key={i} className="border-t border-slate-100 hover:bg-slate-50">
                           <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
                           <td className="px-3 py-1.5 font-medium text-slate-800 max-w-[140px] truncate">{row.name || <span className="text-red-400">MISSING</span>}</td>
+                          <td className="px-3 py-1.5 text-slate-600 text-xs max-w-[100px] truncate">{row.category_name || '-'}</td>
                           <td className="px-3 py-1.5 font-mono text-slate-500">{row.barcode || '-'}</td>
                           <td className="px-3 py-1.5 text-slate-500">{row.hsn_code || '-'}</td>
                           <td className="px-3 py-1.5 text-slate-700">₹{row.purchase_price ?? '-'}</td>
@@ -376,7 +383,7 @@ function ImportModal({ onClose, onSuccess }) {
                       )
                     })}
                     {rows.length > 20 && (
-                      <tr><td colSpan={10} className="px-3 py-2 text-center text-gray-400 text-xs">...and {rows.length - 20} more rows</td></tr>
+                      <tr><td colSpan={11} className="px-3 py-2 text-center text-gray-400 text-xs">...and {rows.length - 20} more rows</td></tr>
                     )}
                   </tbody>
                 </table>
