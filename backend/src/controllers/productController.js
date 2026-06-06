@@ -59,10 +59,26 @@ const getAll = async (req, res, next) => {
 
     const { count, rows } = await Product.findAndCountAll(queryOptions);
 
+    // Aggregate total counts per category across all pages (same filters, no pagination)
+    const countRows = await Product.findAll({
+      where,
+      attributes: ['category_id', [fn('COUNT', col('Product.id')), 'total']],
+      include: [{ model: Category, as: 'Category', attributes: ['name'] }],
+      group: ['category_id', 'Category.id'],
+      raw: true,
+      nest: true,
+    });
+    const category_counts = {};
+    for (const r of countRows) {
+      const name = r['Category.name'] || r.Category?.name || 'Uncategorised';
+      category_counts[name] = parseInt(r.total, 10);
+    }
+
     return res.status(200).json({
       success: true,
       data: rows,
       pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
+      category_counts,
     });
   } catch (err) {
     next(err);

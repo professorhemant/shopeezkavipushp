@@ -418,6 +418,7 @@ const PER_PAGE = 35
 export default function Products() {
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
+  const [categoryCounts, setCategoryCounts] = useState({})
   const [categories, setCategories] = useState([])
   const [brands, setBrands] = useState([])
   const [loading, setLoading] = useState(true)
@@ -451,6 +452,7 @@ export default function Products() {
       setProducts(data.data || data.products || data.results || [])
       setTotalPages(data.pagination?.pages || 1)
       setTotal(data.pagination?.total || 0)
+      setCategoryCounts(data.category_counts || {})
       setSelected([])
     } catch {
       toast.error('Failed to load products')
@@ -742,11 +744,6 @@ export default function Products() {
               </thead>
               <tbody>
                 {(() => {
-                  const categoryCounts = {}
-                  products.forEach((p) => {
-                    const n = p.Category?.name || p.category_name || 'Uncategorised'
-                    categoryCounts[n] = (categoryCounts[n] || 0) + 1
-                  })
                   const rows = []
                   let lastCategory = null
                   products.forEach((p) => {
