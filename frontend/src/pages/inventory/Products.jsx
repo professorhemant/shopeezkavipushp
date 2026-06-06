@@ -446,6 +446,7 @@ export default function Products() {
         brand_id: brandFilter || undefined,
         page, limit: PER_PAGE,
         is_active: tab === 'active',
+        sort_by: 'category',
       })
       setProducts(data.data || data.products || data.results || [])
       setTotalPages(data.pagination?.pages || 1)
@@ -740,10 +741,23 @@ export default function Products() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => {
-                  const isLow = p.stock != null && p.min_stock != null && parseFloat(p.stock) < parseFloat(p.min_stock)
-                  const categoryName = p.Category?.name || p.category_name || '-'
-                  return (
+                {(() => {
+                  const rows = []
+                  let lastCategory = null
+                  products.forEach((p) => {
+                    const catName = p.Category?.name || p.category_name || 'Uncategorised'
+                    if (catName !== lastCategory) {
+                      lastCategory = catName
+                      rows.push(
+                        <tr key={`cat-${catName}`} className="bg-amber-50 border-b border-amber-100">
+                          <td colSpan={13} className="px-4 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider">
+                            {catName}
+                          </td>
+                        </tr>
+                      )
+                    }
+                    const isLow = p.stock != null && p.min_stock != null && parseFloat(p.stock) < parseFloat(p.min_stock)
+                    rows.push(
                     <tr key={p.id} className={`border-b hover:bg-slate-50 ${selected.includes(p.id) ? 'bg-amber-50' : ''}`}>
                       <td className="px-3 py-2 text-center">
                         <input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
@@ -776,7 +790,7 @@ export default function Products() {
                         {isLow && <AlertTriangle className="h-3 w-3 text-red-500 inline ml-1" />}
                       </td>
                       <td className="px-3 py-2 text-center font-mono text-xs text-slate-600">{p.barcode || '-'}</td>
-                      <td className="px-3 py-2 text-slate-600 text-xs">{categoryName}</td>
+                      <td className="px-3 py-2 text-slate-600 text-xs">{catName}</td>
                       <td className="px-3 py-2 text-center text-slate-600 text-xs">{p.min_stock ?? '-'}</td>
                       <td className="px-3 py-2 text-center">
                         {p.has_variants ? (
@@ -816,8 +830,10 @@ export default function Products() {
                         </div>
                       </td>
                     </tr>
-                  )
-                })}
+                    )
+                  })
+                  return rows
+                })()}
               </tbody>
             </table>
           </div>

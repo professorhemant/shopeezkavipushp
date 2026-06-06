@@ -17,7 +17,7 @@ const getAll = async (req, res, next) => {
   try {
     const firmId = req.firmId;
     const { limit, offset, page } = paginate(req.query);
-    const { search, category_id, brand_id, is_active, with_images } = req.query;
+    const { search, category_id, brand_id, is_active, with_images, sort_by } = req.query;
 
     const where = { firm_id: firmId };
     if (is_active !== undefined) where.is_active = is_active === 'true';
@@ -36,10 +36,14 @@ const getAll = async (req, res, next) => {
     // without building a large temporary table (avoids sort_buffer OOM on Railway)
     const isGallery = with_images === 'true';
 
+    const orderByCategory = sort_by === 'category' && !isGallery;
+
     const queryOptions = {
       where,
       attributes: isGallery ? undefined : { exclude: ['images'] },
-      order: [['id', 'DESC']],
+      order: orderByCategory
+        ? [[{ model: Category, as: 'Category' }, 'name', 'ASC'], ['name', 'ASC']]
+        : [['id', 'DESC']],
       limit,
       offset,
       distinct: true,
