@@ -742,6 +742,11 @@ export default function Products() {
               </thead>
               <tbody>
                 {(() => {
+                  const categoryCounts = {}
+                  products.forEach((p) => {
+                    const n = p.Category?.name || p.category_name || 'Uncategorised'
+                    categoryCounts[n] = (categoryCounts[n] || 0) + 1
+                  })
                   const rows = []
                   let lastCategory = null
                   products.forEach((p) => {
@@ -750,8 +755,9 @@ export default function Products() {
                       lastCategory = catName
                       rows.push(
                         <tr key={`cat-${catName}`} className="bg-amber-50 border-b border-amber-100">
-                          <td colSpan={13} className="px-4 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider">
+                          <td colSpan={13} className="px-4 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
                             {catName}
+                            <span className="font-normal text-amber-500 normal-case">({categoryCounts[catName]} product{categoryCounts[catName] !== 1 ? 's' : ''})</span>
                           </td>
                         </tr>
                       )
