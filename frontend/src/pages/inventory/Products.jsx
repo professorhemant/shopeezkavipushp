@@ -14,17 +14,34 @@ import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 // Build a lookup map: normalised filename (no ext, no price suffix) → File object
+// Parse image filenames of the form "<BARCODE>_<PRICE>.jpg" or "<BARCODE> <PRICE>.jpg"
+// Returns { map: { key → File }, prices: { barcodeKey → price } }
 const buildImageMap = (files) => {
   const map = {}
+  const prices = {}
   for (const f of files) {
     const lower = f.name.toLowerCase()
-    map[lower] = f                               // full: "czr001.png"
-    const noExt = lower.replace(/\.[^.]+$/, '')  // "czr001"
-    map[noExt] = f
-    const firstToken = noExt.split(' ')[0]       // "czr005" from "czr005 1699"
-    if (firstToken !== noExt) map[firstToken] = f
+    const noExt = lower.replace(/\.[^.]+$/, '')
+    map[lower] = f   // full filename with ext
+    map[noExt]  = f  // without ext
+
+    // Split on spaces, underscores, or hyphens
+    const parts = noExt.split(/[\s_-]+/).filter(Boolean)
+    const barcodePart = parts[0]
+    if (parts.length > 1 && barcodePart && barcodePart !== noExt) {
+      map[barcodePart] = f  // barcode-only key for matching
+
+      // Find the last numeric-looking part as the price
+      for (let i = parts.length - 1; i >= 1; i--) {
+        const p = parseFloat(parts[i])
+        if (!isNaN(p) && p > 0) {
+          prices[barcodePart] = p
+          break
+        }
+      }
+    }
   }
-  return map
+  return { map, prices }
 }
 
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
@@ -85,7 +102,8 @@ function ImportModal({ onClose, onSuccess }) {
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState(null)
   const [dragOver, setDragOver] = useState(false)
-  const [imageFiles, setImageFiles] = useState({})   // normalised key → File
+  const [imageFiles,    setImageFiles]    = useState({})  // normalised key → File
+  const [imagePriceMap, setImagePriceMap] = useState({})  // barcode key → price from filename
   const [progress, setProgress] = useState(0)
 
   // Set webkitdirectory on the folder input so user can pick an entire folder
@@ -162,6 +180,15 @@ function ImportModal({ onClose, onSuccess }) {
       // Convert matched images to base64 and strip _photo from each row
       const enriched = await Promise.all(rows.map(async (row) => {
         const { _photo, ...product } = row
+
+        // Auto-fill sell_price / mrp from image filename price if missing in CSV
+        const barcodeKey = (row.barcode || '').toLowerCase()
+        const priceFromImg = imagePriceMap[barcodeKey]
+        if (priceFromImg) {
+          if (!product.sale_price || product.sale_price === 0) product.sale_price = priceFromImg
+          if (!product.mrp || product.mrp === 0) product.mrp = priceFromImg
+        }
+
         const imgFile = findImageForRow(_photo, row.barcode, row.sku)
         if (imgFile) {
           try {
@@ -282,7 +309,7 @@ function ImportModal({ onClose, onSuccess }) {
                           const matched = rows.filter(r => findImageForRow(r._photo, r.barcode, r.sku)).length
                           return `${totalFiles} images loaded · ${matched}/${rows.length} products matched`
                         })()
-                      : 'Select "Photo Inventory" folder — images auto-matched by barcode'}
+                      : 'Name images as BARCODE_PRICE.jpg (e.g. BPHCZ1_1150.jpg) — price auto-extracted'}
                   </p>
                 </div>
               </div>
@@ -304,8 +331,11 @@ function ImportModal({ onClose, onSuccess }) {
               onChange={(e) => {
                 const files = Array.from(e.target.files)
                 if (!files.length) return
-                setImageFiles(buildImageMap(files))
-                toast.success(`${files.length} images loaded`)
+                const { map, prices } = buildImageMap(files)
+                setImageFiles(map)
+                setImagePriceMap(prices)
+                const priceCount = Object.keys(prices).length
+                toast.success(`${files.length} images loaded${priceCount ? ` · ${priceCount} prices extracted from filenames` : ''}`)
               }}
             />
           </div>
@@ -355,7 +385,7 @@ function ImportModal({ onClose, onSuccess }) {
                   <thead className="bg-slate-50 sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-left text-slate-500">#</th>
-                      {['Name','Category','Barcode','HSN','Cost Price','Sell Price','MRP','Stock','Tax%','Image'].map((h) => (
+                      {['Name','Category','Barcode','Sell Price','MRP','Disc%','Stock','Image'].map((h) => (
                         <th key={h} className="px-3 py-2 text-left text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -369,12 +399,30 @@ function ImportModal({ onClose, onSuccess }) {
                           <td className="px-3 py-1.5 font-medium text-slate-800 max-w-[140px] truncate">{row.name || <span className="text-red-400">MISSING</span>}</td>
                           <td className="px-3 py-1.5 text-slate-600 text-xs max-w-[100px] truncate">{row.category_name || '-'}</td>
                           <td className="px-3 py-1.5 font-mono text-slate-500">{row.barcode || '-'}</td>
-                          <td className="px-3 py-1.5 text-slate-500">{row.hsn_code || '-'}</td>
-                          <td className="px-3 py-1.5 text-slate-700">₹{row.purchase_price ?? '-'}</td>
-                          <td className="px-3 py-1.5 text-slate-700">₹{row.sale_price ?? '-'}</td>
-                          <td className="px-3 py-1.5 text-slate-700">₹{row.mrp ?? '-'}</td>
+                          <td className="px-3 py-1.5 text-slate-700">
+                            {(() => {
+                              const csvPrice = row.sale_price
+                              const imgPrice = imagePriceMap[(row.barcode || '').toLowerCase()]
+                              if (csvPrice && csvPrice > 0) return `₹${csvPrice}`
+                              if (imgPrice) return <span className="text-blue-600 font-medium">₹{imgPrice} <span className="text-xs text-blue-400">(img)</span></span>
+                              return <span className="text-gray-300">—</span>
+                            })()}
+                          </td>
+                          <td className="px-3 py-1.5 text-slate-700">
+                            {(() => {
+                              const csvMrp = row.mrp
+                              const imgPrice = imagePriceMap[(row.barcode || '').toLowerCase()]
+                              if (csvMrp && csvMrp > 0) return `₹${csvMrp}`
+                              if (imgPrice) return <span className="text-blue-600 font-medium">₹{imgPrice} <span className="text-xs text-blue-400">(img)</span></span>
+                              return <span className="text-gray-300">—</span>
+                            })()}
+                          </td>
+                          <td className="px-3 py-1.5 text-center">
+                            {parseFloat(row.discount_per) > 0
+                              ? <span className="bg-green-100 text-green-700 text-xs font-bold px-1.5 py-0.5 rounded">{row.discount_per}%</span>
+                              : <span className="text-gray-300">—</span>}
+                          </td>
                           <td className="px-3 py-1.5 text-slate-600">{row.stock ?? '-'}</td>
-                          <td className="px-3 py-1.5 text-slate-500">{row.tax_rate ?? '-'}%</td>
                           <td className="px-3 py-1.5">
                             {Object.keys(imageFiles).length > 0 ? (
                               hasImg
@@ -388,7 +436,7 @@ function ImportModal({ onClose, onSuccess }) {
                       )
                     })}
                     {rows.length > 20 && (
-                      <tr><td colSpan={11} className="px-3 py-2 text-center text-gray-400 text-xs">...and {rows.length - 20} more rows</td></tr>
+                      <tr><td colSpan={9} className="px-3 py-2 text-center text-gray-400 text-xs">...and {rows.length - 20} more rows</td></tr>
                     )}
                   </tbody>
                 </table>
