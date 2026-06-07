@@ -738,6 +738,7 @@ export default function Products() {
                   <th className="px-3 py-3 text-right">Cost Price</th>
                   <th className="px-3 py-3 text-right">MRP</th>
                   <th className="px-3 py-3 text-right">Sell Price</th>
+                  <th className="px-3 py-3 text-center">Disc %</th>
                   <th className="px-3 py-3 text-center">SKU</th>
                   <th className="px-3 py-3 text-center">Stock</th>
                   <th className="px-3 py-3 text-center">Barcode</th>
@@ -757,7 +758,7 @@ export default function Products() {
                       lastCategory = catName
                       rows.push(
                         <tr key={`cat-${catName}`} className="bg-amber-50 border-b border-amber-100">
-                          <td colSpan={13} className="px-4 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
+                          <td colSpan={14} className="px-4 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
                             {catName}
                             <span className="font-normal text-amber-500 normal-case">({categoryCounts[catName]} product{categoryCounts[catName] !== 1 ? 's' : ''})</span>
                           </td>
@@ -790,6 +791,15 @@ export default function Products() {
                       <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(p.purchase_price || 0)}</td>
                       <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(p.mrp || 0)}</td>
                       <td className="px-3 py-2 text-right font-medium text-slate-800">{formatCurrency(p.sale_price || 0)}</td>
+                      <td className="px-3 py-2 text-center">
+                        {parseFloat(p.discount_per) > 0 ? (
+                          <span className="inline-block bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded">
+                            {parseFloat(p.discount_per)}%
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-center font-mono text-xs text-slate-600">{p.sku || '-'}</td>
                       <td className="px-3 py-2 text-center">
                         <span className={`font-semibold ${isLow ? 'text-red-600' : 'text-slate-800'}`}>
