@@ -466,6 +466,130 @@ function ImportModal({ onClose, onSuccess }) {
   )
 }
 
+// ── Price Update Modal ────────────────────────────────────────────────────────
+function PriceUpdateModal({ products, onClose, onSuccess }) {
+  const folderRef = useRef()
+  const [priceMap,  setPriceMap]  = useState({}) // barcode_lower → price
+  const [matches,   setMatches]   = useState([])
+  const [updating,  setUpdating]  = useState(false)
+  const [done,      setDone]      = useState(null)
+
+  const handleImages = (files) => {
+    const { prices } = buildImageMap(files)
+    setPriceMap(prices)
+    const matched = products
+      .map((p) => ({ product: p, price: prices[(p.barcode || '').toLowerCase()] }))
+      .filter((m) => m.price)
+    setMatches(matched)
+    if (!Object.keys(prices).length) toast.error('No prices found in filenames — use BARCODE_PRICE.jpg format')
+  }
+
+  const handleUpdate = async () => {
+    setUpdating(true)
+    let updated = 0
+    for (const { product, price } of matches) {
+      try {
+        await productAPI.update(product.id, { sale_price: price, mrp: price })
+        updated++
+      } catch (_) {}
+    }
+    setDone(updated)
+    setUpdating(false)
+    onSuccess()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
+              <ImageIcon className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800">Update Prices from Images</h2>
+              <p className="text-xs text-slate-500">Image name format: BARCODE_PRICE.jpg (e.g. BPHCZ1_1150.jpg)</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="h-5 w-5 text-gray-500" /></button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+          {/* Folder picker */}
+          <div className="border-2 border-dashed border-blue-200 rounded-xl p-6 text-center">
+            <input ref={folderRef} type="file" multiple accept="image/*" className="hidden"
+              onChange={(e) => { const f = Array.from(e.target.files); if (f.length) handleImages(f) }} />
+            <ImageIcon className="h-10 w-10 text-blue-300 mx-auto mb-2" />
+            <p className="text-sm text-slate-600 font-medium mb-1">Select your images folder</p>
+            <p className="text-xs text-slate-400 mb-3">Filenames: <code className="bg-slate-100 px-1 rounded">BPHCZ1_1150.jpg</code> → price ₹1150 for barcode BPHCZ1</p>
+            <button
+              onClick={() => { folderRef.current?.setAttribute('webkitdirectory', ''); folderRef.current?.click() }}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            >
+              Select Folder
+            </button>
+          </div>
+
+          {/* No matches */}
+          {Object.keys(priceMap).length > 0 && matches.length === 0 && !done && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-sm text-orange-700">
+              No matching barcodes found. Make sure image names start with the product barcode (e.g. BPHCZ1_1150.jpg).
+            </div>
+          )}
+
+          {/* Matches preview */}
+          {matches.length > 0 && done === null && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{matches.length} products matched — prices to be set:</p>
+              <div className="border border-slate-200 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-50 sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-slate-500">Name</th>
+                      <th className="px-3 py-2 text-left text-slate-500">Barcode</th>
+                      <th className="px-3 py-2 text-right text-slate-500">Sell Price / MRP</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matches.map(({ product, price }) => (
+                      <tr key={product.id} className="border-t border-slate-100 hover:bg-slate-50">
+                        <td className="px-3 py-2 font-medium text-slate-800 truncate max-w-[180px]">{product.name}</td>
+                        <td className="px-3 py-2 font-mono text-slate-500">{product.barcode}</td>
+                        <td className="px-3 py-2 text-right text-green-600 font-bold">₹{price}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Success */}
+          {done !== null && (
+            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+              <p className="text-sm font-semibold text-green-800">{done} products updated with prices!</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
+          <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
+            {done !== null ? 'Close' : 'Cancel'}
+          </button>
+          {done === null && matches.length > 0 && (
+            <button onClick={handleUpdate} disabled={updating}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+              {updating && <LoadingSpinner size="sm" />}
+              Update {matches.length} Products
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const PER_PAGE = 35
 
 export default function Products() {
@@ -488,7 +612,8 @@ export default function Products() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [showDeleteAll, setShowDeleteAll] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
-  const [showImport, setShowImport] = useState(false)
+  const [showImport,      setShowImport]      = useState(false)
+  const [showPriceUpdate, setShowPriceUpdate] = useState(false)
   const [exporting, setExporting] = useState(false)
 
   const fetchProducts = useCallback(async () => {
@@ -641,6 +766,12 @@ export default function Products() {
             className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
           >
             <Upload className="h-4 w-4" /> Import Products
+          </button>
+          <button
+            onClick={() => setShowPriceUpdate(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
+          >
+            <ImageIcon className="h-4 w-4" /> Update Prices from Images
           </button>
           <button
             onClick={() => navigate('/tools/barcode')}
@@ -958,6 +1089,15 @@ export default function Products() {
         <ImportModal
           onClose={() => setShowImport(false)}
           onSuccess={() => { fetchProducts() }}
+        />
+      )}
+
+      {/* Price Update from Images Modal */}
+      {showPriceUpdate && (
+        <PriceUpdateModal
+          products={products}
+          onClose={() => setShowPriceUpdate(false)}
+          onSuccess={() => { fetchProducts(); setShowPriceUpdate(false) }}
         />
       )}
 
