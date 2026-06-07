@@ -479,7 +479,9 @@ function PriceUpdateModal({ products, onClose, onSuccess }) {
     if (folderRef.current) folderRef.current.setAttribute('webkitdirectory', '')
   }, [])
 
-  const handleImages = (files) => {
+  const handleImages = (allFiles) => {
+    const imgExts = /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif|avif|jfif|svg)$/i
+    const files = allFiles.filter(f => imgExts.test(f.name))
     const { prices } = buildImageMap(files)
     setPriceMap(prices)
     const matched = products
@@ -522,7 +524,7 @@ function PriceUpdateModal({ products, onClose, onSuccess }) {
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           {/* Folder picker */}
           <div className="border-2 border-dashed border-blue-200 rounded-xl p-6 text-center">
-            <input ref={folderRef} type="file" multiple accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.heic,.heif,.avif,.jfif" className="hidden"
+            <input ref={folderRef} type="file" multiple className="hidden"
               onChange={(e) => { const f = Array.from(e.target.files); if (f.length) handleImages(f) }} />
             <ImageIcon className="h-10 w-10 text-blue-300 mx-auto mb-2" />
             <p className="text-sm text-slate-600 font-medium mb-1">Select your images folder</p>
