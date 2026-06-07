@@ -474,11 +474,6 @@ function PriceUpdateModal({ products, onClose, onSuccess }) {
   const [updating,  setUpdating]  = useState(false)
   const [done,      setDone]      = useState(null)
 
-  // Must be set via useEffect — setting webkitdirectory in onClick doesn't work in browsers
-  useEffect(() => {
-    if (folderRef.current) folderRef.current.setAttribute('webkitdirectory', '')
-  }, [])
-
   const handleImages = (allFiles) => {
     const imgExts = /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif|avif|jfif|svg)$/i
     const files = allFiles.filter(f => imgExts.test(f.name))
@@ -527,13 +522,14 @@ function PriceUpdateModal({ products, onClose, onSuccess }) {
             <input ref={folderRef} type="file" multiple className="hidden"
               onChange={(e) => { const f = Array.from(e.target.files); if (f.length) handleImages(f) }} />
             <ImageIcon className="h-10 w-10 text-blue-300 mx-auto mb-2" />
-            <p className="text-sm text-slate-600 font-medium mb-1">Select your images folder</p>
-            <p className="text-xs text-slate-400 mb-3">Filenames: <code className="bg-slate-100 px-1 rounded">BPHCZ1_1150.jpg</code> → price ₹1150 for barcode BPHCZ1</p>
+            <p className="text-sm text-slate-600 font-medium mb-1">Select your image files</p>
+            <p className="text-xs text-slate-400 mb-1">Filenames: <code className="bg-slate-100 px-1 rounded">BPHCZ1_1150.jpg</code> → price ₹1150 for barcode BPHCZ1</p>
+            <p className="text-xs text-blue-500 mb-3">Tip: Open your folder → press <strong>Ctrl+A</strong> to select all images → click Open</p>
             <button
               onClick={() => folderRef.current?.click()}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
             >
-              Select Folder
+              Select Images
             </button>
           </div>
 
