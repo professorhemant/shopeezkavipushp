@@ -50,18 +50,23 @@ const csvRowToProduct = (row) => {
   const rawTaxType = (row.tax_type || '').trim().toLowerCase()
   const taxType = rawTaxType.includes('exclusive') ? 'exclusive' : 'inclusive'
 
+  // discount_per: support "discount_per", "discount%" or "discount" columns
+  const rawDiscount = row.discount_per ?? row['discount%'] ?? row.discount ?? ''
+  const discountPer = parseFloat(rawDiscount) || 0
+
   return {
     name:           (row.name || '').trim()       || undefined,
     sku:            (row.sku  || '').trim()       || undefined,
-    barcode:        (row.bar_code || '').trim()   || undefined,
+    barcode:        (row.bar_code || row.barcode || '').trim() || undefined,
     hsn_code:       (row.hsn_code || '').trim()   || undefined,
     sale_price:     parseFloat(row.sell_price)    || 0,
     mrp:            parseFloat(row.mrp)           || 0,
     purchase_price: parseFloat(row.cost_price)    || 0,
     stock:          parseFloat(row.stock_qty)     || 0,
     tax_type:       taxType,
-    // Support both "tax_rate" and "TAX RATE " (normalized to "tax rate" by PapaParse)
+    // Support both "tax_rate" and "TAX RATE" (normalized to "tax rate" by PapaParse)
     tax_rate:       parseFloat(row.tax_rate || row['tax rate']) || 0,
+    discount_per:   discountPer,
     color:          (row.color || '').trim()      || undefined,
     show_on_website: (row.show_on_website || '').trim().toUpperCase() === 'Y',
     trending:        (row.trending || '').trim().toUpperCase() === 'Y',
