@@ -1,6 +1,6 @@
 require('dotenv').config();
 const app = require('./src/app');
-const { sequelize, Firm, Role } = require('./src/models');
+const { sequelize, Firm, Role, Product } = require('./src/models');
 const { seedFirmAndAdmin, seedRoles } = require('./src/database/seeds/seed');
 
 const PORT = process.env.PORT || 5000;
@@ -16,6 +16,9 @@ async function startServer() {
 
     // Ensure Role model columns are up to date (alter only this table, safe)
     try { await Role.sync({ alter: true }); } catch (e) { console.warn('⚠️ Role sync skipped:', e.message); }
+
+    // Ensure Product model columns are up to date (adds discount_per and any future fields)
+    try { await Product.sync({ alter: true }); } catch (e) { console.warn('⚠️ Product sync skipped:', e.message); }
 
     // Drop global unique constraints from users table (phone/email should be firm-scoped)
     const dropIndexQueries = [
@@ -33,7 +36,6 @@ async function startServer() {
       "ALTER TABLE daybook_bridal_bookings MODIFY COLUMN payment_mode ENUM('cash','online','card') NOT NULL DEFAULT 'cash'",
       "ALTER TABLE daybook_bridal_dispatch  MODIFY COLUMN payment_mode ENUM('cash','online','card') NOT NULL DEFAULT 'cash'",
       "ALTER TABLE daybook_expenses MODIFY COLUMN expense_type ENUM('routine','incentive','salary','advance_salary') NOT NULL",
-      "ALTER TABLE products ADD COLUMN discount_per DECIMAL(5,2) NOT NULL DEFAULT 0",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
