@@ -15,20 +15,25 @@ function newRow() {
   return {
     _id: Date.now() + Math.random(),
     product_id: '', product_name: '', batch: '',
-    qty: 1, stock: 0, mrp: 0, unit_price: 0,
+    qty: 1, stock: 0, mrp: 0, unit_price: 0, discount_per: 0,
     tax_rate: 0, tax_amt: 0,
     total_before: 0, total_after: 0,
   }
 }
 
 function calcRow(r) {
-  const qty        = parseFloat(r.qty)        || 0
-  const unit_price = parseFloat(r.unit_price) || 0
-  const tax_rate   = parseFloat(r.tax_rate)   || 0
+  const qty          = parseFloat(r.qty)          || 0
+  const mrp          = parseFloat(r.mrp)          || 0
+  const discount_per = parseFloat(r.discount_per) || 0
+  // Auto-derive unit_price from mrp when discount_per is set; otherwise use raw unit_price
+  const unit_price   = discount_per > 0
+    ? parseFloat((mrp * (1 - discount_per / 100)).toFixed(2))
+    : (parseFloat(r.unit_price) || 0)
+  const tax_rate     = parseFloat(r.tax_rate)     || 0
   const total_before = qty * unit_price
   const tax_amt      = (total_before * tax_rate) / 100
   const total_after  = total_before + tax_amt
-  return { ...r, tax_amt, total_before, total_after }
+  return { ...r, unit_price, tax_amt, total_before, total_after }
 }
 
 const PAYMENT_MODES = [
@@ -211,32 +216,26 @@ export default function CreateInvoice() {
     }
   }
 
+  const applyProductToRow = (existingRow, product) => calcRow({
+    ...existingRow,
+    product_id:   product.id,
+    product_name: product.name,
+    stock:        product.stock       || 0,
+    mrp:          parseFloat(product.mrp || product.sale_price || 0),
+    unit_price:   parseFloat(product.sale_price || 0), // overridden by calcRow when discount_per > 0
+    tax_rate:     parseFloat(product.tax_rate || 0),
+    discount_per: parseFloat(product.discount_per || 0),
+  })
+
   const addProductRow = (product) => {
     setRows((prev) => {
-      // if last row is empty, fill it; else add new
       const last = prev[prev.length - 1]
       if (!last.product_id) {
         const updated = [...prev]
-        updated[updated.length - 1] = calcRow({
-          ...last,
-          product_id: product.id,
-          product_name: product.name,
-          stock: product.stock || 0,
-          mrp: product.mrp || product.sale_price || 0,
-          unit_price: product.sale_price || 0,
-          tax_rate: product.tax_rate || 0,
-        })
+        updated[updated.length - 1] = applyProductToRow(last, product)
         return updated
       }
-      return [...prev, calcRow({
-        ...newRow(),
-        product_id: product.id,
-        product_name: product.name,
-        stock: product.stock || 0,
-        mrp: product.mrp || product.sale_price || 0,
-        unit_price: product.sale_price || 0,
-        tax_rate: product.tax_rate || 0,
-      })]
+      return [...prev, applyProductToRow(newRow(), product)]
     })
     setActiveRowSearch(null)
     setRowSearch('')
@@ -256,6 +255,27 @@ export default function CreateInvoice() {
       return next.length ? next : [newRow()]
     })
   }
+
+  const updateRowDisc = (idx, val) => {
+    setRows((prev) => {
+      const next = [...prev]
+      next[idx] = calcRow({ ...next[idx], discount_per: val })
+      return next
+    })
+  }
+
+  // Reset manual discount when any product with auto-discount is present
+  useEffect(() => {
+    const hasAuto = rows.some((r) => r.product_id && parseFloat(r.discount_per) > 0)
+    if (hasAuto) { setDiscountApplied(0); setDiscountVal('') }
+  }, [rows])
+
+  // ── auto-discount derived from product discount_per ─────────
+  const hasAutoDiscount  = rows.some((r) => r.product_id && parseFloat(r.discount_per) > 0)
+  const autoDiscountAmt  = rows.reduce((s, r) => {
+    const saved = Math.max(0, (parseFloat(r.mrp) - parseFloat(r.unit_price)) * (parseFloat(r.qty) || 0))
+    return s + saved
+  }, 0)
 
   // ── computed totals ──────────────────────────────────────────
   const totalQty    = rows.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0)
@@ -558,12 +578,13 @@ export default function CreateInvoice() {
                 <col style={{ width: '140px' }} />
                 <col style={{ width: '60px' }} />
                 <col style={{ width: '50px' }} />
-                <col style={{ width: '65px' }} />
+                <col style={{ width: '60px' }} />
+                <col style={{ width: '75px' }} />
+                <col style={{ width: '55px' }} />
                 <col style={{ width: '80px' }} />
-                <col style={{ width: '85px' }} />
-                <col style={{ width: '65px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '100px' }} />
+                <col style={{ width: '60px' }} />
+                <col style={{ width: '95px' }} />
+                <col style={{ width: '95px' }} />
                 <col style={{ width: '28px' }} />
               </colgroup>
               <thead className="bg-slate-800 sticky top-0">
@@ -574,6 +595,9 @@ export default function CreateInvoice() {
                   <th className="px-2 py-2 text-center text-slate-200 font-medium">Qty</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">Stock</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">MRP.</th>
+                  <th className="px-2 py-2 text-center text-slate-200 font-medium">
+                    Disc%
+                  </th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">UnitPrice</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">Tax</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">
@@ -605,19 +629,9 @@ export default function CreateInvoice() {
                             {rowResults.map((p) => (
                               <button key={p.id}
                                 onMouseDown={() => {
-                                  updateRow(idx, 'product_id', p.id)
-                                  updateRow(idx, 'product_name', p.name)
                                   setRows((prev) => {
                                     const next = [...prev]
-                                    next[idx] = calcRow({
-                                      ...next[idx],
-                                      product_id: p.id,
-                                      product_name: p.name,
-                                      stock: p.stock || 0,
-                                      mrp: p.mrp || p.sale_price || 0,
-                                      unit_price: p.sale_price || 0,
-                                      tax_rate: p.tax_rate || 0,
-                                    })
+                                    next[idx] = applyProductToRow(next[idx], p)
                                     return next
                                   })
                                   setActiveRowSearch(null)
@@ -663,15 +677,7 @@ export default function CreateInvoice() {
                           if (found) {
                             setRows((prev) => {
                               const next = [...prev]
-                              next[idx] = calcRow({
-                                ...next[idx],
-                                product_id: found.id,
-                                product_name: found.name,
-                                stock: found.stock || 0,
-                                mrp: found.mrp || found.sale_price || 0,
-                                unit_price: found.sale_price || 0,
-                                tax_rate: found.tax_rate || 0,
-                              })
+                              next[idx] = applyProductToRow(next[idx], found)
                               return next
                             })
                           } else {
@@ -704,10 +710,33 @@ export default function CreateInvoice() {
                       />
                     </td>
 
+                    {/* Disc% */}
+                    <td className="px-2 py-1.5">
+                      <input
+                        type="number" min="0" max="100" step="0.01"
+                        value={row.discount_per}
+                        onChange={(e) => updateRowDisc(idx, e.target.value)}
+                        placeholder="0"
+                        title={parseFloat(row.discount_per) > 0 ? 'Auto from product' : 'Manual discount %'}
+                        className={`w-full border-2 rounded-lg px-1 py-1 text-xs text-center focus:outline-none focus:ring-2 bg-white ${
+                          parseFloat(row.discount_per) > 0
+                            ? 'border-green-400 text-green-700 focus:ring-green-400 bg-green-50'
+                            : 'border-slate-300 text-slate-600 focus:ring-slate-400'
+                        }`}
+                      />
+                    </td>
+
                     {/* UnitPrice */}
                     <td className="px-2 py-1.5">
                       <input type="number" min="0" step="0.01" value={row.unit_price}
-                        onChange={(e) => updateRow(idx, 'unit_price', e.target.value)}
+                        onChange={(e) => {
+                          setRows((prev) => {
+                            const next = [...prev]
+                            // Clear discount_per so calcRow uses this manual price
+                            next[idx] = calcRow({ ...next[idx], unit_price: e.target.value, discount_per: 0 })
+                            return next
+                          })
+                        }}
                         className="w-full border-2 border-orange-300 rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-500 bg-white"
                       />
                     </td>
@@ -832,43 +861,67 @@ export default function CreateInvoice() {
             <div className="flex items-center gap-2 mb-1">
               <div className="w-1.5 h-4 rounded-full bg-orange-400 shrink-0" />
               <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">Discount</span>
+              {hasAutoDiscount && (
+                <span className="text-xs bg-green-500 text-white px-1.5 py-0.5 rounded font-bold tracking-wide">AUTO</span>
+              )}
             </div>
-            <div className="flex items-center gap-1.5">
-              <select
-                value={discountType}
-                onChange={(e) => { setDiscountType(e.target.value); setDiscountApplied(0); setDiscountVal('') }}
-                className="flex-1 border-2 border-orange-300 rounded-lg px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-              >
-                <option value="after_tax">After Tax</option>
-                <option value="before_tax">Before Tax</option>
-              </select>
-              <select
-                value={discountMode}
-                onChange={(e) => setDiscountMode(e.target.value)}
-                className="w-20 border-2 border-orange-300 rounded-lg px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-              >
-                <option value="percent">%</option>
-                <option value="flat">Flat</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="number" min="0" placeholder="Enter discount"
-                value={discountVal}
-                onChange={(e) => setDiscountVal(e.target.value)}
-                className="flex-1 border-2 border-orange-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-              />
-              <button
-                onClick={applyDiscount}
-                className="px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-bold whitespace-nowrap shadow"
-              >
-                Apply
-              </button>
-            </div>
-            {discountApplied > 0 && (
-              <div className="flex items-center gap-1 bg-green-100 rounded-lg px-2 py-1">
-                <span className="text-xs text-green-700 font-bold">− ₹{discountApplied.toFixed(2)} saved!</span>
+
+            {hasAutoDiscount ? (
+              /* ── Auto discount from product CSV ── */
+              <div className="space-y-1.5">
+                <div className="bg-green-50 border border-green-300 rounded-lg px-3 py-2">
+                  <p className="text-xs text-green-700 font-semibold">Product discounts auto-applied</p>
+                  <p className="text-sm text-green-800 font-bold mt-0.5">− ₹{autoDiscountAmt.toFixed(2)} saved on MRP</p>
+                </div>
+                {rows.filter((r) => r.product_id && parseFloat(r.discount_per) > 0).map((r) => (
+                  <div key={r._id} className="flex justify-between items-center bg-white border border-green-200 rounded px-2 py-1">
+                    <span className="text-xs text-slate-600 truncate max-w-[130px]">{r.product_name}</span>
+                    <span className="text-xs text-green-700 font-bold shrink-0">{parseFloat(r.discount_per)}% off</span>
+                  </div>
+                ))}
+                <p className="text-xs text-orange-500 italic">Discount already embedded in unit price</p>
               </div>
+            ) : (
+              /* ── Manual discount (no product discount in CSV) ── */
+              <>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={discountType}
+                    onChange={(e) => { setDiscountType(e.target.value); setDiscountApplied(0); setDiscountVal('') }}
+                    className="flex-1 border-2 border-orange-300 rounded-lg px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                  >
+                    <option value="after_tax">After Tax</option>
+                    <option value="before_tax">Before Tax</option>
+                  </select>
+                  <select
+                    value={discountMode}
+                    onChange={(e) => setDiscountMode(e.target.value)}
+                    className="w-20 border-2 border-orange-300 rounded-lg px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                  >
+                    <option value="percent">%</option>
+                    <option value="flat">Flat</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number" min="0" placeholder="Enter discount"
+                    value={discountVal}
+                    onChange={(e) => setDiscountVal(e.target.value)}
+                    className="flex-1 border-2 border-orange-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                  />
+                  <button
+                    onClick={applyDiscount}
+                    className="px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-bold whitespace-nowrap shadow"
+                  >
+                    Apply
+                  </button>
+                </div>
+                {discountApplied > 0 && (
+                  <div className="flex items-center gap-1 bg-green-100 rounded-lg px-2 py-1">
+                    <span className="text-xs text-green-700 font-bold">− ₹{discountApplied.toFixed(2)} saved!</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

@@ -31,6 +31,7 @@ const Product = sequelize.define('Product', {
   weight: { type: DataTypes.DECIMAL(10, 3) },
   weight_unit: { type: DataTypes.STRING(10) },
   location: { type: DataTypes.STRING(100) },
+  discount_per: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
   notes: { type: DataTypes.TEXT },
 }, { tableName: 'products' });
 
