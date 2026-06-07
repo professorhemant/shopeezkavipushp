@@ -474,6 +474,11 @@ function PriceUpdateModal({ products, onClose, onSuccess }) {
   const [updating,  setUpdating]  = useState(false)
   const [done,      setDone]      = useState(null)
 
+  // Must be set via useEffect — setting webkitdirectory in onClick doesn't work in browsers
+  useEffect(() => {
+    if (folderRef.current) folderRef.current.setAttribute('webkitdirectory', '')
+  }, [])
+
   const handleImages = (files) => {
     const { prices } = buildImageMap(files)
     setPriceMap(prices)
@@ -523,7 +528,7 @@ function PriceUpdateModal({ products, onClose, onSuccess }) {
             <p className="text-sm text-slate-600 font-medium mb-1">Select your images folder</p>
             <p className="text-xs text-slate-400 mb-3">Filenames: <code className="bg-slate-100 px-1 rounded">BPHCZ1_1150.jpg</code> → price ₹1150 for barcode BPHCZ1</p>
             <button
-              onClick={() => { folderRef.current?.setAttribute('webkitdirectory', ''); folderRef.current?.click() }}
+              onClick={() => folderRef.current?.click()}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
             >
               Select Folder
