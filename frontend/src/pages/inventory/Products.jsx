@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
+import JsBarcode from 'jsbarcode'
 import toast from 'react-hot-toast'
 import { productAPI, categoryAPI, brandAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -593,6 +594,196 @@ function PriceUpdateModal({ products, onClose, onSuccess }) {
   )
 }
 
+// ── Barcode Print Modal ───────────────────────────────────────────────────────
+const generateBarcodeDataUrl = (text) => {
+  try {
+    const canvas = document.createElement('canvas')
+    JsBarcode(canvas, text, { format: 'CODE128', width: 2, height: 60, displayValue: false, margin: 6 })
+    return canvas.toDataURL('image/png')
+  } catch {
+    return null
+  }
+}
+
+function PrintBarcodesModal({ products, selectedIds, onClose }) {
+  const selectedProducts = products.filter((p) => selectedIds.includes(p.id))
+  const [copies, setCopies] = useState(1)
+  const [labelsPerRow, setLabelsPerRow] = useState(3)
+  const [showName, setShowName] = useState(true)
+  const [showPrice, setShowPrice] = useState(true)
+
+  const handlePrint = () => {
+    const labels = []
+    for (const p of selectedProducts) {
+      const barcodeText = p.barcode || p.sku || ''
+      if (!barcodeText) continue
+      const imgUrl = generateBarcodeDataUrl(barcodeText)
+      if (!imgUrl) continue
+      const price = p.sale_price || p.mrp || 0
+      const mrp = p.mrp || 0
+      for (let c = 0; c < copies; c++) {
+        labels.push({ name: p.name, barcodeText, imgUrl, price, mrp })
+      }
+    }
+
+    if (!labels.length) {
+      toast.error('No valid barcodes to print (products need a barcode value)')
+      return
+    }
+
+    const labelWidth = labelsPerRow === 1 ? 220 : labelsPerRow === 2 ? 190 : labelsPerRow === 4 ? 145 : 165
+    const win = window.open('', '_blank')
+    win.document.write(`
+      <html>
+      <head>
+        <title>Barcode Labels</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Arial, sans-serif; background: #fff; padding: 8px; }
+          .grid { display: flex; flex-wrap: wrap; gap: 6px; }
+          .label {
+            width: ${labelWidth}px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 6px 8px;
+            text-align: center;
+            page-break-inside: avoid;
+            background: #fff;
+          }
+          .label .name {
+            font-size: 10px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .label .price {
+            font-size: 13px;
+            font-weight: bold;
+            color: #b45309;
+            margin-bottom: 2px;
+          }
+          .label .mrp {
+            font-size: 9px;
+            color: #94a3b8;
+            margin-bottom: 2px;
+          }
+          .label img { width: 100%; max-height: 48px; object-fit: contain; }
+          .label .code { font-size: 9px; font-family: monospace; color: #64748b; margin-top: 2px; }
+          @media print {
+            body { padding: 4px; }
+            @page { margin: 6mm; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="grid">
+          ${labels.map((l) => `
+            <div class="label">
+              ${showName ? `<div class="name" title="${l.name}">${l.name}</div>` : ''}
+              ${showPrice && l.price > 0 ? `<div class="price">&#8377;${Number(l.price).toFixed(0)}</div>` : ''}
+              ${showPrice && l.mrp > 0 && l.mrp !== l.price ? `<div class="mrp">MRP: &#8377;${Number(l.mrp).toFixed(0)}</div>` : ''}
+              <img src="${l.imgUrl}" alt="${l.barcodeText}" />
+              <div class="code">${l.barcodeText}</div>
+            </div>
+          `).join('')}
+        </div>
+        <script>window.onload = () => { window.print(); }<\/script>
+      </body>
+      </html>
+    `)
+    win.document.close()
+  }
+
+  const skippedCount = selectedProducts.filter((p) => !p.barcode && !p.sku).length
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+              <Printer className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800">Print Barcode Labels</h2>
+              <p className="text-xs text-slate-500">{selectedProducts.length} product{selectedProducts.length !== 1 ? 's' : ''} selected</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          {skippedCount > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-xs text-orange-700 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {skippedCount} product{skippedCount !== 1 ? 's have' : ' has'} no barcode/SKU and will be skipped
+            </div>
+          )}
+
+          {/* Copies */}
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">Copies per product</label>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setCopies((c) => Math.max(1, c - 1))}
+                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold text-lg">−</button>
+              <span className="w-10 text-center font-semibold text-slate-800">{copies}</span>
+              <button onClick={() => setCopies((c) => Math.min(20, c + 1))}
+                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold text-lg">+</button>
+            </div>
+          </div>
+
+          {/* Labels per row */}
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-2">Labels per row</label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4].map((n) => (
+                <button key={n} onClick={() => setLabelsPerRow(n)}
+                  className={`flex-1 py-1.5 rounded-lg border text-sm font-medium ${labelsPerRow === n ? 'bg-amber-600 text-white border-amber-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Options */}
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={showName} onChange={(e) => setShowName(e.target.checked)} className="rounded" />
+              Product Name
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={showPrice} onChange={(e) => setShowPrice(e.target.checked)} className="rounded" />
+              Price
+            </label>
+          </div>
+
+          {/* Summary */}
+          <div className="bg-slate-50 rounded-lg px-4 py-3 text-xs text-slate-600">
+            Total labels to print: <strong className="text-slate-800">{(selectedProducts.length - skippedCount) * copies}</strong>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
+          <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
+            Cancel
+          </button>
+          <button onClick={handlePrint}
+            className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <Printer className="h-4 w-4" /> Print Labels
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const PER_PAGE = 35
 
 export default function Products() {
@@ -615,8 +806,9 @@ export default function Products() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [showDeleteAll, setShowDeleteAll] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
-  const [showImport,      setShowImport]      = useState(false)
-  const [showPriceUpdate, setShowPriceUpdate] = useState(false)
+  const [showImport,        setShowImport]        = useState(false)
+  const [showPriceUpdate,   setShowPriceUpdate]   = useState(false)
+  const [showPrintBarcodes, setShowPrintBarcodes] = useState(false)
   const [exporting, setExporting] = useState(false)
 
   const fetchProducts = useCallback(async () => {
@@ -741,7 +933,7 @@ export default function Products() {
 
   const handlePrintBarcodes = () => {
     if (selected.length === 0) return toast.error('Select products to print barcodes')
-    toast.success(`Printing barcodes for ${selected.length} product(s)`)
+    setShowPrintBarcodes(true)
   }
 
   // Page number buttons (max 9 shown)
@@ -1086,6 +1278,15 @@ export default function Products() {
           </div>
         )}
       </div>
+
+      {/* Print Barcodes Modal */}
+      {showPrintBarcodes && (
+        <PrintBarcodesModal
+          products={products}
+          selectedIds={selected}
+          onClose={() => setShowPrintBarcodes(false)}
+        />
+      )}
 
       {/* Import Modal */}
       {showImport && (
