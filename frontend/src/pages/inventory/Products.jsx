@@ -1107,6 +1107,7 @@ export default function Products() {
                   <th className="px-3 py-3 text-center w-8">
                     <input type="checkbox" checked={selected.length === products.length} onChange={toggleAll} className="rounded" />
                   </th>
+                  <th className="px-3 py-3 text-center w-8">Sr.</th>
                   <th className="px-3 py-3 text-left w-10">Image</th>
                   <th className="px-3 py-3 text-left">Name</th>
                   <th className="px-3 py-3 text-right">Cost Price</th>
@@ -1126,13 +1127,13 @@ export default function Products() {
                 {(() => {
                   const rows = []
                   let lastCategory = null
-                  products.forEach((p) => {
+                  products.forEach((p, pIdx) => {
                     const catName = p.Category?.name || p.category_name || 'Uncategorised'
                     if (catName !== lastCategory) {
                       lastCategory = catName
                       rows.push(
                         <tr key={`cat-${catName}`} className="bg-amber-50 border-b border-amber-100">
-                          <td colSpan={14} className="px-4 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
+                          <td colSpan={15} className="px-4 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
                             {catName}
                             <span className="font-normal text-amber-500 normal-case">({categoryCounts[catName]} product{categoryCounts[catName] !== 1 ? 's' : ''})</span>
                           </td>
@@ -1145,6 +1146,7 @@ export default function Products() {
                       <td className="px-3 py-2 text-center">
                         <input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
                       </td>
+                      <td className="px-3 py-2 text-center text-xs text-slate-400 font-medium">{startRow + pIdx}</td>
                       <td className="px-3 py-2">
                         {p.images?.[0] || p.image ? (
                           <img src={p.images?.[0] || p.image} alt={p.name} className="h-9 w-9 rounded object-cover border border-slate-200" />
