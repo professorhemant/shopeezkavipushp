@@ -608,7 +608,7 @@ const generateBarcodeDataUrl = (text) => {
 function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const selectedProducts = products.filter((p) => selectedIds.includes(p.id))
   const [copies, setCopies] = useState(1)
-  const [labelsPerRow, setLabelsPerRow] = useState(3)
+  const [labelsPerRow, setLabelsPerRow] = useState(4)
   const [showName, setShowName] = useState(true)
   const [showPrice, setShowPrice] = useState(true)
 
