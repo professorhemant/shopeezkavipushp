@@ -1,8 +1,17 @@
 'use strict';
 
 const { Op, fn, col, literal } = require('sequelize');
-const { Product, Category, Brand, Unit, ProductVariant, InventoryBatch } = require('../models');
+const { Product, Category, Brand, Unit, ProductVariant, InventoryBatch, SaleItem, PurchaseItem } = require('../models');
 const barcodeUtils = require('../utils/barcodeUtils');
+
+// Hard-delete a product: nullify FK refs in sale/purchase history, remove child records, then destroy
+const hardDeleteProduct = async (productId) => {
+  await SaleItem.update({ product_id: null }, { where: { product_id: productId } });
+  await PurchaseItem.update({ product_id: null }, { where: { product_id: productId } });
+  await ProductVariant.destroy({ where: { product_id: productId } });
+  await InventoryBatch.destroy({ where: { product_id: productId } });
+  await Product.destroy({ where: { id: productId } });
+};
 
 const paginate = (query) => {
   const page = Math.max(1, parseInt(query.page) || 1);
@@ -147,7 +156,7 @@ const deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
-    await product.destroy();
+    await hardDeleteProduct(product.id);
     return res.status(200).json({ success: true, message: 'Product deleted.' });
   } catch (err) {
     next(err);
@@ -303,8 +312,16 @@ const generateBarcode = async (req, res, next) => {
  */
 const deleteAllProducts = async (req, res, next) => {
   try {
-    const deleted = await Product.destroy({ where: { firm_id: req.firmId } });
-    return res.status(200).json({ success: true, message: 'All products deleted.', data: { deleted } });
+    const products = await Product.findAll({ where: { firm_id: req.firmId }, attributes: ['id'] });
+    const ids = products.map((p) => p.id);
+    if (ids.length) {
+      await SaleItem.update({ product_id: null }, { where: { product_id: { [Op.in]: ids } } });
+      await PurchaseItem.update({ product_id: null }, { where: { product_id: { [Op.in]: ids } } });
+      await ProductVariant.destroy({ where: { product_id: { [Op.in]: ids } } });
+      await InventoryBatch.destroy({ where: { product_id: { [Op.in]: ids } } });
+      await Product.destroy({ where: { firm_id: req.firmId } });
+    }
+    return res.status(200).json({ success: true, message: 'All products deleted.', data: { deleted: ids.length } });
   } catch (err) {
     next(err);
   }
