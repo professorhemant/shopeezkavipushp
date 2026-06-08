@@ -141,14 +141,14 @@ const update = async (req, res, next) => {
 };
 
 /**
- * DELETE /products/:id  (soft delete)
+ * DELETE /products/:id  (hard delete)
  */
 const deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
-    await product.update({ is_active: false });
-    return res.status(200).json({ success: true, message: 'Product deactivated.' });
+    await product.destroy();
+    return res.status(200).json({ success: true, message: 'Product deleted.' });
   } catch (err) {
     next(err);
   }
@@ -303,10 +303,7 @@ const generateBarcode = async (req, res, next) => {
  */
 const deleteAllProducts = async (req, res, next) => {
   try {
-    const [deleted] = await Product.update(
-      { is_active: false },
-      { where: { firm_id: req.firmId, is_active: true } }
-    );
+    const deleted = await Product.destroy({ where: { firm_id: req.firmId } });
     return res.status(200).json({ success: true, message: 'All products deleted.', data: { deleted } });
   } catch (err) {
     next(err);
