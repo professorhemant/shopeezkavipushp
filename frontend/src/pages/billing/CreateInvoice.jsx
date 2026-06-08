@@ -203,16 +203,27 @@ export default function CreateInvoice() {
   }, [rowSearch, allProducts])
 
   // ── barcode scan ─────────────────────────────────────────────
-  const handleBarcodeEnter = (e) => {
+  const handleBarcodeEnter = async (e) => {
     if (e.key !== 'Enter' || !barcode.trim()) return
-    const found = allProducts.find(
-      (p) => p.barcode === barcode.trim() || p.sku === barcode.trim()
+    const q = barcode.trim()
+    let found = allProducts.find(
+      (p) => (p.barcode || '') === q || (p.sku || '') === q
     )
+    if (!found) {
+      try {
+        const res = await productAPI.getAll({ search: q, limit: 10 })
+        const list = res.data?.data || res.data?.products || []
+        found = list.find(
+          (p) => (p.barcode || '').toLowerCase() === q.toLowerCase() ||
+                 (p.sku || '').toLowerCase() === q.toLowerCase()
+        )
+      } catch (_) {}
+    }
     if (found) {
       addProductRow(found)
       setBarcode('')
     } else {
-      toast.error('Product not found')
+      toast.error('Product not found for barcode: ' + q)
     }
   }
 
