@@ -14,7 +14,9 @@ function newRow() {
     item_name: '',
     item_code: '',
     qty: 1,
+    stock: 0,
     mrp: 0,
+    discount_per: 0,
     unit_price: 0,
     tax_rate: 0,
     tax_amt: 0,
@@ -24,13 +26,17 @@ function newRow() {
 }
 
 function calcRow(r) {
-  const qty        = parseFloat(r.qty)        || 0
-  const unit_price = parseFloat(r.unit_price) || 0
-  const tax_rate   = parseFloat(r.tax_rate)   || 0
+  const qty          = parseFloat(r.qty)          || 0
+  const mrp          = parseFloat(r.mrp)          || 0
+  const discount_per = parseFloat(r.discount_per) || 0
+  const unit_price   = discount_per > 0
+    ? parseFloat((mrp * (1 - discount_per / 100)).toFixed(2))
+    : (parseFloat(r.unit_price) || 0)
+  const tax_rate     = parseFloat(r.tax_rate)     || 0
   const total_before = qty * unit_price
   const tax_amt      = (total_before * tax_rate) / 100
   const total_after  = total_before + tax_amt
-  return { ...r, tax_amt, total_before, total_after }
+  return { ...r, unit_price, tax_amt, total_before, total_after }
 }
 
 export default function CreateInvoiceManual() {
@@ -173,6 +179,7 @@ export default function CreateInvoiceManual() {
           batch: r.item_code.trim() || null,
           quantity: parseFloat(r.qty) || 1,
           mrp: parseFloat(r.mrp) || 0,
+          discount_per: parseFloat(r.discount_per) || 0,
           unit_price: parseFloat(r.unit_price) || 0,
           tax_rate: parseFloat(r.tax_rate) || 0,
           tax_amount: r.tax_amt || 0,
@@ -365,14 +372,16 @@ export default function CreateInvoiceManual() {
             <table className="text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%' }}>
               <colgroup>
                 <col style={{ width: '28px' }} />
-                <col style={{ width: '160px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '50px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '100px' }} />
+                <col style={{ width: '48px' }} />
+                <col style={{ width: '55px' }} />
+                <col style={{ width: '70px' }} />
+                <col style={{ width: '55px' }} />
                 <col style={{ width: '80px' }} />
+                <col style={{ width: '55px' }} />
                 <col style={{ width: '90px' }} />
-                <col style={{ width: '65px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '100px' }} />
+                <col style={{ width: '90px' }} />
                 <col style={{ width: '28px' }} />
               </colgroup>
               <thead className="bg-slate-800 sticky top-0">
@@ -381,7 +390,9 @@ export default function CreateInvoiceManual() {
                   <th className="px-2 py-2 text-left text-slate-200 font-medium">Item Name</th>
                   <th className="px-2 py-2 text-left text-slate-200 font-medium">Code / Barcode</th>
                   <th className="px-2 py-2 text-center text-slate-200 font-medium">Qty</th>
+                  <th className="px-2 py-2 text-center text-slate-200 font-medium">Stock</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">MRP</th>
+                  <th className="px-2 py-2 text-right text-slate-200 font-medium">Disc %</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">Unit Price</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">Tax %</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">
@@ -426,11 +437,27 @@ export default function CreateInvoiceManual() {
                       />
                     </td>
 
+                    {/* Stock */}
+                    <td className="px-2 py-1.5">
+                      <input type="number" min="0" step="1" value={row.stock}
+                        onChange={(e) => updateRow(idx, 'stock', e.target.value)}
+                        className="w-full border-2 border-slate-200 rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white"
+                      />
+                    </td>
+
                     {/* MRP */}
                     <td className="px-2 py-1.5">
                       <input type="number" min="0" step="0.01" value={row.mrp}
                         onChange={(e) => updateRow(idx, 'mrp', e.target.value)}
                         className="w-full border-2 border-amber-300 rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+                      />
+                    </td>
+
+                    {/* Disc % */}
+                    <td className="px-2 py-1.5">
+                      <input type="number" min="0" max="100" step="0.01" value={row.discount_per}
+                        onChange={(e) => updateRow(idx, 'discount_per', e.target.value)}
+                        className="w-full border-2 border-red-200 rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 bg-white"
                       />
                     </td>
 
