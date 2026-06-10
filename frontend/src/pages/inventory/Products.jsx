@@ -656,7 +656,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               height: 15mm;
               display: flex;
               flex-direction: column;
-              padding: 0.4mm 1.2mm 0.3mm 40mm;
+              padding: 0.4mm 1.2mm 0.3mm 60mm;
               page-break-after: always;
               overflow: hidden;
               background: #fff;
@@ -665,12 +665,12 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               display: flex;
               justify-content: flex-end;
               align-items: baseline;
-              gap: 2mm;
+              gap: 1mm;
               flex-shrink: 0;
               overflow: hidden;
             }
             .name {
-              font-size: 6.5pt;
+              font-size: 4pt;
               font-weight: bold;
               color: #000;
               white-space: nowrap;
@@ -679,7 +679,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               line-height: 1.2;
             }
             .price {
-              font-size: 7pt;
+              font-size: 4pt;
               font-weight: bold;
               color: #000;
               white-space: nowrap;
@@ -694,11 +694,11 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               display: block;
             }
             .code {
-              font-size: 5pt;
+              font-size: 3pt;
               font-family: monospace;
               color: #333;
               line-height: 1;
-              letter-spacing: 0.5px;
+              letter-spacing: 0.3px;
               text-align: right;
               white-space: nowrap;
               flex-shrink: 0;
