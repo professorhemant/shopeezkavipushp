@@ -664,7 +664,8 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               display: flex;
               flex-direction: row;
               align-items: baseline;
-              justify-content: space-between;
+              justify-content: center;
+              gap: 3mm;
               width: 100%;
               margin-bottom: 0.5mm;
             }
@@ -675,7 +676,6 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-              flex: 1;
               line-height: 1.2;
             }
             .price {
@@ -684,13 +684,12 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               color: #b45309;
               white-space: nowrap;
               flex-shrink: 0;
-              margin-left: 2mm;
               line-height: 1.2;
             }
             .label-barcode {
               display: flex;
               flex-direction: column;
-              align-items: flex-start;
+              align-items: center;
               width: 100%;
             }
             .label-barcode img {
