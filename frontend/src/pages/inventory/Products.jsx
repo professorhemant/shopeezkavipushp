@@ -646,6 +646,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
       win.document.write(`
         <html>
         <head>
+          <meta charset="UTF-8" />
           <title>Barcode Labels 100×15mm</title>
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -722,7 +723,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
             <div class="label">
               <div class="label-top">
                 ${showName ? `<div class="name" title="${l.name}">${l.name}</div>` : ''}
-                ${showPrice && l.price > 0 ? `<div class="price">&#8377;${Number(l.price).toFixed(0)}</div>` : ''}
+                ${showPrice && l.price > 0 ? `<div class="price">₹${Number(l.price).toFixed(0)}</div>` : ''}
               </div>
               <div class="label-barcode">
                 <img src="${l.imgUrl}" alt="${l.barcodeText}" />
