@@ -654,21 +654,19 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               width: 100mm;
               height: 15mm;
               display: flex;
-              flex-direction: row;
-              align-items: center;
+              flex-direction: column;
+              justify-content: center;
               padding: 0.5mm 2mm;
               page-break-after: always;
               overflow: hidden;
             }
-            .label-text {
-              width: 40mm;
-              flex-shrink: 0;
-              padding-right: 2mm;
+            .label-top {
               display: flex;
               flex-direction: row;
-              align-items: center;
-              gap: 2mm;
-              overflow: hidden;
+              align-items: baseline;
+              justify-content: space-between;
+              width: 100%;
+              margin-bottom: 0.5mm;
             }
             .name {
               font-size: 7pt;
@@ -677,34 +675,34 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-              line-height: 1.3;
               flex: 1;
+              line-height: 1.2;
             }
             .price {
-              font-size: 8.5pt;
+              font-size: 8pt;
               font-weight: bold;
               color: #b45309;
-              line-height: 1.2;
-              flex-shrink: 0;
               white-space: nowrap;
+              flex-shrink: 0;
+              margin-left: 2mm;
+              line-height: 1.2;
             }
             .label-barcode {
-              flex: 1;
               display: flex;
               flex-direction: column;
-              align-items: center;
-              justify-content: center;
+              align-items: flex-start;
+              width: 100%;
             }
             .label-barcode img {
-              max-width: 100%;
-              height: 11mm;
-              object-fit: contain;
+              width: 100%;
+              height: 8mm;
+              object-fit: fill;
             }
             .code {
-              font-size: 5.5pt;
+              font-size: 5pt;
               font-family: monospace;
               color: #444;
-              margin-top: 0.3mm;
+              margin-top: 0.2mm;
               line-height: 1;
               letter-spacing: 0.5px;
             }
@@ -723,7 +721,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <body>
           ${labels.map((l) => `
             <div class="label">
-              <div class="label-text">
+              <div class="label-top">
                 ${showName ? `<div class="name" title="${l.name}">${l.name}</div>` : ''}
                 ${showPrice && l.price > 0 ? `<div class="price">&#8377;${Number(l.price).toFixed(0)}</div>` : ''}
               </div>
