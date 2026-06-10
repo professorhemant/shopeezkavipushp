@@ -108,11 +108,10 @@ export default function BarcodeGenerator() {
       <style>
         body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #fff; }
         .label { border: 1px solid #ddd; padding: 16px 20px; text-align: center; width: 280px; }
-        .label .top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-        .label .top-row h3 { margin: 0; font-size: 14px; font-weight: bold; text-align: left; }
+        .label .top-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px; }
+        .label .top-row h3 { margin: 0; font-size: 14px; font-weight: bold; }
         .label .top-row .price { font-size: 18px; font-weight: bold; color: #b45309; white-space: nowrap; }
-        .label .meta { font-size: 11px; color: #666; margin: 2px 0; }
-        img { max-width: 100%; margin: 8px 0 4px; }
+        img { max-width: 100%; margin: 8px 0 0; }
       </style></head>
       <body><div class="label">
         ${selectedProduct ? `
@@ -121,7 +120,6 @@ export default function BarcodeGenerator() {
             ${selectedProduct.sale_price ? `<span class="price">&#8377;${Number(selectedProduct.sale_price).toFixed(2)}</span>` : ''}
           </div>` : ''}
         <img src="${barcodeUrl}" />
-        <div class="meta">${form.text}</div>
       </div>
       <script>window.onload = () => { window.print(); window.close(); }<\/script>
       </body></html>
