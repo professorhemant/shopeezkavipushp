@@ -661,12 +661,13 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               overflow: hidden;
             }
             .label-text {
-              width: 24mm;
+              width: 40mm;
               flex-shrink: 0;
               padding-right: 2mm;
               display: flex;
-              flex-direction: column;
-              justify-content: center;
+              flex-direction: row;
+              align-items: center;
+              gap: 2mm;
               overflow: hidden;
             }
             .name {
@@ -677,13 +678,15 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               overflow: hidden;
               text-overflow: ellipsis;
               line-height: 1.3;
-              margin-bottom: 1mm;
+              flex: 1;
             }
             .price {
               font-size: 8.5pt;
               font-weight: bold;
               color: #b45309;
               line-height: 1.2;
+              flex-shrink: 0;
+              white-space: nowrap;
             }
             .label-barcode {
               flex: 1;
