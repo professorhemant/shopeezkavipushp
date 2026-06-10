@@ -642,8 +642,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         toast.error('No valid barcodes to print (products need a barcode value)')
         return
       }
-      const win = window.open('', '_blank')
-      win.document.write(`
+      const thermalHtml = `<!DOCTYPE html>
         <html>
         <head>
           <meta charset="UTF-8" />
@@ -661,6 +660,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               overflow: hidden;
               background: #fff;
             }
+            .label:last-child { page-break-after: avoid; }
             .name-price-row {
               display: flex;
               justify-content: flex-end;
@@ -705,10 +705,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
             }
             @media print {
               body { margin: 0; padding: 0; }
-              @page {
-                size: 100mm 15mm;
-                margin: 0;
-              }
+              @page { size: 100mm 15mm; margin: 0; }
             }
           </style>
         </head>
@@ -725,11 +722,18 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
             </div>
           `).join('')}
         </body>
-        </html>
-      `)
-      win.document.close()
-      win.onafterprint = () => win.close()
-      setTimeout(() => { win.focus(); win.print(); }, 500)
+        </html>`
+      const thermalBlob = new Blob([thermalHtml], { type: 'text/html' })
+      const thermalUrl = URL.createObjectURL(thermalBlob)
+      const win = window.open(thermalUrl, '_blank')
+      if (!win) { toast.error('Allow popups to print barcode labels.'); URL.revokeObjectURL(thermalUrl); return }
+      win.onload = () => {
+        setTimeout(() => {
+          win.focus()
+          win.print()
+          win.onafterprint = () => { win.close(); URL.revokeObjectURL(thermalUrl) }
+        }, 200)
+      }
       return
     }
 
@@ -753,8 +757,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     }
 
     const labelWidth = labelsPerRow === 1 ? 220 : labelsPerRow === 2 ? 190 : labelsPerRow === 4 ? 145 : 165
-    const win = window.open('', '_blank')
-    win.document.write(`
+    const stdHtml = `<!DOCTYPE html>
       <html>
       <head>
         <title>Barcode Labels</title>
@@ -812,11 +815,18 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
           `).join('')}
         </div>
       </body>
-      </html>
-    `)
-    win.document.close()
-    win.onafterprint = () => win.close()
-    setTimeout(() => { win.focus(); win.print(); }, 500)
+      </html>`
+    const stdBlob = new Blob([stdHtml], { type: 'text/html' })
+    const stdUrl = URL.createObjectURL(stdBlob)
+    const win = window.open(stdUrl, '_blank')
+    if (!win) { toast.error('Allow popups to print barcode labels.'); URL.revokeObjectURL(stdUrl); return }
+    win.onload = () => {
+      setTimeout(() => {
+        win.focus()
+        win.print()
+        win.onafterprint = () => { win.close(); URL.revokeObjectURL(stdUrl) }
+      }, 200)
+    }
   }
 
   const skippedCount = selectedProducts.filter((p) => !p.barcode && !p.sku).length
