@@ -16,7 +16,7 @@ const useAuthStore = create(
         set({
           user: data.user,
           token: data.token,
-          firm: data.firm,
+          firm: data.user?.firm,
           isAuthenticated: true,
         })
         return data
