@@ -277,7 +277,7 @@ export default function BarcodeGenerator() {
             <div className="flex flex-col items-center gap-4 py-4">
               {selectedProduct && (
                 <div className="w-full bg-slate-50 border border-slate-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-center gap-4">
                     <div className="font-bold text-slate-800 text-base">{selectedProduct.name}</div>
                     {selectedProduct.sale_price && (
                       <div className="text-2xl font-bold text-amber-600 whitespace-nowrap">
@@ -288,7 +288,6 @@ export default function BarcodeGenerator() {
                 </div>
               )}
               <img src={barcodeUrl} alt="Barcode" className="max-w-full max-h-40 object-contain" />
-              <p className="text-sm text-slate-500 font-mono">{form.text}</p>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center flex-1 py-16 text-slate-300">
