@@ -609,7 +609,7 @@ const generateBarcodeDataUrl = (text) => {
 const generateThermalBarcodeDataUrl = (text) => {
   try {
     const canvas = document.createElement('canvas')
-    JsBarcode(canvas, text, { format: 'CODE128', width: 1.5, height: 30, displayValue: false, margin: 3 })
+    JsBarcode(canvas, text, { format: 'CODE128', width: 2, height: 55, displayValue: false, margin: 2 })
     return canvas.toDataURL('image/png')
   } catch {
     return null
@@ -656,7 +656,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               display: flex;
               flex-direction: row;
               align-items: center;
-              padding: 1mm 2mm;
+              padding: 0.5mm 2mm;
               page-break-after: always;
               overflow: hidden;
             }
@@ -697,7 +697,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
             }
             .label-barcode img {
               max-width: 100%;
-              height: 9mm;
+              height: 11mm;
               object-fit: contain;
             }
             .code {
