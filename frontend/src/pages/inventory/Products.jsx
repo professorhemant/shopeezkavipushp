@@ -656,45 +656,52 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               height: 15mm;
               display: flex;
               flex-direction: column;
-              justify-content: center;
-              padding-left: 30px;
-              padding-right: 2mm;
-              padding-top: 0.4mm;
-              padding-bottom: 0.4mm;
+              padding: 0.4mm 1.2mm 0.3mm 1.2mm;
               page-break-after: always;
               overflow: hidden;
+              background: #fff;
+            }
+            .top-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: baseline;
+              gap: 2mm;
+              flex-shrink: 0;
             }
             .name {
-              font-size: 7.5pt;
+              font-size: 6.5pt;
               font-weight: bold;
-              color: #1e293b;
+              color: #000;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-              line-height: 1.25;
-              margin-bottom: 0.3mm;
+              flex: 1;
+              line-height: 1.2;
             }
             .price {
-              font-size: 8pt;
+              font-size: 7pt;
               font-weight: bold;
-              color: #b45309;
+              color: #000;
               white-space: nowrap;
-              line-height: 1.25;
-              margin-bottom: 0.4mm;
+              flex-shrink: 0;
+              line-height: 1.2;
             }
             .barcode-img {
+              flex: 1;
               width: 100%;
-              height: 5.5mm;
+              min-height: 0;
               object-fit: fill;
               display: block;
             }
             .code {
-              font-size: 5.5pt;
+              font-size: 5pt;
               font-family: monospace;
-              color: #444;
+              color: #333;
               line-height: 1;
-              letter-spacing: 0.4px;
-              margin-top: 0.2mm;
+              letter-spacing: 0.5px;
+              text-align: center;
+              white-space: nowrap;
+              flex-shrink: 0;
             }
             @media print {
               body { margin: 0; padding: 0; }
@@ -708,8 +715,11 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <body>
           ${labels.map((l) => `
             <div class="label">
-              ${showName ? `<div class="name">${l.name}</div>` : ''}
-              ${showPrice && l.price > 0 ? `<div class="price">&#8377;${Number(l.price).toFixed(0)}</div>` : ''}
+              ${(showName || (showPrice && l.price > 0)) ? `
+              <div class="top-row">
+                ${showName ? `<span class="name">${l.name}</span>` : '<span></span>'}
+                ${showPrice && l.price > 0 ? `<span class="price">&#8377;${Number(l.price).toFixed(0)}</span>` : ''}
+              </div>` : ''}
               <img class="barcode-img" src="${l.imgUrl}" alt="${l.barcodeText}" />
               <div class="code">${l.barcodeText}</div>
             </div>
@@ -980,7 +990,7 @@ export default function Products() {
       const sheetData = rows.map((p) => ({
         'Name': p.name || '',
         'SKU': p.sku || '',
-        'Barcode': p.bar_code || '',
+        'Barcode': p.barcode || '',
         'HSN Code': p.hsn_code || '',
         'Category': p.category?.name || p.Category?.name || '',
         'Brand': p.brand?.name || p.Brand?.name || '',
