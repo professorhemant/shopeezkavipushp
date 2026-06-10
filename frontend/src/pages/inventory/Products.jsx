@@ -605,14 +605,140 @@ const generateBarcodeDataUrl = (text) => {
   }
 }
 
+// Compact barcode for 100×15mm thermal label
+const generateThermalBarcodeDataUrl = (text) => {
+  try {
+    const canvas = document.createElement('canvas')
+    JsBarcode(canvas, text, { format: 'CODE128', width: 1.5, height: 30, displayValue: false, margin: 3 })
+    return canvas.toDataURL('image/png')
+  } catch {
+    return null
+  }
+}
+
 function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const selectedProducts = products.filter((p) => selectedIds.includes(p.id))
   const [copies, setCopies] = useState(1)
   const [labelsPerRow, setLabelsPerRow] = useState(4)
   const [showName, setShowName] = useState(true)
   const [showPrice, setShowPrice] = useState(true)
+  const [labelFormat, setLabelFormat] = useState('standard') // 'standard' | 'thermal100x15'
 
   const handlePrint = () => {
+    // ── 100×15mm Thermal Label ──────────────────────────────────────────────
+    if (labelFormat === 'thermal100x15') {
+      const labels = []
+      for (const p of selectedProducts) {
+        const barcodeText = p.barcode || p.sku || ''
+        if (!barcodeText) continue
+        const imgUrl = generateThermalBarcodeDataUrl(barcodeText)
+        if (!imgUrl) continue
+        const price = p.sale_price || p.mrp || 0
+        for (let c = 0; c < copies; c++) {
+          labels.push({ name: p.name, barcodeText, imgUrl, price })
+        }
+      }
+      if (!labels.length) {
+        toast.error('No valid barcodes to print (products need a barcode value)')
+        return
+      }
+      const win = window.open('', '_blank')
+      win.document.write(`
+        <html>
+        <head>
+          <title>Barcode Labels 100×15mm</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: Arial, sans-serif; background: #fff; }
+            .label {
+              width: 100mm;
+              height: 15mm;
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              padding: 1mm 2mm;
+              page-break-after: always;
+              overflow: hidden;
+            }
+            .label-text {
+              width: 24mm;
+              flex-shrink: 0;
+              padding-right: 2mm;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              overflow: hidden;
+            }
+            .name {
+              font-size: 7pt;
+              font-weight: bold;
+              color: #1e293b;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              line-height: 1.3;
+              margin-bottom: 1mm;
+            }
+            .price {
+              font-size: 8.5pt;
+              font-weight: bold;
+              color: #b45309;
+              line-height: 1.2;
+            }
+            .label-barcode {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            .label-barcode img {
+              max-width: 100%;
+              height: 9mm;
+              object-fit: contain;
+            }
+            .code {
+              font-size: 5.5pt;
+              font-family: monospace;
+              color: #444;
+              margin-top: 0.3mm;
+              line-height: 1;
+              letter-spacing: 0.5px;
+            }
+            @media print {
+              body { margin: 0; padding: 0; }
+              @page {
+                size: 130mm 15mm;
+                margin-top: 0;
+                margin-bottom: 0;
+                margin-left: 30mm;
+                margin-right: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${labels.map((l) => `
+            <div class="label">
+              <div class="label-text">
+                ${showName ? `<div class="name" title="${l.name}">${l.name}</div>` : ''}
+                ${showPrice && l.price > 0 ? `<div class="price">&#8377;${Number(l.price).toFixed(0)}</div>` : ''}
+              </div>
+              <div class="label-barcode">
+                <img src="${l.imgUrl}" alt="${l.barcodeText}" />
+                <div class="code">${l.barcodeText}</div>
+              </div>
+            </div>
+          `).join('')}
+          <script>window.onload = () => { window.print(); }<\/script>
+        </body>
+        </html>
+      `)
+      win.document.close()
+      return
+    }
+
+    // ── Standard Labels ─────────────────────────────────────────────────────
     const labels = []
     for (const p of selectedProducts) {
       const barcodeText = p.barcode || p.sku || ''
@@ -738,7 +864,27 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
             </div>
           </div>
 
-          {/* Labels per row */}
+          {/* Label Format */}
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-2">Label Format</label>
+            <div className="flex gap-2">
+              {[
+                { value: 'standard', label: 'Standard' },
+                { value: 'thermal100x15', label: '100×15mm Thermal' },
+              ].map((f) => (
+                <button key={f.value} onClick={() => setLabelFormat(f.value)}
+                  className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-medium ${labelFormat === f.value ? 'bg-amber-600 text-white border-amber-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            {labelFormat === 'thermal100x15' && (
+              <p className="mt-1.5 text-xs text-slate-500">100mm wide · 15mm tall · 30mm left margin</p>
+            )}
+          </div>
+
+          {/* Labels per row — hidden for thermal format */}
+          {labelFormat === 'standard' && (
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-2">Labels per row</label>
             <div className="flex gap-2">
@@ -750,6 +896,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               ))}
             </div>
           </div>
+          )}
 
           {/* Options */}
           <div className="flex gap-4">
