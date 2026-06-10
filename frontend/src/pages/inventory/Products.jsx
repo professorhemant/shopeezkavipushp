@@ -647,7 +647,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <html>
         <head>
           <meta charset="UTF-8" />
-          <title>Barcode Labels 100×15mm</title>
+          <title>Barcode Labels — TVS LP 46 NEO</title>
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body { font-family: Arial, sans-serif; background: #fff; }
@@ -657,63 +657,50 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               display: flex;
               flex-direction: column;
               justify-content: center;
-              padding: 0.5mm 2mm;
+              padding-left: 35px;
+              padding-right: 2mm;
+              padding-top: 0.4mm;
+              padding-bottom: 0.4mm;
               page-break-after: always;
               overflow: hidden;
             }
-            .label-top {
-              display: flex;
-              flex-direction: row;
-              align-items: baseline;
-              justify-content: center;
-              gap: 3mm;
-              width: 100%;
-              margin-bottom: 0.5mm;
-            }
             .name {
-              font-size: 7pt;
+              font-size: 7.5pt;
               font-weight: bold;
               color: #1e293b;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-              line-height: 1.2;
+              line-height: 1.25;
+              margin-bottom: 0.3mm;
             }
             .price {
               font-size: 8pt;
               font-weight: bold;
               color: #b45309;
               white-space: nowrap;
-              flex-shrink: 0;
-              line-height: 1.2;
+              line-height: 1.25;
+              margin-bottom: 0.4mm;
             }
-            .label-barcode {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
+            .barcode-img {
               width: 100%;
-            }
-            .label-barcode img {
-              width: 100%;
-              height: 8mm;
+              height: 5.5mm;
               object-fit: fill;
+              display: block;
             }
             .code {
-              font-size: 5pt;
+              font-size: 5.5pt;
               font-family: monospace;
               color: #444;
-              margin-top: 0.2mm;
               line-height: 1;
-              letter-spacing: 0.5px;
+              letter-spacing: 0.4px;
+              margin-top: 0.2mm;
             }
             @media print {
               body { margin: 0; padding: 0; }
               @page {
-                size: 130mm 15mm;
-                margin-top: 0;
-                margin-bottom: 0;
-                margin-left: 30mm;
-                margin-right: 0;
+                size: 100mm 15mm;
+                margin: 0;
               }
             }
           </style>
@@ -721,14 +708,10 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <body>
           ${labels.map((l) => `
             <div class="label">
-              <div class="label-top">
-                ${showName ? `<div class="name" title="${l.name}">${l.name}</div>` : ''}
-                ${showPrice && l.price > 0 ? `<div class="price">₹${Number(l.price).toFixed(0)}</div>` : ''}
-              </div>
-              <div class="label-barcode">
-                <img src="${l.imgUrl}" alt="${l.barcodeText}" />
-                <div class="code">${l.barcodeText}</div>
-              </div>
+              ${showName ? `<div class="name">${l.name}</div>` : ''}
+              ${showPrice && l.price > 0 ? `<div class="price">&#8377;${Number(l.price).toFixed(0)}</div>` : ''}
+              <img class="barcode-img" src="${l.imgUrl}" alt="${l.barcodeText}" />
+              <div class="code">${l.barcodeText}</div>
             </div>
           `).join('')}
           <script>window.onload = () => { window.print(); }<\/script>
@@ -880,7 +863,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               ))}
             </div>
             {labelFormat === 'thermal100x15' && (
-              <p className="mt-1.5 text-xs text-slate-500">100mm wide · 15mm tall · 30mm left margin</p>
+              <p className="mt-1.5 text-xs text-slate-500">TVS LP 46 NEO · 100×15mm · Name, Price, Barcode vertical · 35px left margin</p>
             )}
           </div>
 
