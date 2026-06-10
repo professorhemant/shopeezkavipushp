@@ -687,11 +687,11 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               line-height: 1.2;
             }
             .barcode-img {
-              flex: 1;
+              height: 9mm;
               width: 100%;
-              min-height: 0;
               object-fit: fill;
               display: block;
+              flex-shrink: 0;
             }
             .code {
               font-size: 3pt;
