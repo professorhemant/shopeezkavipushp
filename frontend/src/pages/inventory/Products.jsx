@@ -657,7 +657,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               display: flex;
               flex-direction: column;
               justify-content: center;
-              padding-left: 35px;
+              padding-left: 30px;
               padding-right: 2mm;
               padding-top: 0.4mm;
               padding-bottom: 0.4mm;
