@@ -656,7 +656,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               height: 15mm;
               display: flex;
               flex-direction: column;
-              padding: 0.4mm 1.2mm 0.3mm 60mm;
+              padding: 0.4mm 0.2mm 0.3mm 60mm;
               page-break-after: always;
               overflow: hidden;
               background: #fff;
