@@ -863,7 +863,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               ))}
             </div>
             {labelFormat === 'thermal100x15' && (
-              <p className="mt-1.5 text-xs text-slate-500">TVS LP 46 NEO · 100×15mm · Name, Price, Barcode vertical · 35px left margin</p>
+              <p className="mt-1.5 text-xs text-slate-500">TVS LP 46 NEO · 100×15mm · Name, Price, Barcode vertical · 30px left margin</p>
             )}
           </div>
 
