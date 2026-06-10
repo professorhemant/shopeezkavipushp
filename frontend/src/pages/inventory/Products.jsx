@@ -656,17 +656,10 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               height: 15mm;
               display: flex;
               flex-direction: column;
-              padding: 0.4mm 1.2mm 0.3mm 1.2mm;
+              padding: 0.4mm 1.2mm 0.3mm 25mm;
               page-break-after: always;
               overflow: hidden;
               background: #fff;
-            }
-            .top-row {
-              display: flex;
-              justify-content: space-between;
-              align-items: baseline;
-              gap: 2mm;
-              flex-shrink: 0;
             }
             .name {
               font-size: 6.5pt;
@@ -675,16 +668,18 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-              flex: 1;
+              text-align: right;
               line-height: 1.2;
+              flex-shrink: 0;
             }
             .price {
               font-size: 7pt;
               font-weight: bold;
               color: #000;
               white-space: nowrap;
-              flex-shrink: 0;
+              text-align: right;
               line-height: 1.2;
+              flex-shrink: 0;
             }
             .barcode-img {
               flex: 1;
@@ -699,7 +694,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               color: #333;
               line-height: 1;
               letter-spacing: 0.5px;
-              text-align: center;
+              text-align: right;
               white-space: nowrap;
               flex-shrink: 0;
             }
@@ -715,11 +710,8 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <body>
           ${labels.map((l) => `
             <div class="label">
-              ${(showName || (showPrice && l.price > 0)) ? `
-              <div class="top-row">
-                ${showName ? `<span class="name">${l.name}</span>` : '<span></span>'}
-                ${showPrice && l.price > 0 ? `<span class="price">&#8377;${Number(l.price).toFixed(0)}</span>` : ''}
-              </div>` : ''}
+              ${showName ? `<div class="name">${l.name}</div>` : ''}
+              ${showPrice && l.price > 0 ? `<div class="price">&#8377;${Number(l.price).toFixed(0)}</div>` : ''}
               <img class="barcode-img" src="${l.imgUrl}" alt="${l.barcodeText}" />
               <div class="code">${l.barcodeText}</div>
             </div>
