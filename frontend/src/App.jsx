@@ -60,7 +60,6 @@ const Analytics = lazy(() => import('./pages/reports/Analytics'))
 const Appointments = lazy(() => import('./pages/appointments/Appointments'))
 const WhatsAppCampaigns = lazy(() => import('./pages/whatsapp/WhatsAppCampaigns'))
 
-const BarcodeGenerator = lazy(() => import('./pages/tools/BarcodeGenerator'))
 const QRGenerator = lazy(() => import('./pages/tools/QRGenerator'))
 const InvoiceGenerator = lazy(() => import('./pages/tools/InvoiceGenerator'))
 const GSTCalculator = lazy(() => import('./pages/tools/GSTCalculator'))
@@ -187,7 +186,6 @@ function App() {
           <Route path="whatsapp/campaigns" element={<WhatsAppCampaigns />} />
 
           {/* Tools */}
-          <Route path="tools/barcode" element={<BarcodeGenerator />} />
           <Route path="tools/qr" element={<QRGenerator />} />
           <Route path="tools/invoice" element={<InvoiceGenerator />} />
           <Route path="tools/gst-calculator" element={<GSTCalculator />} />
