@@ -656,10 +656,18 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               height: 15mm;
               display: flex;
               flex-direction: column;
-              padding: 0.4mm 1.2mm 0.3mm 25mm;
+              padding: 0.4mm 1.2mm 0.3mm 40mm;
               page-break-after: always;
               overflow: hidden;
               background: #fff;
+            }
+            .name-price-row {
+              display: flex;
+              justify-content: flex-end;
+              align-items: baseline;
+              gap: 2mm;
+              flex-shrink: 0;
+              overflow: hidden;
             }
             .name {
               font-size: 6.5pt;
@@ -668,18 +676,15 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-              text-align: right;
               line-height: 1.2;
-              flex-shrink: 0;
             }
             .price {
               font-size: 7pt;
               font-weight: bold;
               color: #000;
               white-space: nowrap;
-              text-align: right;
-              line-height: 1.2;
               flex-shrink: 0;
+              line-height: 1.2;
             }
             .barcode-img {
               flex: 1;
@@ -710,8 +715,11 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <body>
           ${labels.map((l) => `
             <div class="label">
-              ${showName ? `<div class="name">${l.name}</div>` : ''}
-              ${showPrice && l.price > 0 ? `<div class="price">&#8377;${Number(l.price).toFixed(0)}</div>` : ''}
+              ${(showName || (showPrice && l.price > 0)) ? `
+              <div class="name-price-row">
+                ${showName ? `<span class="name">${l.name}</span>` : ''}
+                ${showPrice && l.price > 0 ? `<span class="price">&#8377;${Number(l.price).toFixed(0)}</span>` : ''}
+              </div>` : ''}
               <img class="barcode-img" src="${l.imgUrl}" alt="${l.barcodeText}" />
               <div class="code">${l.barcodeText}</div>
             </div>
