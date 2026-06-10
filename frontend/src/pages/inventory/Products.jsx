@@ -724,11 +724,12 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               <div class="code">${l.barcodeText}</div>
             </div>
           `).join('')}
-          <script>window.onload = () => { window.print(); }<\/script>
         </body>
         </html>
       `)
       win.document.close()
+      win.onafterprint = () => win.close()
+      setTimeout(() => { win.focus(); win.print(); }, 500)
       return
     }
 
@@ -810,11 +811,12 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
             </div>
           `).join('')}
         </div>
-        <script>window.onload = () => { window.print(); }<\/script>
       </body>
       </html>
     `)
     win.document.close()
+    win.onafterprint = () => win.close()
+    setTimeout(() => { win.focus(); win.print(); }, 500)
   }
 
   const skippedCount = selectedProducts.filter((p) => !p.barcode && !p.sku).length
