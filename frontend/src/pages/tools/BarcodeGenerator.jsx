@@ -108,16 +108,18 @@ export default function BarcodeGenerator() {
       <style>
         body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #fff; }
         .label { border: 1px solid #ddd; padding: 16px 20px; text-align: center; width: 280px; }
-        .label h3 { margin: 0 0 4px; font-size: 14px; font-weight: bold; }
-        .label .price { font-size: 22px; font-weight: bold; color: #b45309; margin: 4px 0; }
+        .label .top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+        .label .top-row h3 { margin: 0; font-size: 14px; font-weight: bold; text-align: left; }
+        .label .top-row .price { font-size: 18px; font-weight: bold; color: #b45309; white-space: nowrap; }
         .label .meta { font-size: 11px; color: #666; margin: 2px 0; }
         img { max-width: 100%; margin: 8px 0 4px; }
       </style></head>
       <body><div class="label">
-        ${selectedProduct ? `<h3>${selectedProduct.name}</h3>` : ''}
-        ${selectedProduct?.sale_price ? `<div class="price">&#8377;${Number(selectedProduct.sale_price).toFixed(2)}</div>` : ''}
-        ${selectedProduct?.mrp ? `<div class="meta">MRP: &#8377;${Number(selectedProduct.mrp).toFixed(2)}</div>` : ''}
-        ${selectedProduct?.sku ? `<div class="meta">SKU: ${selectedProduct.sku}</div>` : ''}
+        ${selectedProduct ? `
+          <div class="top-row">
+            <h3>${selectedProduct.name}</h3>
+            ${selectedProduct.sale_price ? `<span class="price">&#8377;${Number(selectedProduct.sale_price).toFixed(2)}</span>` : ''}
+          </div>` : ''}
         <img src="${barcodeUrl}" />
         <div class="meta">${form.text}</div>
       </div>
@@ -274,16 +276,14 @@ export default function BarcodeGenerator() {
           {barcodeUrl ? (
             <div className="flex flex-col items-center gap-4 py-4">
               {selectedProduct && (
-                <div className="w-full bg-slate-50 border border-slate-100 rounded-lg p-4 text-center">
-                  <div className="font-bold text-slate-800 text-base">{selectedProduct.name}</div>
-                  {selectedProduct.sale_price && (
-                    <div className="text-2xl font-bold text-amber-600 mt-1">
-                      ₹{Number(selectedProduct.sale_price).toFixed(2)}
-                    </div>
-                  )}
-                  <div className="flex justify-center gap-4 mt-1 text-xs text-slate-400">
-                    {selectedProduct.mrp && <span>MRP: ₹{Number(selectedProduct.mrp).toFixed(2)}</span>}
-                    {selectedProduct.sku && <span>SKU: {selectedProduct.sku}</span>}
+                <div className="w-full bg-slate-50 border border-slate-100 rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-bold text-slate-800 text-base">{selectedProduct.name}</div>
+                    {selectedProduct.sale_price && (
+                      <div className="text-2xl font-bold text-amber-600 whitespace-nowrap">
+                        ₹{Number(selectedProduct.sale_price).toFixed(2)}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
