@@ -642,99 +642,38 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         toast.error('No valid barcodes to print (products need a barcode value)')
         return
       }
-      const thermalHtml = `<!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>Barcode Labels — TVS LP 46 NEO</title>
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: Arial, sans-serif; background: #fff; }
-            .label {
-              width: 100mm;
-              height: 15mm;
-              display: flex;
-              flex-direction: column;
-              padding: 1.2mm 0.2mm 1.2mm 60mm;
-              page-break-after: always;
-              overflow: hidden;
-              background: #fff;
-            }
-            .label:last-child { page-break-after: avoid; }
-            .name-price-row {
-              display: flex;
-              justify-content: flex-end;
-              align-items: baseline;
-              gap: 1mm;
-              flex-shrink: 0;
-              overflow: hidden;
-            }
-            .name {
-              font-size: 4pt;
-              font-weight: bold;
-              color: #000;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              line-height: 1.2;
-            }
-            .price {
-              font-size: 4pt;
-              font-weight: bold;
-              color: #000;
-              white-space: nowrap;
-              flex-shrink: 0;
-              line-height: 1.2;
-            }
-            .barcode-img {
-              flex: 1;
-              width: 100%;
-              min-height: 0;
-              object-fit: fill;
-              display: block;
-            }
-            .code {
-              font-size: 3pt;
-              font-family: monospace;
-              color: #333;
-              line-height: 1;
-              letter-spacing: 0.3px;
-              text-align: right;
-              white-space: nowrap;
-              flex-shrink: 0;
-            }
-            @media print {
-              body { margin: 0; padding: 0; }
-              @page { size: 100mm 15mm; margin: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          ${labels.map((l) => `
-            <div class="label">
-              ${(showName || (showPrice && l.price > 0)) ? `
-              <div class="name-price-row">
-                ${showName ? `<span class="name">${l.name}</span>` : ''}
-                ${showPrice && l.price > 0 ? `<span class="price">&#8377;${Number(l.price).toFixed(0)}</span>` : ''}
-              </div>` : ''}
-              <img class="barcode-img" src="${l.imgUrl}" alt="${l.barcodeText}" />
-              <div class="code">${l.barcodeText}</div>
-            </div>
-          `).join('')}
-        </body>
-        </html>`
-      const thermalBlob = new Blob([thermalHtml], { type: 'text/html' })
-      const thermalUrl = URL.createObjectURL(thermalBlob)
-      const win = window.open('', '_blank', 'width=800,height=200,toolbar=0,menubar=0,scrollbars=0')
-      if (!win) { toast.error('Allow popups to print barcode labels.'); URL.revokeObjectURL(thermalUrl); return }
-      win.addEventListener('load', () => {
-        setTimeout(() => {
-          win.focus()
-          win.print()
-          win.onafterprint = () => { win.close(); URL.revokeObjectURL(thermalUrl) }
-        }, 200)
-      }, { once: true })
-      win.location.href = thermalUrl
+      const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+      const thermalHtml = `<!DOCTYPE html><html><head>
+        <meta charset="UTF-8"/>
+        <title>Barcodes (${labels.length})</title>
+        <style>
+          *{box-sizing:border-box;margin:0;padding:0;}
+          body{font-family:Arial,sans-serif;background:#fff;}
+          .label{width:100mm;height:15mm;display:flex;flex-direction:column;padding:1.2mm 0.2mm 1.2mm 60mm;page-break-after:always;overflow:hidden;background:#fff;}
+          .label:last-child{page-break-after:avoid;}
+          .name-price-row{display:flex;justify-content:flex-end;align-items:baseline;gap:1mm;flex-shrink:0;overflow:hidden;}
+          .name{font-size:4pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+          .price{font-size:4pt;font-weight:bold;color:#000;white-space:nowrap;flex-shrink:0;line-height:1.2;}
+          .barcode-img{flex:1;width:100%;min-height:0;object-fit:fill;display:block;}
+          .code{font-size:3pt;font-family:monospace;color:#333;line-height:1;letter-spacing:0.3px;text-align:right;white-space:nowrap;flex-shrink:0;}
+          @media print{body{margin:0;padding:0;}@page{size:100mm 15mm;margin:0;}}
+        </style>
+      </head><body>
+        ${labels.map((l) => `<div class="label">
+          ${(showName || (showPrice && l.price > 0)) ? `<div class="name-price-row">
+            ${showName ? `<span class="name">${esc(l.name)}</span>` : ''}
+            ${showPrice && l.price > 0 ? `<span class="price">&#8377;${Number(l.price).toFixed(0)}</span>` : ''}
+          </div>` : ''}
+          <img class="barcode-img" src="${l.imgUrl}"/>
+          <div class="code">${esc(l.barcodeText)}</div>
+        </div>`).join('')}
+        <script>setTimeout(function(){window.print();window.onafterprint=function(){window.close();};},400);<\/script>
+      </body></html>`
+      const win = window.open('', '_blank', 'width=400,height=300,toolbar=0,menubar=0,scrollbars=0')
+      if (!win) { toast.error('Allow popups to print barcode labels.'); return }
+      win.document.open()
+      win.document.write(thermalHtml)
+      win.document.close()
       return
     }
 
