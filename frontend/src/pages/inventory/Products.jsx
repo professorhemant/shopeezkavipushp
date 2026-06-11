@@ -1170,12 +1170,19 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
 
           {/* QZ Tray install note — shown only for TVS LP46 Neo */}
           {labelFormat === 'thermal100x15' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-xs text-blue-700">
-              <strong>Direct Print</strong> requires <a href="https://qz.io" target="_blank" rel="noreferrer" className="underline font-semibold">QZ Tray</a> installed &amp; running in system tray.
-              After install: open QZ Tray → Settings → check <em>"Allow unsigned"</em>.
-              {qzStatus === 'connecting' && <span className="ml-2 font-semibold text-blue-800">Connecting…</span>}
-              {qzStatus === 'printing'   && <span className="ml-2 font-semibold text-green-700">Sending to printer…</span>}
-              {qzStatus === 'error'      && <span className="ml-2 font-semibold text-red-600">Connection failed</span>}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-xs text-blue-700 space-y-1">
+              <p><strong>One-time setup for Direct Print:</strong></p>
+              <p>1. Download QZ Tray (free, no email needed) →{' '}
+                <a href="https://github.com/qzind/tray/releases/latest" target="_blank" rel="noreferrer" className="underline font-semibold text-blue-800">
+                  github.com/qzind/tray/releases
+                </a>
+              </p>
+              <p>2. Install it → it runs in system tray (bottom-right taskbar)</p>
+              <p>3. Right-click QZ Tray icon → <strong>Preferences</strong> → tick <strong>"Allow unsigned"</strong> → Save</p>
+              <p>4. Click <strong>Direct Print</strong> button above — done!</p>
+              {qzStatus === 'connecting' && <p className="font-semibold text-blue-800">Connecting to QZ Tray…</p>}
+              {qzStatus === 'printing'   && <p className="font-semibold text-green-700">Sending labels to printer…</p>}
+              {qzStatus === 'error'      && <p className="font-semibold text-red-600">Could not connect — is QZ Tray running?</p>}
             </div>
           )}
         </div>
