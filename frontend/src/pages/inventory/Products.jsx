@@ -618,6 +618,27 @@ const generateThermalBarcodeDataUrl = (text) => {
   }
 }
 
+// Generate TSPL commands for TVS LP46 Neo (38.1mm x 25.4mm, 203 DPI)
+function buildTSPL(name, barcodeText, price, qty) {
+  const safeName = String(name).replace(/"/g, "'").substring(0, 20)
+  const safeCode = String(barcodeText).replace(/"/g, "'")
+  const priceStr = `Rs.${parseFloat(price).toFixed(0)}`
+  return [
+    'SIZE 38.1 mm,25.4 mm',
+    'GAP 2 mm,0 mm',
+    'DIRECTION 1',
+    'REFERENCE 0,0',
+    'SPEED 4',
+    'DENSITY 8',
+    'CLS',
+    `TEXT 5,5,"2",0,1,1,"${safeName}"`,
+    `TEXT 215,5,"2",0,1,1,"${priceStr}"`,
+    `BARCODE 5,25,"128",90,0,0,2,2,"${safeCode}"`,
+    `TEXT 5,120,"1",0,1,1,"${safeCode}"`,
+    `PRINT ${qty},1`,
+  ].join('\r\n')
+}
+
 function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const selectedProducts = products.filter((p) => selectedIds.includes(p.id))
   const [copies, setCopies] = useState(1)
@@ -625,6 +646,62 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const [showName, setShowName] = useState(true)
   const [showPrice, setShowPrice] = useState(true)
   const [labelFormat, setLabelFormat] = useState('standard') // 'standard' | 'thermal100x15'
+  const [qzStatus, setQzStatus] = useState('idle') // 'idle' | 'connecting' | 'printing' | 'error'
+
+  const handleDirectPrintQZ = async () => {
+    setQzStatus('connecting')
+    try {
+      const qzModule = await import('qz-tray')
+      const qz = qzModule.default || qzModule
+
+      // Unsigned mode — user must enable "Allow unsigned" in QZ Tray settings
+      qz.security.setCertificatePromise((resolve) => resolve(''))
+      qz.security.setSignatureAlgorithm('SHA512')
+      qz.security.setSignaturePromise(() => (resolve) => resolve(''))
+
+      if (!qz.websocket.isActive()) {
+        await qz.websocket.connect()
+      }
+
+      // Find TVS LP46 Neo printer
+      let printerName = ''
+      try {
+        const found = await qz.printers.find('TVS')
+        printerName = Array.isArray(found) ? found[0] : found
+      } catch {
+        // fallback: try common name variations
+        const all = await qz.printers.getDefault()
+        printerName = all
+      }
+
+      if (!printerName) {
+        toast.error('TVS LP46 Neo printer not found. Check it is installed.')
+        setQzStatus('error')
+        return
+      }
+
+      setQzStatus('printing')
+      const config = qz.configs.create(printerName)
+
+      for (const p of selectedProducts) {
+        const barcodeText = p.barcode || p.sku || ''
+        if (!barcodeText) continue
+        const price = p.sale_price || p.sell_price || 0
+        const tspl = buildTSPL(p.name || '', barcodeText, price, copies)
+        await qz.print(config, [{ type: 'raw', format: 'plain', data: tspl }])
+      }
+
+      toast.success(`Sent ${selectedProducts.length} label(s) to ${printerName}`)
+      setQzStatus('idle')
+    } catch (err) {
+      setQzStatus('error')
+      if (err.message && err.message.toLowerCase().includes('unable to establish')) {
+        toast.error('QZ Tray not running. Install from qz.io and start it, then try again.')
+      } else {
+        toast.error(`Direct print failed: ${err.message}`)
+      }
+    }
+  }
 
   const handleExportBarcode = () => {
     const rows = []
@@ -1090,10 +1167,21 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
           <div className="bg-slate-50 rounded-lg px-4 py-3 text-xs text-slate-600">
             Total labels to print: <strong className="text-slate-800">{(selectedProducts.length - skippedCount) * copies}</strong>
           </div>
+
+          {/* QZ Tray install note — shown only for TVS LP46 Neo */}
+          {labelFormat === 'thermal100x15' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-xs text-blue-700">
+              <strong>Direct Print</strong> requires <a href="https://qz.io" target="_blank" rel="noreferrer" className="underline font-semibold">QZ Tray</a> installed &amp; running in system tray.
+              After install: open QZ Tray → Settings → check <em>"Allow unsigned"</em>.
+              {qzStatus === 'connecting' && <span className="ml-2 font-semibold text-blue-800">Connecting…</span>}
+              {qzStatus === 'printing'   && <span className="ml-2 font-semibold text-green-700">Sending to printer…</span>}
+              {qzStatus === 'error'      && <span className="ml-2 font-semibold text-red-600">Connection failed</span>}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 flex-wrap">
           <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
             Cancel
           </button>
@@ -1105,6 +1193,13 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
             className="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <Download className="h-4 w-4" /> Final Export Excel
           </button>
+          {labelFormat === 'thermal100x15' && (
+            <button onClick={handleDirectPrintQZ} disabled={qzStatus === 'connecting' || qzStatus === 'printing'}
+              className="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Printer className="h-4 w-4" />
+              {qzStatus === 'connecting' ? 'Connecting…' : qzStatus === 'printing' ? 'Printing…' : 'Direct Print'}
+            </button>
+          )}
           <button onClick={handlePrint}
             className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <Printer className="h-4 w-4" /> Print Labels
