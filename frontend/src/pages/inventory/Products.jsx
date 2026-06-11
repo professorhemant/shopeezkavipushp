@@ -978,17 +978,17 @@ bBQusfbKqlGg61r07k8bA4M=
       qz.security.setCertificatePromise((resolve) => resolve(QZ_CERT))
       qz.security.setSignatureAlgorithm('SHA512')
       qz.security.setSignaturePromise((toSign) => (resolve, reject) => {
-        toSign.then((data) => {
+        try {
           const pemBody = QZ_PRIVATE_KEY.replace(/-----[^-]+-----/g, '').replace(/\s/g, '')
           const binary = atob(pemBody)
           const bytes = new Uint8Array(binary.length)
           for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
           window.crypto.subtle.importKey('pkcs8', bytes.buffer,
             { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-512' }, false, ['sign'])
-            .then((key) => window.crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(data)))
+            .then((key) => window.crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(toSign)))
             .then((sig) => resolve(btoa(String.fromCharCode(...new Uint8Array(sig)))))
             .catch(reject)
-        }).catch(reject)
+        } catch (err) { reject(err) }
       })
 
       if (!qz.websocket.isActive()) {
