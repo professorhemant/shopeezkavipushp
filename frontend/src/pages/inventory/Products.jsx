@@ -626,7 +626,6 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
 
   const handleExportBarcode = () => {
     const rows = []
-    let sr = 1
     for (const p of selectedProducts) {
       const barcodeText = p.barcode || p.sku || ''
       if (!barcodeText) continue
@@ -634,17 +633,20 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         rows.push({
           'Product Name': p.name || '',
           'Barcode': barcodeText,
-          'Sale Price (₹)': parseFloat(p.sale_price || p.sell_price || 0),
+          'Sale Price': parseFloat(p.sale_price || p.sell_price || 0),
         })
       }
     }
     if (!rows.length) { toast.error('No valid barcodes to export'); return }
-    const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = Object.keys(rows[0]).map((k) => ({ wch: Math.max(k.length + 2, 18) }))
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Barcodes')
-    XLSX.writeFile(wb, `barcodes_${new Date().toISOString().split('T')[0]}.xlsx`)
-    toast.success(`Exported ${rows.length} barcode${rows.length > 1 ? 's' : ''} to Excel`)
+    const csv = Papa.unparse(rows)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `barcodes_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success(`Exported ${rows.length} barcode${rows.length > 1 ? 's' : ''} to CSV`)
   }
 
   const handlePrint = () => {
@@ -966,7 +968,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
           </button>
           <button onClick={handleExportBarcode}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-            <Download className="h-4 w-4" /> Export Excel
+            <Download className="h-4 w-4" /> Export CSV
           </button>
           <button onClick={handlePrint}
             className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
