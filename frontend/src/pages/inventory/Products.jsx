@@ -619,15 +619,17 @@ const generateThermalBarcodeDataUrl = (text) => {
   }
 }
 
-// ── Label Designer constants (38.1×25.4mm at 203 DPI = 305×203 dots) ────────
-const LABEL_W = 305
-const LABEL_H = 203
+// ── Label Designer constants (100×15mm at 203 DPI = 800×120 dots) ────────────
+const LABEL_W = 800   // dots
+const LABEL_H = 120   // dots
+const DESIGNER_SCALE = 0.75  // display at 75% → 600×90 px in designer
 
+// Default layout: text (name+price) on left half, barcode on right half
 const DEFAULT_LABEL_TEMPLATE = {
-  name:    { x: 5,   y: 5,   w: 175, h: 16, fontSize: 11, bold: true,  show: true },
-  price:   { x: 185, y: 5,   w: 115, h: 16, fontSize: 11, bold: false, show: true },
-  barcode: { x: 5,   y: 24,  w: 295, h: 90, show: true },
-  code:    { x: 5,   y: 118, w: 295, h: 14, fontSize: 9,  bold: false, show: true },
+  name:    { x: 5,   y: 5,   w: 375, h: 55, fontSize: 14, bold: true,  show: true },
+  price:   { x: 5,   y: 65,  w: 375, h: 50, fontSize: 12, bold: false, show: true },
+  barcode: { x: 395, y: 3,   w: 390, h: 95, show: true },
+  code:    { x: 395, y: 100, w: 390, h: 15, fontSize: 8,  bold: false, show: true },
 }
 
 function getLabelTemplate() {
@@ -662,7 +664,7 @@ function buildTSPL(name, barcodeText, price, qty) {
   const safeCode = String(barcodeText).replace(/"/g, "'")
   const priceStr = `Rs.${parseFloat(price).toFixed(0)}`
   const lines = [
-    'SIZE 38.1 mm,25.4 mm',
+    'SIZE 100 mm,15 mm',
     'GAP 2 mm,0 mm',
     'DIRECTION 1',
     'REFERENCE 0,0',
@@ -715,8 +717,8 @@ function LabelDesignerModal({ onClose }) {
   const onMouseMove = (e) => {
     if (!drag) return
     const rect = canvasRef.current.getBoundingClientRect()
-    const dx = (e.clientX - rect.left) - drag.sx
-    const dy = (e.clientY - rect.top) - drag.sy
+    const dx = ((e.clientX - rect.left) - drag.sx) / DESIGNER_SCALE
+    const dy = ((e.clientY - rect.top) - drag.sy) / DESIGNER_SCALE
     const el = tpl[drag.key]
     const nx = Math.max(0, Math.min(LABEL_W - el.w, drag.ox + dx))
     const ny = Math.max(0, Math.min(LABEL_H - el.h, drag.oy + dy))
@@ -761,20 +763,20 @@ function LabelDesignerModal({ onClose }) {
 
           {/* Label canvas */}
           <div className="flex-shrink-0">
-            <p className="text-xs text-center text-slate-500 mb-2">Label canvas · {LABEL_W}×{LABEL_H} dots (1 dot = 1px here)</p>
+            <p className="text-xs text-center text-slate-500 mb-2">Label canvas · 100×15 mm · {LABEL_W}×{LABEL_H} dots (displayed at 75%)</p>
             <div
               ref={canvasRef}
-              style={{ width: LABEL_W, height: LABEL_H, position: 'relative', background: '#fff', border: '2px solid #cbd5e1', userSelect: 'none', cursor: drag ? 'grabbing' : 'crosshair' }}
+              style={{ width: Math.round(LABEL_W * DESIGNER_SCALE), height: Math.round(LABEL_H * DESIGNER_SCALE), position: 'relative', background: '#fff', border: '2px solid #cbd5e1', userSelect: 'none', cursor: drag ? 'grabbing' : 'crosshair' }}
               onMouseMove={onMouseMove}
               onMouseUp={() => setDrag(null)}
               onMouseLeave={() => setDrag(null)}
             >
-              {/* Subtle grid */}
-              {Array.from({ length: 19 }, (_, i) => (
-                <div key={`v${i}`} style={{ position: 'absolute', left: (i + 1) * 16, top: 0, width: 1, height: '100%', background: '#f1f5f9' }} />
+              {/* Subtle grid (every 100 dots = 75px) */}
+              {Array.from({ length: 7 }, (_, i) => (
+                <div key={`v${i}`} style={{ position: 'absolute', left: (i + 1) * 100 * DESIGNER_SCALE, top: 0, width: 1, height: '100%', background: '#e2e8f0' }} />
               ))}
-              {Array.from({ length: 12 }, (_, i) => (
-                <div key={`h${i}`} style={{ position: 'absolute', top: (i + 1) * 16, left: 0, height: 1, width: '100%', background: '#f1f5f9' }} />
+              {Array.from({ length: 1 }, (_, i) => (
+                <div key={`h${i}`} style={{ position: 'absolute', top: (i + 1) * 60 * DESIGNER_SCALE, left: 0, height: 1, width: '100%', background: '#e2e8f0' }} />
               ))}
 
               {/* Draggable elements */}
@@ -787,7 +789,9 @@ function LabelDesignerModal({ onClose }) {
                   <div key={key}
                     onMouseDown={(e) => onElMouseDown(e, key)}
                     style={{
-                      position: 'absolute', left: el.x, top: el.y, width: el.w, height: el.h,
+                      position: 'absolute',
+                      left: Math.round(el.x * DESIGNER_SCALE), top: Math.round(el.y * DESIGNER_SCALE),
+                      width: Math.round(el.w * DESIGNER_SCALE), height: Math.round(el.h * DESIGNER_SCALE),
                       background: isSel ? c.bg.replace('0.18', '0.35') : c.bg,
                       border: `${isSel ? 2 : 1}px ${isSel ? 'solid' : 'dashed'} ${c.border}`,
                       cursor: 'grab', overflow: 'hidden', display: 'flex', alignItems: 'center', boxSizing: 'border-box', borderRadius: 2,
@@ -1048,8 +1052,8 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
       if (!barcodeText) continue
       const price = parseFloat(p.sale_price || p.sell_price || 0)
 
-      // Render label card to canvas (W -40%, H -30%)
-      const W = 240, H = 84
+      // Render label card to canvas (100×15mm proportional)
+      const W = 600, H = 90
       const canvas = document.createElement('canvas')
       canvas.width = W; canvas.height = H
       const ctx = canvas.getContext('2d')
@@ -1060,29 +1064,28 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
       ctx.lineWidth = 1
       ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
 
-      // Name left, price right — same row
+      // Left: name + price (48% of width)
+      const textColW = Math.round(W * 0.48)
       ctx.fillStyle = '#1a1a1a'
-      ctx.font = 'bold 10px Arial, sans-serif'
-      const name = p.name.length > 22 ? p.name.substring(0, 22) + '…' : p.name
-      ctx.fillText(name, 4, 14)
-      ctx.font = '9px Arial, sans-serif'
+      ctx.font = 'bold 14px Arial, sans-serif'
+      const nm = p.name.length > 18 ? p.name.substring(0, 18) + '…' : p.name
+      ctx.fillText(nm, 5, 30)
+      ctx.font = '12px Arial, sans-serif'
       ctx.fillStyle = '#333333'
-      const priceText = `Rs.${price.toFixed(0)}`
-      const pw = ctx.measureText(priceText).width
-      ctx.fillText(priceText, W - pw - 4, 14)
+      ctx.fillText(`Rs.${price.toFixed(0)}`, 5, 60)
 
-      // Barcode image
+      // Right: barcode image + code text
+      const bcX = textColW + 5
+      const bcW = W - bcX - 3
       try {
         const bc = document.createElement('canvas')
-        JsBarcode(bc, barcodeText, { format: 'CODE128', width: 2, height: 46, displayValue: false, margin: 2 })
-        ctx.drawImage(bc, 3, 18, W - 6, 46)
-      } catch { /* skip barcode draw if invalid */ }
-
-      // Barcode code text
+        JsBarcode(bc, barcodeText, { format: 'CODE128', width: 2, height: 60, displayValue: false, margin: 2 })
+        ctx.drawImage(bc, bcX, 3, bcW, 70)
+      } catch { /* skip */ }
       ctx.fillStyle = '#555555'
-      ctx.font = '7px Courier New, monospace'
+      ctx.font = '9px Courier New, monospace'
       const cw = ctx.measureText(barcodeText).width
-      ctx.fillText(barcodeText, (W - cw) / 2, 76)
+      ctx.fillText(barcodeText, bcX + (bcW - cw) / 2, 83)
 
       const base64 = canvas.toDataURL('image/png').split(',')[1]
       for (let c = 0; c < copies; c++) {
@@ -1095,11 +1098,11 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     const wb = new ExcelJS.Workbook()
     const ws = wb.addWorksheet('Barcodes')
 
-    ws.getColumn(1).width = 35   // ~240px
+    ws.getColumn(1).width = 80   // ~600px wide
 
     for (let i = 0; i < items.length; i++) {
       const row = ws.getRow(i + 1)
-      row.height = 63             // ~84px
+      row.height = 68             // ~90px tall
 
       const imgId = wb.addImage({ base64: items[i].base64, extension: 'png' })
       ws.addImage(imgId, {
@@ -1148,23 +1151,26 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <style>
           *{box-sizing:border-box;margin:0;padding:0;}
           body{font-family:Arial,sans-serif;background:#fff;}
-          .label{width:38.1mm;height:25.4mm;display:flex;flex-direction:column;padding:1mm 0mm 1mm 13.1mm;page-break-after:always;overflow:hidden;background:#fff;}
+          .label{width:100mm;height:15mm;display:flex;flex-direction:row;align-items:center;gap:1mm;padding:0.5mm 1mm;page-break-after:always;overflow:hidden;background:#fff;}
           .label:last-child{page-break-after:avoid;}
-          .name-price-row{display:flex;justify-content:flex-end;align-items:baseline;gap:1mm;flex-shrink:0;overflow:hidden;}
-          .name{font-size:6pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
-          .price{font-size:6pt;font-weight:bold;color:#000;white-space:nowrap;flex-shrink:0;line-height:1.3;}
-          .barcode-img{flex:1;width:100%;min-height:0;object-fit:fill;display:block;}
-          .code{font-size:5pt;font-family:monospace;color:#333;line-height:1;letter-spacing:0.3px;text-align:right;white-space:nowrap;flex-shrink:0;}
-          @media print{body{margin:0;padding:0;}@page{size:38.1mm 25.4mm;margin:0;}}
+          .text-col{display:flex;flex-direction:column;justify-content:center;width:48mm;flex-shrink:0;overflow:hidden;}
+          .name{font-size:7pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
+          .price{font-size:7pt;color:#000;white-space:nowrap;line-height:1.3;}
+          .barcode-col{flex:1;display:flex;flex-direction:column;align-items:center;overflow:hidden;}
+          .barcode-img{width:100%;height:10mm;object-fit:fill;display:block;}
+          .code{font-size:5pt;font-family:monospace;color:#333;line-height:1;letter-spacing:0.3px;white-space:nowrap;}
+          @media print{body{margin:0;padding:0;}@page{size:100mm 15mm;margin:0;}}
         </style>
       </head><body>
         ${labels.map((l) => `<div class="label">
-          ${(showName || (showPrice && l.price > 0)) ? `<div class="name-price-row">
+          <div class="text-col">
             ${showName ? `<span class="name">${esc(l.name)}</span>` : ''}
-            ${showPrice && l.price > 0 ? `<span class="price">&#8377;${Number(l.price).toFixed(0)}</span>` : ''}
-          </div>` : ''}
-          <img class="barcode-img" src="${l.imgUrl}"/>
-          <div class="code">${esc(l.barcodeText)}</div>
+            ${showPrice && l.price > 0 ? `<span class="price">Rs.${Number(l.price).toFixed(0)}</span>` : ''}
+          </div>
+          <div class="barcode-col">
+            <img class="barcode-img" src="${l.imgUrl}"/>
+            <div class="code">${esc(l.barcodeText)}</div>
+          </div>
         </div>`).join('')}
         <script>setTimeout(function(){window.print();window.onafterprint=function(){window.close();};},400);<\/script>
       </body></html>`
@@ -1395,7 +1401,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               ))}
             </div>
             {labelFormat === 'thermal100x15' && (
-              <p className="mt-1.5 text-xs text-slate-500">TVS LP 46 NEO · 1.5×1 inch label · barcode 1 inch wide, flush right</p>
+              <p className="mt-1.5 text-xs text-slate-500">TVS LP 46 NEO · 100×15 mm label · name+price left · barcode right</p>
             )}
             {labelFormat === 'a4sheet5x13' && (
               <p className="mt-1.5 text-xs text-slate-500">HP Smart Tank 589 · A4 sheet · 5 columns × 13 rows · 1.5×1 inch per label</p>
