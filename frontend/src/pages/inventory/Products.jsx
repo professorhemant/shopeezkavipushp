@@ -9,6 +9,7 @@ import {
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 import JsBarcode from 'jsbarcode'
+import { jsPDF } from 'jspdf'
 import toast from 'react-hot-toast'
 import { productAPI, categoryAPI, brandAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -638,35 +639,70 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     }
     if (!rows.length) { toast.error('No valid barcodes to export'); return }
 
-    const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
-      xmlns:x="urn:schemas-microsoft-com:office:excel"
-      xmlns="http://www.w3.org/TR/REC-html40">
-    <head><meta charset="UTF-8"/>
-    <style>
-      table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt;}
-      th{background:#f5f5f5;padding:8px 12px;border:1px solid #ccc;font-weight:bold;text-align:center;}
-      td{padding:6px 10px;border:1px solid #ddd;vertical-align:middle;text-align:center;}
-      img{height:50px;display:block;margin:0 auto;}
-    </style></head>
-    <body><table>
-      <tr><th>Product Name</th><th>Barcode Image</th><th>Barcode</th><th>Sale Price (₹)</th></tr>
-      ${rows.map(r => `<tr>
-        <td style="text-align:left;">${esc(r.name)}</td>
-        <td><img src="${r.imgUrl}"/></td>
-        <td style="font-family:monospace;">${esc(r.barcodeText)}</td>
-        <td>₹${r.price.toFixed(0)}</td>
-      </tr>`).join('')}
-    </table></body></html>`
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const margin = 10
+    const rowH = 18
+    const imgH = 13
+    const cols = { name: 60, img: 65, code: 40, price: 25 }
+    const tableW = cols.name + cols.img + cols.code + cols.price
 
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `barcodes_${new Date().toISOString().split('T')[0]}.xls`
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success(`Exported ${rows.length} barcode image${rows.length > 1 ? 's' : ''} to Excel`)
+    let y = margin
+
+    // Header row
+    doc.setFillColor(240, 240, 240)
+    doc.rect(margin, y, tableW, 8, 'F')
+    doc.setDrawColor(180, 180, 180)
+    doc.rect(margin, y, tableW, 8)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(40, 40, 40)
+    let hx = margin
+    ;['Product Name', 'Barcode Image', 'Barcode', 'Price (₹)'].forEach((h, i) => {
+      doc.text(h, hx + 2, y + 5.5)
+      hx += Object.values(cols)[i]
+    })
+    y += 8
+
+    rows.forEach((r, idx) => {
+      if (y + rowH > 287) { doc.addPage(); y = margin }
+
+      if (idx % 2 === 0) {
+        doc.setFillColor(250, 250, 250)
+        doc.rect(margin, y, tableW, rowH, 'F')
+      }
+      doc.setDrawColor(210, 210, 210)
+      doc.rect(margin, y, tableW, rowH)
+
+      let x = margin
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(0, 0, 0)
+
+      // Name
+      const name = r.name.length > 28 ? r.name.substring(0, 28) + '…' : r.name
+      doc.text(name, x + 2, y + rowH / 2 + 1.5)
+      x += cols.name
+
+      // Barcode image
+      doc.addImage(r.imgUrl, 'PNG', x + 2, y + (rowH - imgH) / 2, cols.img - 4, imgH)
+      x += cols.img
+
+      // Barcode text
+      doc.setFontSize(7)
+      doc.setFont('courier', 'normal')
+      doc.text(r.barcodeText, x + 2, y + rowH / 2 + 1.5)
+      x += cols.code
+
+      // Price
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`${r.price.toFixed(0)}`, x + 2, y + rowH / 2 + 1.5)
+
+      y += rowH
+    })
+
+    doc.save(`barcodes_${new Date().toISOString().split('T')[0]}.pdf`)
+    toast.success(`Exported ${rows.length} barcode image${rows.length > 1 ? 's' : ''} to PDF`)
   }
 
   const handlePrint = () => {
@@ -988,7 +1024,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
           </button>
           <button onClick={handleExportBarcode}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-            <Download className="h-4 w-4" /> Export Images
+            <Download className="h-4 w-4" /> Export PDF
           </button>
           <button onClick={handlePrint}
             className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
