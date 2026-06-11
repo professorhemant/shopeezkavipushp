@@ -640,65 +640,60 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     if (!rows.length) { toast.error('No valid barcodes to export'); return }
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const pageW = 210
     const margin = 10
-    const rowH = 18
-    const imgH = 13
-    const cols = { name: 60, img: 65, code: 40, price: 25 }
-    const tableW = cols.name + cols.img + cols.code + cols.price
+    const cardsPerRow = 3
+    const gap = 4
+    const cardW = (pageW - margin * 2 - gap * (cardsPerRow - 1)) / cardsPerRow  // ~56mm
+    const imgH = 7        // half of original ~13mm
+    const nameH = 5       // product name line height
+    const priceH = 4.5    // price line height
+    const codeH = 4       // barcode text line height
+    const padV = 2        // top/bottom padding inside card
+    const cardH = padV + nameH + priceH + imgH + codeH + padV  // ~24.5mm
 
+    let col = 0
     let y = margin
 
-    // Header row
-    doc.setFillColor(240, 240, 240)
-    doc.rect(margin, y, tableW, 8, 'F')
-    doc.setDrawColor(180, 180, 180)
-    doc.rect(margin, y, tableW, 8)
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(40, 40, 40)
-    let hx = margin
-    ;['Product Name', 'Barcode Image', 'Barcode', 'Price (₹)'].forEach((h, i) => {
-      doc.text(h, hx + 2, y + 5.5)
-      hx += Object.values(cols)[i]
-    })
-    y += 8
+    rows.forEach((r) => {
+      if (col === 0 && rows.indexOf(r) > 0 && y + cardH > 287) { doc.addPage(); y = margin }
+      const x = margin + col * (cardW + gap)
 
-    rows.forEach((r, idx) => {
-      if (y + rowH > 287) { doc.addPage(); y = margin }
+      // Card border
+      doc.setDrawColor(180, 180, 180)
+      doc.setFillColor(255, 255, 255)
+      doc.rect(x, y, cardW, cardH, 'FD')
 
-      if (idx % 2 === 0) {
-        doc.setFillColor(250, 250, 250)
-        doc.rect(margin, y, tableW, rowH, 'F')
-      }
-      doc.setDrawColor(210, 210, 210)
-      doc.rect(margin, y, tableW, rowH)
+      let cy = y + padV
 
-      let x = margin
+      // Product name (bold, truncated)
       doc.setFontSize(8)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(0, 0, 0)
-
-      // Name
-      const name = r.name.length > 28 ? r.name.substring(0, 28) + '…' : r.name
-      doc.text(name, x + 2, y + rowH / 2 + 1.5)
-      x += cols.name
-
-      // Barcode image
-      doc.addImage(r.imgUrl, 'PNG', x + 2, y + (rowH - imgH) / 2, cols.img - 4, imgH)
-      x += cols.img
-
-      // Barcode text
-      doc.setFontSize(7)
-      doc.setFont('courier', 'normal')
-      doc.text(r.barcodeText, x + 2, y + rowH / 2 + 1.5)
-      x += cols.code
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 30, 30)
+      const name = r.name.length > 20 ? r.name.substring(0, 20) + '…' : r.name
+      doc.text(name, x + cardW / 2, cy + nameH - 1, { align: 'center' })
+      cy += nameH
 
       // Price
       doc.setFontSize(8)
-      doc.setFont('helvetica', 'bold')
-      doc.text(`${r.price.toFixed(0)}`, x + 2, y + rowH / 2 + 1.5)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(60, 60, 60)
+      doc.text(`Rs. ${r.price.toFixed(0)}`, x + cardW / 2, cy + priceH - 1, { align: 'center' })
+      cy += priceH
 
-      y += rowH
+      // Barcode image (half size, centered)
+      const imgW = cardW - 8
+      doc.addImage(r.imgUrl, 'PNG', x + (cardW - imgW) / 2, cy, imgW, imgH)
+      cy += imgH
+
+      // Barcode text
+      doc.setFontSize(6.5)
+      doc.setFont('courier', 'normal')
+      doc.setTextColor(80, 80, 80)
+      doc.text(r.barcodeText, x + cardW / 2, cy + codeH - 0.5, { align: 'center' })
+
+      col++
+      if (col >= cardsPerRow) { col = 0; y += cardH + gap }
     })
 
     doc.save(`barcodes_${new Date().toISOString().split('T')[0]}.pdf`)
