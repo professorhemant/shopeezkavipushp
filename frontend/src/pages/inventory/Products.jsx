@@ -612,7 +612,7 @@ const generateBarcodeDataUrl = (text) => {
 const generateThermalBarcodeDataUrl = (text) => {
   try {
     const canvas = document.createElement('canvas')
-    JsBarcode(canvas, text, { format: 'CODE128', width: 2, height: 120, displayValue: false, margin: 2 })
+    JsBarcode(canvas, text, { format: 'CODE128', width: 3, height: 120, displayValue: false, margin: 2 })
     return canvas.toDataURL('image/png')
   } catch {
     return null
@@ -668,8 +668,8 @@ function buildTSPL(name, barcodeText, price, qty) {
     'GAP 2 mm,0 mm',
     'DIRECTION 1',
     'REFERENCE 0,0',
-    'SPEED 4',
-    'DENSITY 8',
+    'SPEED 2',
+    'DENSITY 12',
     'CLS',
   ]
   if (tpl.name.show)
@@ -677,7 +677,7 @@ function buildTSPL(name, barcodeText, price, qty) {
   if (tpl.price.show)
     lines.push(`TEXT ${tpl.price.x},${tpl.price.y},"${tsplFont(tpl.price.fontSize)}",0,1,1,"${priceStr}"`)
   if (tpl.barcode.show)
-    lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${tpl.barcode.h},0,0,2,2,"${safeCode}"`)
+    lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${tpl.barcode.h},0,0,2,3,"${safeCode}"`)
   if (tpl.code.show)
     lines.push(`TEXT ${tpl.code.x},${tpl.code.y},"${tsplFont(tpl.code.fontSize)}",0,1,1,"${safeCode}"`)
   lines.push(`PRINT ${qty},1`)
