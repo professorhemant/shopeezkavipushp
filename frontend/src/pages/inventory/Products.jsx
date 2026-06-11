@@ -624,6 +624,33 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const [showPrice, setShowPrice] = useState(true)
   const [labelFormat, setLabelFormat] = useState('standard') // 'standard' | 'thermal100x15'
 
+  const handleExportBarcode = () => {
+    const rows = []
+    let sr = 1
+    for (const p of selectedProducts) {
+      const barcodeText = p.barcode || p.sku || ''
+      if (!barcodeText) continue
+      for (let c = 0; c < copies; c++) {
+        rows.push({
+          'Sr. No': sr++,
+          'Product Name': p.name || '',
+          'Barcode': barcodeText,
+          'SKU': p.sku || '',
+          'Sale Price (₹)': parseFloat(p.sale_price || p.sell_price || 0),
+          'MRP (₹)': parseFloat(p.mrp || 0),
+          'Category': p.category?.name || p.Category?.name || '',
+        })
+      }
+    }
+    if (!rows.length) { toast.error('No valid barcodes to export'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = Object.keys(rows[0]).map((k) => ({ wch: Math.max(k.length + 2, 18) }))
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Barcodes')
+    XLSX.writeFile(wb, `barcodes_${new Date().toISOString().split('T')[0]}.xlsx`)
+    toast.success(`Exported ${rows.length} barcode${rows.length > 1 ? 's' : ''} to Excel`)
+  }
+
   const handlePrint = () => {
     // ── 100×15mm Thermal Label ──────────────────────────────────────────────
     if (labelFormat === 'thermal100x15') {
@@ -866,6 +893,10 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
           <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
             Cancel
+          </button>
+          <button onClick={handleExportBarcode}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <Download className="h-4 w-4" /> Export Excel
           </button>
           <button onClick={handlePrint}
             className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
