@@ -645,48 +645,44 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     const cardsPerRow = 3
     const gap = 4
     const cardW = (pageW - margin * 2 - gap * (cardsPerRow - 1)) / cardsPerRow  // ~56mm
-    const imgH = 7        // half of original ~13mm
-    const nameH = 5       // product name line height
-    const priceH = 4.5    // price line height
+    const imgH = 7        // half size barcode
+    const nameH = 5       // name+price row height
     const codeH = 4       // barcode text line height
     const padV = 2        // top/bottom padding inside card
-    const cardH = padV + nameH + priceH + imgH + codeH + padV  // ~24.5mm
+    const cardH = padV + nameH + imgH + codeH + padV  // ~20mm
 
     let col = 0
     let y = margin
 
-    rows.forEach((r) => {
-      if (col === 0 && rows.indexOf(r) > 0 && y + cardH > 287) { doc.addPage(); y = margin }
+    rows.forEach((r, idx) => {
+      if (col === 0 && idx > 0 && y + cardH > 287) { doc.addPage(); y = margin }
       const x = margin + col * (cardW + gap)
 
-      // Card border
+      // Single card border
       doc.setDrawColor(180, 180, 180)
       doc.setFillColor(255, 255, 255)
       doc.rect(x, y, cardW, cardH, 'FD')
 
       let cy = y + padV
 
-      // Product name (bold, truncated)
+      // Name (left) + Price (right) on same row
+      const textY = cy + nameH - 1
+      const name = r.name.length > 18 ? r.name.substring(0, 18) + '…' : r.name
       doc.setFontSize(8)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(30, 30, 30)
-      const name = r.name.length > 20 ? r.name.substring(0, 20) + '…' : r.name
-      doc.text(name, x + cardW / 2, cy + nameH - 1, { align: 'center' })
-      cy += nameH
-
-      // Price
-      doc.setFontSize(8)
+      doc.text(name, x + 2, textY)
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(60, 60, 60)
-      doc.text(`Rs. ${r.price.toFixed(0)}`, x + cardW / 2, cy + priceH - 1, { align: 'center' })
-      cy += priceH
+      doc.text(`Rs.${r.price.toFixed(0)}`, x + cardW - 2, textY, { align: 'right' })
+      cy += nameH
 
-      // Barcode image (half size, centered)
-      const imgW = cardW - 8
-      doc.addImage(r.imgUrl, 'PNG', x + (cardW - imgW) / 2, cy, imgW, imgH)
+      // Barcode image (half size, full width)
+      const imgW = cardW - 4
+      doc.addImage(r.imgUrl, 'PNG', x + 2, cy, imgW, imgH)
       cy += imgH
 
-      // Barcode text
+      // Barcode code text centered
       doc.setFontSize(6.5)
       doc.setFont('courier', 'normal')
       doc.setTextColor(80, 80, 80)
