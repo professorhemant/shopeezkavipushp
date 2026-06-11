@@ -4,7 +4,8 @@ import {
   Plus, Search, Edit2, Trash2, Barcode, Upload,
   Package, ChevronLeft, ChevronRight, AlertTriangle,
   Printer, Archive, ArchiveRestore, X, FileText,
-  CheckCircle, AlertCircle, Download, FolderOpen, Image as ImageIcon
+  CheckCircle, AlertCircle, Download, FolderOpen, Image as ImageIcon,
+  Palette, RotateCcw
 } from 'lucide-react'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
@@ -618,12 +619,49 @@ const generateThermalBarcodeDataUrl = (text) => {
   }
 }
 
-// Generate TSPL commands for TVS LP46 Neo (38.1mm x 25.4mm, 203 DPI)
+// ── Label Designer constants (38.1×25.4mm at 203 DPI = 305×203 dots) ────────
+const LABEL_W = 305
+const LABEL_H = 203
+
+const DEFAULT_LABEL_TEMPLATE = {
+  name:    { x: 5,   y: 5,   w: 175, h: 16, fontSize: 11, bold: true,  show: true },
+  price:   { x: 185, y: 5,   w: 115, h: 16, fontSize: 11, bold: false, show: true },
+  barcode: { x: 5,   y: 24,  w: 295, h: 90, show: true },
+  code:    { x: 5,   y: 118, w: 295, h: 14, fontSize: 9,  bold: false, show: true },
+}
+
+function getLabelTemplate() {
+  try {
+    const s = localStorage.getItem('kavipushp_label_tpl')
+    if (s) {
+      const parsed = JSON.parse(s)
+      return {
+        name:    { ...DEFAULT_LABEL_TEMPLATE.name,    ...parsed.name },
+        price:   { ...DEFAULT_LABEL_TEMPLATE.price,   ...parsed.price },
+        barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode, ...parsed.barcode },
+        code:    { ...DEFAULT_LABEL_TEMPLATE.code,    ...parsed.code },
+      }
+    }
+  } catch {}
+  return { ...DEFAULT_LABEL_TEMPLATE }
+}
+
+// Map CSS fontSize → TSPL font number
+function tsplFont(fs) {
+  if (fs <= 8)  return '0'
+  if (fs <= 10) return '1'
+  if (fs <= 14) return '2'
+  if (fs <= 20) return '3'
+  return '4'
+}
+
+// Generate TSPL for TVS LP46 Neo using saved template
 function buildTSPL(name, barcodeText, price, qty) {
-  const safeName = String(name).replace(/"/g, "'").substring(0, 20)
+  const tpl = getLabelTemplate()
+  const safeName = String(name).replace(/"/g, "'").substring(0, 22)
   const safeCode = String(barcodeText).replace(/"/g, "'")
   const priceStr = `Rs.${parseFloat(price).toFixed(0)}`
-  return [
+  const lines = [
     'SIZE 38.1 mm,25.4 mm',
     'GAP 2 mm,0 mm',
     'DIRECTION 1',
@@ -631,12 +669,239 @@ function buildTSPL(name, barcodeText, price, qty) {
     'SPEED 4',
     'DENSITY 8',
     'CLS',
-    `TEXT 5,5,"2",0,1,1,"${safeName}"`,
-    `TEXT 215,5,"2",0,1,1,"${priceStr}"`,
-    `BARCODE 5,25,"128",90,0,0,2,2,"${safeCode}"`,
-    `TEXT 5,120,"1",0,1,1,"${safeCode}"`,
-    `PRINT ${qty},1`,
-  ].join('\r\n')
+  ]
+  if (tpl.name.show)
+    lines.push(`TEXT ${tpl.name.x},${tpl.name.y},"${tsplFont(tpl.name.fontSize)}",0,1,1,"${safeName}"`)
+  if (tpl.price.show)
+    lines.push(`TEXT ${tpl.price.x},${tpl.price.y},"${tsplFont(tpl.price.fontSize)}",0,1,1,"${priceStr}"`)
+  if (tpl.barcode.show)
+    lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${tpl.barcode.h},0,0,2,2,"${safeCode}"`)
+  if (tpl.code.show)
+    lines.push(`TEXT ${tpl.code.x},${tpl.code.y},"${tsplFont(tpl.code.fontSize)}",0,1,1,"${safeCode}"`)
+  lines.push(`PRINT ${qty},1`)
+  return lines.join('\r\n')
+}
+
+// ── Label Designer Modal ──────────────────────────────────────────────────────
+const EL_COLORS = {
+  name:    { bg: 'rgba(59,130,246,0.18)',  border: '#3b82f6' },
+  price:   { bg: 'rgba(16,185,129,0.18)', border: '#10b981' },
+  barcode: { bg: 'rgba(245,158,11,0.18)', border: '#f59e0b' },
+  code:    { bg: 'rgba(139,92,246,0.18)', border: '#8b5cf6' },
+}
+const EL_LABELS = { name: 'Product Name', price: 'Price', barcode: 'Barcode Image', code: 'Barcode Number' }
+
+function LabelDesignerModal({ onClose }) {
+  const [tpl, setTpl] = useState(() => ({
+    name:    { ...DEFAULT_LABEL_TEMPLATE.name },
+    price:   { ...DEFAULT_LABEL_TEMPLATE.price },
+    barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode },
+    code:    { ...DEFAULT_LABEL_TEMPLATE.code },
+    ...(() => { try { const s = localStorage.getItem('kavipushp_label_tpl'); return s ? JSON.parse(s) : {} } catch { return {} } })(),
+  }))
+  const [sel, setSel] = useState('name')
+  const [drag, setDrag] = useState(null)
+  const canvasRef = useRef(null)
+
+  const sampleBarcode = generateThermalBarcodeDataUrl('1234567890') || ''
+
+  const onElMouseDown = (e, key) => {
+    e.preventDefault()
+    setSel(key)
+    const rect = canvasRef.current.getBoundingClientRect()
+    setDrag({ key, sx: e.clientX - rect.left, sy: e.clientY - rect.top, ox: tpl[key].x, oy: tpl[key].y })
+  }
+
+  const onMouseMove = (e) => {
+    if (!drag) return
+    const rect = canvasRef.current.getBoundingClientRect()
+    const dx = (e.clientX - rect.left) - drag.sx
+    const dy = (e.clientY - rect.top) - drag.sy
+    const el = tpl[drag.key]
+    const nx = Math.max(0, Math.min(LABEL_W - el.w, drag.ox + dx))
+    const ny = Math.max(0, Math.min(LABEL_H - el.h, drag.oy + dy))
+    setTpl(t => ({ ...t, [drag.key]: { ...t[drag.key], x: Math.round(nx), y: Math.round(ny) } }))
+  }
+
+  const update = (key, prop, val) => setTpl(t => ({ ...t, [key]: { ...t[key], [prop]: val } }))
+
+  const handleSave = () => {
+    localStorage.setItem('kavipushp_label_tpl', JSON.stringify(tpl))
+    toast.success('Label design saved!')
+    onClose()
+  }
+
+  const handleReset = () => {
+    const d = {
+      name:    { ...DEFAULT_LABEL_TEMPLATE.name },
+      price:   { ...DEFAULT_LABEL_TEMPLATE.price },
+      barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode },
+      code:    { ...DEFAULT_LABEL_TEMPLATE.code },
+    }
+    setTpl(d)
+    localStorage.removeItem('kavipushp_label_tpl')
+    toast.success('Reset to default layout')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-xl shadow-2xl flex flex-col max-h-[95vh]" style={{ width: 760 }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2"><Palette className="h-5 w-5 text-violet-500" /> Label Designer</h2>
+            <p className="text-xs text-slate-500 mt-0.5">TVS LP46 Neo · 38.1×25.4mm · 203 DPI · Drag elements to reposition</p>
+          </div>
+          <button onClick={onClose}><X className="h-5 w-5 text-slate-400 hover:text-slate-600" /></button>
+        </div>
+
+        {/* Body */}
+        <div className="flex gap-5 p-5 overflow-y-auto flex-1">
+
+          {/* Label canvas */}
+          <div className="flex-shrink-0">
+            <p className="text-xs text-center text-slate-500 mb-2">Label canvas · {LABEL_W}×{LABEL_H} dots (1 dot = 1px here)</p>
+            <div
+              ref={canvasRef}
+              style={{ width: LABEL_W, height: LABEL_H, position: 'relative', background: '#fff', border: '2px solid #cbd5e1', userSelect: 'none', cursor: drag ? 'grabbing' : 'crosshair' }}
+              onMouseMove={onMouseMove}
+              onMouseUp={() => setDrag(null)}
+              onMouseLeave={() => setDrag(null)}
+            >
+              {/* Subtle grid */}
+              {Array.from({ length: 19 }, (_, i) => (
+                <div key={`v${i}`} style={{ position: 'absolute', left: (i + 1) * 16, top: 0, width: 1, height: '100%', background: '#f1f5f9' }} />
+              ))}
+              {Array.from({ length: 12 }, (_, i) => (
+                <div key={`h${i}`} style={{ position: 'absolute', top: (i + 1) * 16, left: 0, height: 1, width: '100%', background: '#f1f5f9' }} />
+              ))}
+
+              {/* Draggable elements */}
+              {['name', 'price', 'barcode', 'code'].map(key => {
+                const el = tpl[key]
+                if (!el.show) return null
+                const isSel = sel === key
+                const c = EL_COLORS[key]
+                return (
+                  <div key={key}
+                    onMouseDown={(e) => onElMouseDown(e, key)}
+                    style={{
+                      position: 'absolute', left: el.x, top: el.y, width: el.w, height: el.h,
+                      background: isSel ? c.bg.replace('0.18', '0.35') : c.bg,
+                      border: `${isSel ? 2 : 1}px ${isSel ? 'solid' : 'dashed'} ${c.border}`,
+                      cursor: 'grab', overflow: 'hidden', display: 'flex', alignItems: 'center', boxSizing: 'border-box', borderRadius: 2,
+                    }}
+                  >
+                    {key === 'barcode' ? (
+                      sampleBarcode
+                        ? <img src={sampleBarcode} style={{ width: '100%', height: '100%', objectFit: 'fill' }} draggable={false} />
+                        : <span style={{ fontSize: 8, color: '#888', width: '100%', textAlign: 'center' }}>Barcode</span>
+                    ) : (
+                      <span style={{ fontSize: el.fontSize, fontWeight: el.bold ? 'bold' : 'normal', whiteSpace: 'nowrap', paddingLeft: 2, color: '#1a1a1a', lineHeight: 1 }}>
+                        {key === 'name' ? 'Product Name' : key === 'price' ? 'Rs.299' : '1234567890'}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Legend */}
+            <div className="flex flex-wrap gap-3 mt-2">
+              {['name', 'price', 'barcode', 'code'].map(key => (
+                <button key={key} onClick={() => setSel(key)}
+                  className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded border ${sel === key ? 'font-semibold' : 'text-slate-500'}`}
+                  style={{ borderColor: EL_COLORS[key].border, background: sel === key ? EL_COLORS[key].bg : 'transparent', color: sel === key ? EL_COLORS[key].border : '' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: EL_COLORS[key].border, display: 'inline-block' }} />
+                  {EL_LABELS[key]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Properties panel */}
+          <div className="flex-1 space-y-3">
+            <p className="text-sm font-semibold text-slate-700">Properties</p>
+            {['name', 'price', 'barcode', 'code'].map(key => {
+              const el = tpl[key]
+              const isSel = sel === key
+              return (
+                <div key={key} onClick={() => setSel(key)}
+                  className={`rounded-lg border p-3 cursor-pointer transition-colors ${isSel ? 'border-blue-300 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold" style={{ color: EL_COLORS[key].border }}>{EL_LABELS[key]}</span>
+                    <label className="flex items-center gap-1 text-xs text-slate-600 cursor-pointer" onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={el.show}
+                        onChange={e => update(key, 'show', e.target.checked)} className="rounded" />
+                      Visible
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <label className="flex flex-col gap-0.5 text-slate-500">
+                      X (dots)
+                      <input type="number" value={el.x} min={0} max={LABEL_W}
+                        onChange={e => update(key, 'x', +e.target.value)}
+                        className="border border-slate-200 rounded px-2 py-1 text-slate-800" />
+                    </label>
+                    <label className="flex flex-col gap-0.5 text-slate-500">
+                      Y (dots)
+                      <input type="number" value={el.y} min={0} max={LABEL_H}
+                        onChange={e => update(key, 'y', +e.target.value)}
+                        className="border border-slate-200 rounded px-2 py-1 text-slate-800" />
+                    </label>
+                    {key === 'barcode' ? (
+                      <>
+                        <label className="flex flex-col gap-0.5 text-slate-500">
+                          Width
+                          <input type="number" value={el.w} min={20} max={LABEL_W}
+                            onChange={e => update(key, 'w', +e.target.value)}
+                            className="border border-slate-200 rounded px-2 py-1 text-slate-800" />
+                        </label>
+                        <label className="flex flex-col gap-0.5 text-slate-500">
+                          Height
+                          <input type="number" value={el.h} min={10} max={LABEL_H}
+                            onChange={e => update(key, 'h', +e.target.value)}
+                            className="border border-slate-200 rounded px-2 py-1 text-slate-800" />
+                        </label>
+                      </>
+                    ) : (
+                      <>
+                        <label className="flex flex-col gap-0.5 text-slate-500">
+                          Font size
+                          <input type="number" value={el.fontSize} min={6} max={28}
+                            onChange={e => update(key, 'fontSize', +e.target.value)}
+                            className="border border-slate-200 rounded px-2 py-1 text-slate-800" />
+                        </label>
+                        <label className="flex items-center gap-2 text-slate-500 pt-4 cursor-pointer" onClick={e => e.stopPropagation()}>
+                          <input type="checkbox" checked={el.bold || false}
+                            onChange={e => update(key, 'bold', e.target.checked)} className="rounded" />
+                          Bold
+                        </label>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
+          <button onClick={handleReset} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700">
+            <RotateCcw className="h-3 w-3" /> Reset to Default
+          </button>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
+            <button onClick={handleSave} className="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Palette className="h-4 w-4" /> Save Design
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function PrintBarcodesModal({ products, selectedIds, onClose }) {
@@ -647,6 +912,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const [showPrice, setShowPrice] = useState(true)
   const [labelFormat, setLabelFormat] = useState('standard') // 'standard' | 'thermal100x15'
   const [qzStatus, setQzStatus] = useState('idle') // 'idle' | 'connecting' | 'printing' | 'error'
+  const [showDesigner, setShowDesigner] = useState(false)
 
   const handleDirectPrintQZ = async () => {
     setQzStatus('connecting')
@@ -1188,31 +1454,38 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 flex-wrap">
-          <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
-            Cancel
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 flex-wrap">
+          <button onClick={() => setShowDesigner(true)}
+            className="flex items-center gap-2 text-sm font-medium text-violet-600 hover:text-violet-800 border border-violet-200 hover:border-violet-400 px-4 py-2 rounded-lg bg-violet-50 hover:bg-violet-100">
+            <Palette className="h-4 w-4" /> Design Label
           </button>
-          <button onClick={handleExportBarcode}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-            <Download className="h-4 w-4" /> Export PDF
-          </button>
-          <button onClick={handleFinalExportExcel}
-            className="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-            <Download className="h-4 w-4" /> Final Export Excel
-          </button>
-          {labelFormat === 'thermal100x15' && (
-            <button onClick={handleDirectPrintQZ} disabled={qzStatus === 'connecting' || qzStatus === 'printing'}
-              className="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-              <Printer className="h-4 w-4" />
-              {qzStatus === 'connecting' ? 'Connecting…' : qzStatus === 'printing' ? 'Printing…' : 'Direct Print'}
+          <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
+              Cancel
             </button>
-          )}
-          <button onClick={handlePrint}
-            className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-            <Printer className="h-4 w-4" /> Print Labels
-          </button>
+            <button onClick={handleExportBarcode}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Download className="h-4 w-4" /> Export PDF
+            </button>
+            <button onClick={handleFinalExportExcel}
+              className="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Download className="h-4 w-4" /> Final Export Excel
+            </button>
+            {labelFormat === 'thermal100x15' && (
+              <button onClick={handleDirectPrintQZ} disabled={qzStatus === 'connecting' || qzStatus === 'printing'}
+                className="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                <Printer className="h-4 w-4" />
+                {qzStatus === 'connecting' ? 'Connecting…' : qzStatus === 'printing' ? 'Printing…' : 'Direct Print'}
+              </button>
+            )}
+            <button onClick={handlePrint}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Printer className="h-4 w-4" /> Print Labels
+            </button>
+          </div>
         </div>
       </div>
+      {showDesigner && <LabelDesignerModal onClose={() => setShowDesigner(false)} />}
     </div>
   )
 }
