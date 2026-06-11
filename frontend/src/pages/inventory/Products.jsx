@@ -696,6 +696,84 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     toast.success(`Exported ${rows.length} barcode image${rows.length > 1 ? 's' : ''} to PDF`)
   }
 
+  const handleFinalExportExcel = async () => {
+    const items = []
+    for (const p of selectedProducts) {
+      const barcodeText = p.barcode || p.sku || ''
+      if (!barcodeText) continue
+      const price = parseFloat(p.sale_price || p.sell_price || 0)
+
+      // Render label card to canvas
+      const W = 400, H = 120
+      const canvas = document.createElement('canvas')
+      canvas.width = W; canvas.height = H
+      const ctx = canvas.getContext('2d')
+
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, W, H)
+      ctx.strokeStyle = '#cccccc'
+      ctx.lineWidth = 1
+      ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
+
+      // Name left, price right — same row
+      ctx.fillStyle = '#1a1a1a'
+      ctx.font = 'bold 15px Arial, sans-serif'
+      const name = p.name.length > 24 ? p.name.substring(0, 24) + '…' : p.name
+      ctx.fillText(name, 6, 20)
+      ctx.font = '14px Arial, sans-serif'
+      ctx.fillStyle = '#333333'
+      const priceText = `Rs.${price.toFixed(0)}`
+      const pw = ctx.measureText(priceText).width
+      ctx.fillText(priceText, W - pw - 6, 20)
+
+      // Barcode image
+      const bc = document.createElement('canvas')
+      JsBarcode(bc, barcodeText, { format: 'CODE128', width: 2, height: 65, displayValue: false, margin: 2 })
+      ctx.drawImage(bc, 4, 26, W - 8, 65)
+
+      // Barcode code text
+      ctx.fillStyle = '#555555'
+      ctx.font = '11px Courier New, monospace'
+      const cw = ctx.measureText(barcodeText).width
+      ctx.fillText(barcodeText, (W - cw) / 2, 108)
+
+      const base64 = canvas.toDataURL('image/png').split(',')[1]
+      for (let c = 0; c < copies; c++) {
+        items.push({ base64 })
+      }
+    }
+
+    if (!items.length) { toast.error('No valid barcodes to export'); return }
+
+    const ExcelJS = (await import('exceljs')).default
+    const wb = new ExcelJS.Workbook()
+    const ws = wb.addWorksheet('Barcodes')
+
+    ws.getColumn(1).width = 58   // ~400px
+
+    for (let i = 0; i < items.length; i++) {
+      const row = ws.getRow(i + 1)
+      row.height = 90             // ~120px
+
+      const imgId = wb.addImage({ base64: items[i].base64, extension: 'png' })
+      ws.addImage(imgId, {
+        tl: { col: 0, row: i },
+        br: { col: 1, row: i + 1 },
+        editAs: 'oneCell'
+      })
+    }
+
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `barcodes_${new Date().toISOString().split('T')[0]}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success(`Exported ${items.length} label image${items.length > 1 ? 's' : ''} to Excel`)
+  }
+
   const handlePrint = () => {
     // ── 100×15mm Thermal Label ──────────────────────────────────────────────
     if (labelFormat === 'thermal100x15') {
@@ -1016,6 +1094,10 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
           <button onClick={handleExportBarcode}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <Download className="h-4 w-4" /> Export PDF
+          </button>
+          <button onClick={handleFinalExportExcel}
+            className="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <Download className="h-4 w-4" /> Final Export Excel
           </button>
           <button onClick={handlePrint}
             className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
