@@ -703,8 +703,8 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
       if (!barcodeText) continue
       const price = parseFloat(p.sale_price || p.sell_price || 0)
 
-      // Render label card to canvas
-      const W = 400, H = 120
+      // Render label card to canvas (W -40%, H -30%)
+      const W = 240, H = 84
       const canvas = document.createElement('canvas')
       canvas.width = W; canvas.height = H
       const ctx = canvas.getContext('2d')
@@ -717,25 +717,25 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
 
       // Name left, price right — same row
       ctx.fillStyle = '#1a1a1a'
-      ctx.font = 'bold 15px Arial, sans-serif'
-      const name = p.name.length > 24 ? p.name.substring(0, 24) + '…' : p.name
-      ctx.fillText(name, 6, 20)
-      ctx.font = '14px Arial, sans-serif'
+      ctx.font = 'bold 10px Arial, sans-serif'
+      const name = p.name.length > 22 ? p.name.substring(0, 22) + '…' : p.name
+      ctx.fillText(name, 4, 14)
+      ctx.font = '9px Arial, sans-serif'
       ctx.fillStyle = '#333333'
       const priceText = `Rs.${price.toFixed(0)}`
       const pw = ctx.measureText(priceText).width
-      ctx.fillText(priceText, W - pw - 6, 20)
+      ctx.fillText(priceText, W - pw - 4, 14)
 
       // Barcode image
       const bc = document.createElement('canvas')
-      JsBarcode(bc, barcodeText, { format: 'CODE128', width: 2, height: 65, displayValue: false, margin: 2 })
-      ctx.drawImage(bc, 4, 26, W - 8, 65)
+      JsBarcode(bc, barcodeText, { format: 'CODE128', width: 2, height: 46, displayValue: false, margin: 2 })
+      ctx.drawImage(bc, 3, 18, W - 6, 46)
 
       // Barcode code text
       ctx.fillStyle = '#555555'
-      ctx.font = '11px Courier New, monospace'
+      ctx.font = '7px Courier New, monospace'
       const cw = ctx.measureText(barcodeText).width
-      ctx.fillText(barcodeText, (W - cw) / 2, 108)
+      ctx.fillText(barcodeText, (W - cw) / 2, 76)
 
       const base64 = canvas.toDataURL('image/png').split(',')[1]
       for (let c = 0; c < copies; c++) {
@@ -749,11 +749,11 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     const wb = new ExcelJS.Workbook()
     const ws = wb.addWorksheet('Barcodes')
 
-    ws.getColumn(1).width = 58   // ~400px
+    ws.getColumn(1).width = 35   // ~240px
 
     for (let i = 0; i < items.length; i++) {
       const row = ws.getRow(i + 1)
-      row.height = 90             // ~120px
+      row.height = 63             // ~84px
 
       const imgId = wb.addImage({ base64: items[i].base64, extension: 'png' })
       ws.addImage(imgId, {
