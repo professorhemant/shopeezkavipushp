@@ -10,6 +10,7 @@ import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 import JsBarcode from 'jsbarcode'
 import { jsPDF } from 'jspdf'
+import ExcelJS from 'exceljs'
 import toast from 'react-hot-toast'
 import { productAPI, categoryAPI, brandAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -697,6 +698,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
   }
 
   const handleFinalExportExcel = async () => {
+    try {
     const items = []
     for (const p of selectedProducts) {
       const barcodeText = p.barcode || p.sku || ''
@@ -727,9 +729,11 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
       ctx.fillText(priceText, W - pw - 4, 14)
 
       // Barcode image
-      const bc = document.createElement('canvas')
-      JsBarcode(bc, barcodeText, { format: 'CODE128', width: 2, height: 46, displayValue: false, margin: 2 })
-      ctx.drawImage(bc, 3, 18, W - 6, 46)
+      try {
+        const bc = document.createElement('canvas')
+        JsBarcode(bc, barcodeText, { format: 'CODE128', width: 2, height: 46, displayValue: false, margin: 2 })
+        ctx.drawImage(bc, 3, 18, W - 6, 46)
+      } catch { /* skip barcode draw if invalid */ }
 
       // Barcode code text
       ctx.fillStyle = '#555555'
@@ -745,7 +749,6 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
 
     if (!items.length) { toast.error('No valid barcodes to export'); return }
 
-    const ExcelJS = (await import('exceljs')).default
     const wb = new ExcelJS.Workbook()
     const ws = wb.addWorksheet('Barcodes')
 
@@ -772,6 +775,9 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     a.click()
     URL.revokeObjectURL(url)
     toast.success(`Exported ${items.length} label image${items.length > 1 ? 's' : ''} to Excel`)
+    } catch (err) {
+      toast.error(`Excel export failed: ${err.message}`)
+    }
   }
 
   const handlePrint = () => {
