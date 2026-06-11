@@ -624,12 +624,12 @@ const LABEL_W = 800   // dots
 const LABEL_H = 120   // dots
 const DESIGNER_SCALE = 0.75  // display at 75% → 600×90 px in designer
 
-// Default layout: text (name+price) on left half, barcode on right half
+// Default layout: LEFT EMPTY, all content on RIGHT side (x≥410)
 const DEFAULT_LABEL_TEMPLATE = {
-  name:    { x: 5,   y: 5,   w: 375, h: 55, fontSize: 14, bold: true,  show: true },
-  price:   { x: 5,   y: 65,  w: 375, h: 50, fontSize: 12, bold: false, show: true },
-  barcode: { x: 395, y: 3,   w: 390, h: 95, show: true },
-  code:    { x: 395, y: 100, w: 390, h: 15, fontSize: 8,  bold: false, show: true },
+  name:    { x: 412, y: 3,  w: 185, h: 19, fontSize: 11, bold: true,  show: true },
+  price:   { x: 602, y: 3,  w: 190, h: 19, fontSize: 11, bold: false, show: true },
+  barcode: { x: 412, y: 22, w: 383, h: 70, show: true },
+  code:    { x: 412, y: 95, w: 383, h: 12, fontSize: 8,  bold: false, show: true },
 }
 
 function getLabelTemplate() {
@@ -1052,40 +1052,50 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
       if (!barcodeText) continue
       const price = parseFloat(p.sale_price || p.sell_price || 0)
 
-      // Render label card to canvas (100×15mm proportional)
+      // Render label (600×90px, 2× retina for sharp barcode)
       const W = 600, H = 90
+      const R = 2  // retina scale
       const canvas = document.createElement('canvas')
-      canvas.width = W; canvas.height = H
+      canvas.width = W * R; canvas.height = H * R
       const ctx = canvas.getContext('2d')
+      ctx.scale(R, R)
 
+      // White background + border
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(0, 0, W, H)
       ctx.strokeStyle = '#cccccc'
-      ctx.lineWidth = 1
+      ctx.lineWidth = 0.5
       ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
 
-      // Left: name + price (48% of width)
-      const textColW = Math.round(W * 0.48)
-      ctx.fillStyle = '#1a1a1a'
-      ctx.font = 'bold 14px Arial, sans-serif'
-      const nm = p.name.length > 18 ? p.name.substring(0, 18) + '…' : p.name
-      ctx.fillText(nm, 5, 30)
-      ctx.font = '12px Arial, sans-serif'
-      ctx.fillStyle = '#333333'
-      ctx.fillText(`Rs.${price.toFixed(0)}`, 5, 60)
+      // RIGHT-SIDE CONTENT (left half is empty, like the physical label)
+      const cx = Math.round(W * 0.51)  // content start x ≈ 306px = 51mm
+      const cw = W - cx - 3            // content width ≈ 291px
 
-      // Right: barcode image + code text
-      const bcX = textColW + 5
-      const bcW = W - bcX - 3
+      // Name (top-left of content area)
+      ctx.fillStyle = '#111111'
+      ctx.font = 'bold 13px Arial, sans-serif'
+      const nm = p.name.length > 15 ? p.name.substring(0, 15) + '…' : p.name
+      ctx.fillText(nm, cx + 3, 15)
+
+      // Price (top-right of content area)
+      ctx.font = '12px Arial, sans-serif'
+      ctx.fillStyle = '#222222'
+      const priceText = `Rs.${price.toFixed(0)}`
+      const pw = ctx.measureText(priceText).width
+      ctx.fillText(priceText, cx + cw - pw - 2, 15)
+
+      // Barcode image (sharp, full content width)
       try {
         const bc = document.createElement('canvas')
-        JsBarcode(bc, barcodeText, { format: 'CODE128', width: 2, height: 60, displayValue: false, margin: 2 })
-        ctx.drawImage(bc, bcX, 3, bcW, 70)
+        JsBarcode(bc, barcodeText, { format: 'CODE128', width: 3, height: 100, displayValue: false, margin: 3 })
+        ctx.drawImage(bc, cx, 18, cw, 58)
       } catch { /* skip */ }
-      ctx.fillStyle = '#555555'
-      ctx.font = '9px Courier New, monospace'
-      const cw = ctx.measureText(barcodeText).width
-      ctx.fillText(barcodeText, bcX + (bcW - cw) / 2, 83)
+
+      // Barcode number (bottom, centered in content area)
+      ctx.fillStyle = '#444444'
+      ctx.font = '8.5px Courier New, monospace'
+      const ctw = ctx.measureText(barcodeText).width
+      ctx.fillText(barcodeText, cx + (cw - ctw) / 2, 83)
 
       const base64 = canvas.toDataURL('image/png').split(',')[1]
       for (let c = 0; c < copies; c++) {
@@ -1151,23 +1161,23 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <style>
           *{box-sizing:border-box;margin:0;padding:0;}
           body{font-family:Arial,sans-serif;background:#fff;}
-          .label{width:100mm;height:15mm;display:flex;flex-direction:row;align-items:center;gap:1mm;padding:0.5mm 1mm;page-break-after:always;overflow:hidden;background:#fff;}
+          .label{width:100mm;height:15mm;display:flex;flex-direction:column;padding:0.3mm 0.5mm 0.3mm 51mm;page-break-after:always;overflow:hidden;background:#fff;box-sizing:border-box;}
           .label:last-child{page-break-after:avoid;}
-          .text-col{display:flex;flex-direction:column;justify-content:center;width:48mm;flex-shrink:0;overflow:hidden;}
-          .name{font-size:7pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
-          .price{font-size:7pt;color:#000;white-space:nowrap;line-height:1.3;}
-          .barcode-col{flex:1;display:flex;flex-direction:column;align-items:center;overflow:hidden;}
-          .barcode-img{width:100%;height:10mm;object-fit:fill;display:block;}
-          .code{font-size:5pt;font-family:monospace;color:#333;line-height:1;letter-spacing:0.3px;white-space:nowrap;}
+          .top-row{display:flex;justify-content:space-between;align-items:baseline;flex-shrink:0;overflow:hidden;gap:0.5mm;}
+          .name{font-size:8pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%;}
+          .price{font-size:8pt;color:#000;white-space:nowrap;flex-shrink:0;}
+          .bc-wrap{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+          .barcode-img{flex:1;width:100%;min-height:0;object-fit:fill;display:block;}
+          .code{font-size:5.5pt;font-family:monospace;color:#222;text-align:center;white-space:nowrap;flex-shrink:0;letter-spacing:0.3px;}
           @media print{body{margin:0;padding:0;}@page{size:100mm 15mm;margin:0;}}
         </style>
       </head><body>
         ${labels.map((l) => `<div class="label">
-          <div class="text-col">
+          <div class="top-row">
             ${showName ? `<span class="name">${esc(l.name)}</span>` : ''}
             ${showPrice && l.price > 0 ? `<span class="price">Rs.${Number(l.price).toFixed(0)}</span>` : ''}
           </div>
-          <div class="barcode-col">
+          <div class="bc-wrap">
             <img class="barcode-img" src="${l.imgUrl}"/>
             <div class="code">${esc(l.barcodeText)}</div>
           </div>
