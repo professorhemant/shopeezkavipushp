@@ -624,7 +624,7 @@ const LABEL_W = 800   // dots
 const LABEL_H = 120   // dots
 const DESIGNER_SCALE = 0.75  // display at 75% → 600×90 px in designer
 
-// Default layout: LEFT EMPTY, all content on RIGHT side (x≥410)
+// Default layout: LEFT EMPTY (51mm), all content on RIGHT side
 const DEFAULT_LABEL_TEMPLATE = {
   name:    { x: 412, y: 3,  w: 185, h: 19, fontSize: 11, bold: true,  show: true },
   price:   { x: 602, y: 3,  w: 190, h: 19, fontSize: 11, bold: false, show: true },
