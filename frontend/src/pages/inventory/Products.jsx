@@ -1136,223 +1136,6 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     }
   }
 
-  const handlePrint = () => {
-    // ── 100×15mm Thermal Label ──────────────────────────────────────────────
-    if (labelFormat === 'thermal100x15') {
-      const labels = []
-      for (const p of selectedProducts) {
-        const barcodeText = p.barcode || p.sku || ''
-        if (!barcodeText) continue
-        const imgUrl = generateThermalBarcodeDataUrl(barcodeText)
-        if (!imgUrl) continue
-        const price = p.sale_price || p.mrp || 0
-        for (let c = 0; c < copies; c++) {
-          labels.push({ name: p.name, barcodeText, imgUrl, price })
-        }
-      }
-      if (!labels.length) {
-        toast.error('No valid barcodes to print (products need a barcode value)')
-        return
-      }
-      const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-      const thermalHtml = `<!DOCTYPE html><html><head>
-        <meta charset="UTF-8"/>
-        <title>Barcodes (${labels.length})</title>
-        <style>
-          *{box-sizing:border-box;margin:0;padding:0;}
-          body{font-family:Arial,sans-serif;background:#fff;}
-          .label{width:100mm;height:15mm;display:flex;flex-direction:column;padding:0.3mm 0.5mm 0.3mm 51mm;page-break-after:always;overflow:hidden;background:#fff;box-sizing:border-box;}
-          .label:last-child{page-break-after:avoid;}
-          .top-row{display:flex;justify-content:space-between;align-items:baseline;flex-shrink:0;overflow:hidden;gap:0.5mm;}
-          .name{font-size:8pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%;}
-          .price{font-size:8pt;color:#000;white-space:nowrap;flex-shrink:0;}
-          .bc-wrap{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
-          .barcode-img{flex:1;width:100%;min-height:0;object-fit:fill;display:block;}
-          .code{font-size:5.5pt;font-family:monospace;color:#222;text-align:center;white-space:nowrap;flex-shrink:0;letter-spacing:0.3px;}
-          @media print{body{margin:0;padding:0;}@page{size:100mm 15mm;margin:0;}}
-        </style>
-      </head><body>
-        ${labels.map((l) => `<div class="label">
-          <div class="top-row">
-            ${showName ? `<span class="name">${esc(l.name)}</span>` : ''}
-            ${showPrice && l.price > 0 ? `<span class="price">Rs.${Number(l.price).toFixed(0)}</span>` : ''}
-          </div>
-          <div class="bc-wrap">
-            <img class="barcode-img" src="${l.imgUrl}"/>
-            <div class="code">${esc(l.barcodeText)}</div>
-          </div>
-        </div>`).join('')}
-        <script>setTimeout(function(){window.print();window.onafterprint=function(){window.close();};},400);<\/script>
-      </body></html>`
-      const win = window.open('', '_blank', 'width=400,height=300,toolbar=0,menubar=0,scrollbars=0')
-      if (!win) { toast.error('Allow popups to print barcode labels.'); return }
-      win.document.open()
-      win.document.write(thermalHtml)
-      win.document.close()
-      return
-    }
-
-    // ── A4 Sheet 5×13 (HP Smart Tank 589) ──────────────────────────────────
-    if (labelFormat === 'a4sheet5x13') {
-      const labels = []
-      for (const p of selectedProducts) {
-        const barcodeText = p.barcode || p.sku || ''
-        if (!barcodeText) continue
-        const imgUrl = generateThermalBarcodeDataUrl(barcodeText)
-        if (!imgUrl) continue
-        const price = p.sale_price || p.sell_price || p.mrp || 0
-        for (let c = 0; c < copies; c++) {
-          labels.push({ name: p.name, barcodeText, imgUrl, price })
-        }
-      }
-      if (!labels.length) {
-        toast.error('No valid barcodes to print (products need a barcode value)')
-        return
-      }
-      const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-      const a4Html = `<!DOCTYPE html><html><head>
-        <meta charset="UTF-8"/>
-        <title>Barcodes A4 (${labels.length})</title>
-        <style>
-          *{box-sizing:border-box;margin:0;padding:0;}
-          body{font-family:Arial,sans-serif;background:#fff;}
-          .sheet{
-            display:grid;
-            grid-template-columns:repeat(5,38.1mm);
-            grid-auto-rows:25.4mm;
-            gap:0;
-            padding:9.75mm 9.75mm;
-            width:210mm;
-          }
-          .label{
-            width:38.1mm;
-            height:25.4mm;
-            overflow:hidden;
-            display:flex;
-            flex-direction:column;
-            padding:1mm 0mm 1mm 13.1mm;
-            break-inside:avoid;
-            page-break-inside:avoid;
-          }
-          .name-price-row{display:flex;justify-content:flex-end;align-items:baseline;gap:1mm;flex-shrink:0;overflow:hidden;}
-          .name{font-size:6pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
-          .price{font-size:6pt;font-weight:bold;color:#000;white-space:nowrap;flex-shrink:0;line-height:1.3;}
-          .barcode-img{flex:1;width:100%;min-height:0;object-fit:fill;display:block;}
-          .code{font-size:5pt;font-family:monospace;color:#333;line-height:1;letter-spacing:0.3px;text-align:right;white-space:nowrap;flex-shrink:0;}
-          @media print{body{margin:0;padding:0;}@page{size:A4 portrait;margin:0;}}
-        </style>
-      </head><body>
-        <div class="sheet">
-          ${labels.map((l) => `<div class="label">
-            ${(showName || (showPrice && l.price > 0)) ? `<div class="name-price-row">
-              ${showName ? `<span class="name">${esc(l.name)}</span>` : ''}
-              ${showPrice && l.price > 0 ? `<span class="price">&#8377;${Number(l.price).toFixed(0)}</span>` : ''}
-            </div>` : ''}
-            <img class="barcode-img" src="${l.imgUrl}"/>
-            <div class="code">${esc(l.barcodeText)}</div>
-          </div>`).join('')}
-        </div>
-        <script>setTimeout(function(){window.print();window.onafterprint=function(){window.close();};},400);<\/script>
-      </body></html>`
-      const win = window.open('', '_blank', 'width=900,height=700,toolbar=0,menubar=0,scrollbars=0')
-      if (!win) { toast.error('Allow popups to print barcode labels.'); return }
-      win.document.open()
-      win.document.write(a4Html)
-      win.document.close()
-      return
-    }
-
-    // ── Standard Labels ─────────────────────────────────────────────────────
-    const labels = []
-    for (const p of selectedProducts) {
-      const barcodeText = p.barcode || p.sku || ''
-      if (!barcodeText) continue
-      const imgUrl = generateBarcodeDataUrl(barcodeText)
-      if (!imgUrl) continue
-      const price = p.sale_price || p.mrp || 0
-      const mrp = p.mrp || 0
-      for (let c = 0; c < copies; c++) {
-        labels.push({ name: p.name, barcodeText, imgUrl, price, mrp })
-      }
-    }
-
-    if (!labels.length) {
-      toast.error('No valid barcodes to print (products need a barcode value)')
-      return
-    }
-
-    const labelWidth = labelsPerRow === 1 ? 220 : labelsPerRow === 2 ? 190 : labelsPerRow === 4 ? 145 : 165
-    const stdHtml = `<!DOCTYPE html>
-      <html>
-      <head>
-        <title>Barcode Labels</title>
-        <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: Arial, sans-serif; background: #fff; padding: 8px; }
-          .grid { display: flex; flex-wrap: wrap; gap: 6px; }
-          .label {
-            width: ${labelWidth}px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 6px 8px;
-            text-align: center;
-            page-break-inside: avoid;
-            background: #fff;
-          }
-          .label .name {
-            font-size: 10px;
-            font-weight: bold;
-            color: #1e293b;
-            margin-bottom: 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-          .label .price {
-            font-size: 13px;
-            font-weight: bold;
-            color: #b45309;
-            margin-bottom: 2px;
-          }
-          .label .mrp {
-            font-size: 9px;
-            color: #94a3b8;
-            margin-bottom: 2px;
-          }
-          .label img { width: 100%; max-height: 48px; object-fit: contain; }
-          .label .code { font-size: 9px; font-family: monospace; color: #64748b; margin-top: 2px; }
-          @media print {
-            body { padding: 4px; }
-            @page { margin: 6mm; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="grid">
-          ${labels.map((l) => `
-            <div class="label">
-              ${showName ? `<div class="name" title="${l.name}">${l.name}</div>` : ''}
-              ${showPrice && l.price > 0 ? `<div class="price">&#8377;${Number(l.price).toFixed(0)}</div>` : ''}
-              ${showPrice && l.mrp > 0 && l.mrp !== l.price ? `<div class="mrp">MRP: &#8377;${Number(l.mrp).toFixed(0)}</div>` : ''}
-              <img src="${l.imgUrl}" alt="${l.barcodeText}" />
-              <div class="code">${l.barcodeText}</div>
-            </div>
-          `).join('')}
-        </div>
-      </body>
-      </html>`
-    const stdBlob = new Blob([stdHtml], { type: 'text/html' })
-    const stdUrl = URL.createObjectURL(stdBlob)
-    const win = window.open(stdUrl, '_blank')
-    if (!win) { toast.error('Allow popups to print barcode labels.'); URL.revokeObjectURL(stdUrl); return }
-    win.onload = () => {
-      setTimeout(() => {
-        win.focus()
-        win.print()
-        win.onafterprint = () => { win.close(); URL.revokeObjectURL(stdUrl) }
-      }, 200)
-    }
-  }
 
   const skippedCount = selectedProducts.filter((p) => !p.barcode && !p.sku).length
 
@@ -1450,23 +1233,9 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
             Total labels to print: <strong className="text-slate-800">{(selectedProducts.length - skippedCount) * copies}</strong>
           </div>
 
-          {/* QZ Tray install note — shown only for TVS LP46 Neo */}
-          {labelFormat === 'thermal100x15' && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-xs text-blue-700 space-y-1">
-              <p><strong>One-time setup for Direct Print:</strong></p>
-              <p>1. Download QZ Tray (free, no email needed) →{' '}
-                <a href="https://github.com/qzind/tray/releases/latest" target="_blank" rel="noreferrer" className="underline font-semibold text-blue-800">
-                  github.com/qzind/tray/releases
-                </a>
-              </p>
-              <p>2. Install it → it runs in system tray (bottom-right taskbar)</p>
-              <p>3. Right-click QZ Tray icon → <strong>Preferences</strong> → tick <strong>"Allow unsigned"</strong> → Save</p>
-              <p>4. Click <strong>Direct Print</strong> button above — done!</p>
-              {qzStatus === 'connecting' && <p className="font-semibold text-blue-800">Connecting to QZ Tray…</p>}
-              {qzStatus === 'printing'   && <p className="font-semibold text-green-700">Sending labels to printer…</p>}
-              {qzStatus === 'error'      && <p className="font-semibold text-red-600">Could not connect — is QZ Tray running?</p>}
-            </div>
-          )}
+          {qzStatus === 'connecting' && <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-xs text-blue-700 font-semibold">Connecting to QZ Tray…</div>}
+          {qzStatus === 'printing'   && <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-xs text-green-700 font-semibold">Sending labels to printer…</div>}
+          {qzStatus === 'error'      && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-xs text-red-600 font-semibold">QZ Tray not running — start it from system tray</div>}
         </div>
 
         {/* Footer */}
@@ -1487,16 +1256,10 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               className="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
               <Download className="h-4 w-4" /> Final Export Excel
             </button>
-            {labelFormat === 'thermal100x15' && (
-              <button onClick={handleDirectPrintQZ} disabled={qzStatus === 'connecting' || qzStatus === 'printing'}
-                className="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-                <Printer className="h-4 w-4" />
-                {qzStatus === 'connecting' ? 'Connecting…' : qzStatus === 'printing' ? 'Printing…' : 'Direct Print'}
-              </button>
-            )}
-            <button onClick={handlePrint}
-              className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-              <Printer className="h-4 w-4" /> Print Labels
+            <button onClick={handleDirectPrintQZ} disabled={qzStatus === 'connecting' || qzStatus === 'printing'}
+              className="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Printer className="h-4 w-4" />
+              {qzStatus === 'connecting' ? 'Connecting…' : qzStatus === 'printing' ? 'Printing…' : 'Direct Print'}
             </button>
           </div>
         </div>
