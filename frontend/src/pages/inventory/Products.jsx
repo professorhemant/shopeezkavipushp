@@ -918,16 +918,78 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const [qzStatus, setQzStatus] = useState('idle') // 'idle' | 'connecting' | 'printing' | 'error'
   const [showDesigner, setShowDesigner] = useState(false)
 
+  const QZ_CERT = `-----BEGIN CERTIFICATE-----
+MIIDhzCCAm+gAwIBAgIUBg2wbdE+ysKv0l2ODbPJgjW6hOQwDQYJKoZIhvcNAQEL
+BQAwUzEwMC4GA1UEAwwnZnJvbnRlbmQtcHJvZHVjdGlvbi0zNGIwLnVwLnJhaWx3
+YXkuYXBwMRIwEAYDVQQKDAlLYXZpUHVzaHAxCzAJBgNVBAYTAklOMB4XDTI2MDYx
+MTE2NDg1NVoXDTM2MDYwODE2NDg1NVowUzEwMC4GA1UEAwwnZnJvbnRlbmQtcHJv
+ZHVjdGlvbi0zNGIwLnVwLnJhaWx3YXkuYXBwMRIwEAYDVQQKDAlLYXZpUHVzaHAx
+CzAJBgNVBAYTAklOMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxDZn
+P9fvqXpbtCa7L4WY3ZdOiKKojo9BL8TIMMALMvNGVDDXNPOrYg1+2URzukAM9CXe
+e9Ki5d0bTvmRFY/ChA41fMl0fN3p0KUf4/P+stRY92moc+0rEbDx06Ph6tqeNPuq
+Hh/ml0i5AY4KquQ1IiWMKDK/T0jjK6ZE2WLl/Qei/Yv8hA9NBlYcdv+oKEeDSuAw
+uoWpV7rTTohaUHyL9qOGOKqhJKqMt/2oIwCFEnx8aT6Jg+eoaaM6UnRwREJPfCWJ
+puYrGV+ig5ypEvsnQDWYDHuwEM6bIYEiwF8MO11SounxOdQOF23xM6YJeQ7afo8f
+QFtqzCvheL8OX6lMXQIDAQABo1MwUTAdBgNVHQ4EFgQUBBWNcITyel6LCv8x+n3V
+3tToMwAwHwYDVR0jBBgwFoAUBBWNcITyel6LCv8x+n3V3tToMwAwDwYDVR0TAQH/
+BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAiJoe4GfSRfA9bN2uQaucxXgwrOQh
+ETYVOHbRMHQoKBpNwOIx7GPMdLbKz46K8/gKOelmdX3P6ckaSrYo/RjqL+78VfrX
+7qMLDC3GXpGC3tLzBNGiLbYEYsO5put50jGW3LNKUuXyvvNJLSzQzd9Xq2cQmtsQ
+g0Ppq01UG5lmejJbt4RQRFm+mxMcUd/3uBvrZl7BYLZ/0jS6jjaYKlrbVWEVwdAl
+z8JCDwZrSdu7Kth2xQrniMQ1Ed8kOpkeoTj1pOLnRjQYb+0og6nGq1klPynbcfW8
+ClB10S+xXvkhBB4UqIKLDBDkdq1M+AfWiaUtOuWZaaV6AGZtcoURZqLhEQ==
+-----END CERTIFICATE-----`
+
+  const QZ_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDENmc/1++pelu0
+JrsvhZjdl06IoqiOj0EvxMgwwAsy80ZUMNc086tiDX7ZRHO6QAz0Jd570qLl3RtO
++ZEVj8KEDjV8yXR83enQpR/j8/6y1Fj3aahz7SsRsPHTo+Hq2p40+6oeH+aXSLkB
+jgqq5DUiJYwoMr9PSOMrpkTZYuX9B6L9i/yED00GVhx2/6goR4NK4DC6halXutNO
+iFpQfIv2o4Y4qqEkqoy3/agjAIUSfHxpPomD56hpozpSdHBEQk98JYmm5isZX6KD
+nKkS+ydANZgMe7AQzpshgSLAXww7XVKi6fE51A4XbfEzpgl5Dtp+jx9AW2rMK+F4
+vw5fqUxdAgMBAAECggEAG36iHjykjUOjmQ16WnDmmFqM+zGL3Bov4ME66jXm+9dC
+KicD6RwiDmXkug5RBy7VgdrSn9hG0l4W5wyqq3JPKBETpq5WH+86xe11mAxHSwjd
+hKHuJHx99gctA+KplC7ZT4RadMk0l0tt/U1JqmO7HFNVngZqb3I/vwyYBjxJDRkn
+aGVcciBET8AE/UzPPFtM02tLgLh+N/sDXv3tUWS/ERkgUm68SWN/4fxKL9ugdU08
+IINW3r5dLJBU0K+xG0eCFSTT7p7xTqSnh2rRu4/a2dgb1hH2lLNk/nOsDdUNzKh9
+7cLcEsCRTuDAsnkvV2Xf5QJ81BT2T6cMjymSC1RLIwKBgQDvMgTtHHLnUKsEoSVW
+fP12D/gVu6JFzjENI+oDsoXTzRsm2+5+M2s7OpQwf4g8GmjSJ3adtJREdreEz0/i
+gysikt3nZ702CVViilgUiZWXrXkjdxUtCW6V/HEs69/Iq6ACwlg8xMzQ5rKAFFqn
+0VvoGYaw8pIObBCZuZAwNzBOIwKBgQDR/1PpdzrDWE1W048Cwt8WCGfgra9xhJHc
+vvd6OEUfOXVgjyzRxxc5lik//mgmYHelBfW1+pU42sCEtvbXvPnBjmRxC/83AEqG
+//2Bh023HB/iZXyu3AAmGTz+cZNqJmbPY6mOuUdoeDDalcj356QGZiMnlI5LXii9
+DrIsHcljfwKBgQDrjJxhS7SzqjLfujlktG19iDhMXpxslaKkSAu5XGKBsufcGpT/
+3m7owsUQBWcJmRBEc+xRXXTs/uO2e9k1POqLf4naycQApKxa/9XBU8PmvEQg8rH9
+yd4HAbQKArY7jRdj4DK4lS0FQ0ng6ypjPL5/EDQdqKLAZRbr61rcwFxndQKBgCDt
+TBb7XvdqTRYkLfRc4eXug3szQKMoCkb2mo9La2st8z2ktX5fHUEmTml+Vo5N6fSy
+LojONb+obS9iEOpa8z5qOU2QeAADx6vLT9CTipf/jPBOwXIZhNx0cJ/k5xxp0Q0L
+r3Z1jsDOt7pOaiiU5Z8rPK/kFzuyE+kw+Lb6JK25AoGAP8ZowmXvkprYhfBm8nTb
+TTuO3LUsza2m+1vRWEnVdFgJNszwjVRyZllS7p0lRODmmRqyDVbrZhfiTMyols0a
+aZfTjG2j5ei145MODrbCY7GGX2wpFU4Dw79i3kga2A/RYWLVlGoChAsXku0G16zM
+bBQusfbKqlGg61r07k8bA4M=
+-----END PRIVATE KEY-----`
+
   const handleDirectPrintQZ = async () => {
     setQzStatus('connecting')
     try {
       const qzModule = await import('qz-tray')
       const qz = qzModule.default || qzModule
 
-      // Unsigned mode — user must enable "Allow unsigned" in QZ Tray settings
-      qz.security.setCertificatePromise((resolve) => resolve(''))
+      qz.security.setCertificatePromise((resolve) => resolve(QZ_CERT))
       qz.security.setSignatureAlgorithm('SHA512')
-      qz.security.setSignaturePromise(() => (resolve) => resolve(''))
+      qz.security.setSignaturePromise((toSign) => (resolve, reject) => {
+        toSign.then((data) => {
+          const pemBody = QZ_PRIVATE_KEY.replace(/-----[^-]+-----/g, '').replace(/\s/g, '')
+          const binary = atob(pemBody)
+          const bytes = new Uint8Array(binary.length)
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+          window.crypto.subtle.importKey('pkcs8', bytes.buffer,
+            { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-512' }, false, ['sign'])
+            .then((key) => window.crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(data)))
+            .then((sig) => resolve(btoa(String.fromCharCode(...new Uint8Array(sig)))))
+            .catch(reject)
+        }).catch(reject)
+      })
 
       if (!qz.websocket.isActive()) {
         await qz.websocket.connect()
