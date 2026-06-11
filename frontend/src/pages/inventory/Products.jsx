@@ -700,6 +700,76 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
       return
     }
 
+    // ── A4 Sheet 5×13 (HP Smart Tank 589) ──────────────────────────────────
+    if (labelFormat === 'a4sheet5x13') {
+      const labels = []
+      for (const p of selectedProducts) {
+        const barcodeText = p.barcode || p.sku || ''
+        if (!barcodeText) continue
+        const imgUrl = generateThermalBarcodeDataUrl(barcodeText)
+        if (!imgUrl) continue
+        const price = p.sale_price || p.sell_price || p.mrp || 0
+        for (let c = 0; c < copies; c++) {
+          labels.push({ name: p.name, barcodeText, imgUrl, price })
+        }
+      }
+      if (!labels.length) {
+        toast.error('No valid barcodes to print (products need a barcode value)')
+        return
+      }
+      const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+      const a4Html = `<!DOCTYPE html><html><head>
+        <meta charset="UTF-8"/>
+        <title>Barcodes A4 (${labels.length})</title>
+        <style>
+          *{box-sizing:border-box;margin:0;padding:0;}
+          body{font-family:Arial,sans-serif;background:#fff;}
+          .sheet{
+            display:grid;
+            grid-template-columns:repeat(5,38.1mm);
+            grid-auto-rows:25.4mm;
+            gap:0;
+            padding:9.75mm 9.75mm;
+            width:210mm;
+          }
+          .label{
+            width:38.1mm;
+            height:25.4mm;
+            overflow:hidden;
+            display:flex;
+            flex-direction:column;
+            padding:1mm 0mm 1mm 13.1mm;
+            break-inside:avoid;
+            page-break-inside:avoid;
+          }
+          .name-price-row{display:flex;justify-content:flex-end;align-items:baseline;gap:1mm;flex-shrink:0;overflow:hidden;}
+          .name{font-size:6pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
+          .price{font-size:6pt;font-weight:bold;color:#000;white-space:nowrap;flex-shrink:0;line-height:1.3;}
+          .barcode-img{flex:1;width:100%;min-height:0;object-fit:fill;display:block;}
+          .code{font-size:5pt;font-family:monospace;color:#333;line-height:1;letter-spacing:0.3px;text-align:right;white-space:nowrap;flex-shrink:0;}
+          @media print{body{margin:0;padding:0;}@page{size:A4 portrait;margin:0;}}
+        </style>
+      </head><body>
+        <div class="sheet">
+          ${labels.map((l) => `<div class="label">
+            ${(showName || (showPrice && l.price > 0)) ? `<div class="name-price-row">
+              ${showName ? `<span class="name">${esc(l.name)}</span>` : ''}
+              ${showPrice && l.price > 0 ? `<span class="price">&#8377;${Number(l.price).toFixed(0)}</span>` : ''}
+            </div>` : ''}
+            <img class="barcode-img" src="${l.imgUrl}"/>
+            <div class="code">${esc(l.barcodeText)}</div>
+          </div>`).join('')}
+        </div>
+        <script>setTimeout(function(){window.print();window.onafterprint=function(){window.close();};},400);<\/script>
+      </body></html>`
+      const win = window.open('', '_blank', 'width=900,height=700,toolbar=0,menubar=0,scrollbars=0')
+      if (!win) { toast.error('Allow popups to print barcode labels.'); return }
+      win.document.open()
+      win.document.write(a4Html)
+      win.document.close()
+      return
+    }
+
     // ── Standard Labels ─────────────────────────────────────────────────────
     const labels = []
     for (const p of selectedProducts) {
@@ -836,10 +906,11 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
           {/* Label Format */}
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-2">Label Format</label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {[
-                { value: 'standard', label: 'Standard' },
-                { value: 'thermal100x15', label: '100×15mm Thermal' },
+                { value: 'standard',      label: 'Standard' },
+                { value: 'thermal100x15', label: 'TVS LP46 Neo' },
+                { value: 'a4sheet5x13',   label: 'HP A4 Sheet' },
               ].map((f) => (
                 <button key={f.value} onClick={() => setLabelFormat(f.value)}
                   className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-medium ${labelFormat === f.value ? 'bg-amber-600 text-white border-amber-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
@@ -848,11 +919,14 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
               ))}
             </div>
             {labelFormat === 'thermal100x15' && (
-              <p className="mt-1.5 text-xs text-slate-500">TVS LP 46 NEO · 100×15mm · Name, Price, Barcode vertical · 30px left margin</p>
+              <p className="mt-1.5 text-xs text-slate-500">TVS LP 46 NEO · 1.5×1 inch label · barcode 1 inch wide, flush right</p>
+            )}
+            {labelFormat === 'a4sheet5x13' && (
+              <p className="mt-1.5 text-xs text-slate-500">HP Smart Tank 589 · A4 sheet · 5 columns × 13 rows · 1.5×1 inch per label</p>
             )}
           </div>
 
-          {/* Labels per row — hidden for thermal format */}
+          {/* Labels per row — hidden for thermal / A4 sheet format */}
           {labelFormat === 'standard' && (
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-2">Labels per row</label>
