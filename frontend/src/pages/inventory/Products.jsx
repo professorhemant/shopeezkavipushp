@@ -725,15 +725,16 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         </html>`
       const thermalBlob = new Blob([thermalHtml], { type: 'text/html' })
       const thermalUrl = URL.createObjectURL(thermalBlob)
-      const win = window.open(thermalUrl, '_blank')
+      const win = window.open('', '_blank', 'width=800,height=200,toolbar=0,menubar=0,scrollbars=0')
       if (!win) { toast.error('Allow popups to print barcode labels.'); URL.revokeObjectURL(thermalUrl); return }
-      win.onload = () => {
+      win.addEventListener('load', () => {
         setTimeout(() => {
           win.focus()
           win.print()
           win.onafterprint = () => { win.close(); URL.revokeObjectURL(thermalUrl) }
         }, 200)
-      }
+      }, { once: true })
+      win.location.href = thermalUrl
       return
     }
 
