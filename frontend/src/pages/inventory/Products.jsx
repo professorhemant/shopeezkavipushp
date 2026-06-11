@@ -632,13 +632,9 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
       if (!barcodeText) continue
       for (let c = 0; c < copies; c++) {
         rows.push({
-          'Sr. No': sr++,
           'Product Name': p.name || '',
           'Barcode': barcodeText,
-          'SKU': p.sku || '',
           'Sale Price (₹)': parseFloat(p.sale_price || p.sell_price || 0),
-          'MRP (₹)': parseFloat(p.mrp || 0),
-          'Category': p.category?.name || p.Category?.name || '',
         })
       }
     }
