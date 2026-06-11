@@ -629,24 +629,44 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
     for (const p of selectedProducts) {
       const barcodeText = p.barcode || p.sku || ''
       if (!barcodeText) continue
+      const imgUrl = generateThermalBarcodeDataUrl(barcodeText)
+      if (!imgUrl) continue
+      const price = parseFloat(p.sale_price || p.sell_price || 0)
       for (let c = 0; c < copies; c++) {
-        rows.push({
-          'Product Name': p.name || '',
-          'Barcode': barcodeText,
-          'Sale Price': parseFloat(p.sale_price || p.sell_price || 0),
-        })
+        rows.push({ name: p.name || '', barcodeText, imgUrl, price })
       }
     }
     if (!rows.length) { toast.error('No valid barcodes to export'); return }
-    const csv = Papa.unparse(rows)
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+
+    const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="UTF-8"/>
+    <style>
+      table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt;}
+      th{background:#f5f5f5;padding:8px 12px;border:1px solid #ccc;font-weight:bold;text-align:center;}
+      td{padding:6px 10px;border:1px solid #ddd;vertical-align:middle;text-align:center;}
+      img{height:50px;display:block;margin:0 auto;}
+    </style></head>
+    <body><table>
+      <tr><th>Product Name</th><th>Barcode Image</th><th>Barcode</th><th>Sale Price (₹)</th></tr>
+      ${rows.map(r => `<tr>
+        <td style="text-align:left;">${esc(r.name)}</td>
+        <td><img src="${r.imgUrl}"/></td>
+        <td style="font-family:monospace;">${esc(r.barcodeText)}</td>
+        <td>₹${r.price.toFixed(0)}</td>
+      </tr>`).join('')}
+    </table></body></html>`
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `barcodes_${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `barcodes_${new Date().toISOString().split('T')[0]}.xls`
     a.click()
     URL.revokeObjectURL(url)
-    toast.success(`Exported ${rows.length} barcode${rows.length > 1 ? 's' : ''} to CSV`)
+    toast.success(`Exported ${rows.length} barcode image${rows.length > 1 ? 's' : ''} to Excel`)
   }
 
   const handlePrint = () => {
@@ -968,7 +988,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
           </button>
           <button onClick={handleExportBarcode}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-            <Download className="h-4 w-4" /> Export CSV
+            <Download className="h-4 w-4" /> Export Images
           </button>
           <button onClick={handlePrint}
             className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
