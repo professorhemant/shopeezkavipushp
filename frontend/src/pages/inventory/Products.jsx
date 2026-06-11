@@ -605,11 +605,11 @@ const generateBarcodeDataUrl = (text) => {
   }
 }
 
-// Compact barcode for 100×15mm thermal label
+// Barcode for 1.5×1 inch thermal label
 const generateThermalBarcodeDataUrl = (text) => {
   try {
     const canvas = document.createElement('canvas')
-    JsBarcode(canvas, text, { format: 'CODE128', width: 2, height: 55, displayValue: false, margin: 2 })
+    JsBarcode(canvas, text, { format: 'CODE128', width: 2, height: 120, displayValue: false, margin: 2 })
     return canvas.toDataURL('image/png')
   } catch {
     return null
@@ -672,14 +672,14 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <style>
           *{box-sizing:border-box;margin:0;padding:0;}
           body{font-family:Arial,sans-serif;background:#fff;}
-          .label{width:100mm;height:15mm;display:flex;flex-direction:column;padding:0.5mm 0mm 1mm 74.6mm;page-break-after:always;overflow:hidden;background:#fff;}
+          .label{width:38.1mm;height:25.4mm;display:flex;flex-direction:column;padding:1mm 0mm 1mm 13.1mm;page-break-after:always;overflow:hidden;background:#fff;}
           .label:last-child{page-break-after:avoid;}
           .name-price-row{display:flex;justify-content:flex-end;align-items:baseline;gap:1mm;flex-shrink:0;overflow:hidden;}
-          .name{font-size:4pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
-          .price{font-size:4pt;font-weight:bold;color:#000;white-space:nowrap;flex-shrink:0;line-height:1.2;}
+          .name{font-size:6pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
+          .price{font-size:6pt;font-weight:bold;color:#000;white-space:nowrap;flex-shrink:0;line-height:1.3;}
           .barcode-img{flex:1;width:100%;min-height:0;object-fit:fill;display:block;}
-          .code{font-size:3pt;font-family:monospace;color:#333;line-height:1;letter-spacing:0.3px;text-align:right;white-space:nowrap;flex-shrink:0;}
-          @media print{body{margin:0;padding:0;}@page{size:100mm 15mm;margin:0;}}
+          .code{font-size:5pt;font-family:monospace;color:#333;line-height:1;letter-spacing:0.3px;text-align:right;white-space:nowrap;flex-shrink:0;}
+          @media print{body{margin:0;padding:0;}@page{size:38.1mm 25.4mm;margin:0;}}
         </style>
       </head><body>
         ${labels.map((l) => `<div class="label">
