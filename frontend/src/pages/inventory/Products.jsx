@@ -672,7 +672,7 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
         <style>
           *{box-sizing:border-box;margin:0;padding:0;}
           body{font-family:Arial,sans-serif;background:#fff;}
-          .label{width:100mm;height:15mm;display:flex;flex-direction:column;padding:0.5mm 0mm 1mm 63mm;page-break-after:always;overflow:hidden;background:#fff;}
+          .label{width:100mm;height:15mm;display:flex;flex-direction:column;padding:0.5mm 0mm 1mm 74.6mm;page-break-after:always;overflow:hidden;background:#fff;}
           .label:last-child{page-break-after:avoid;}
           .name-price-row{display:flex;justify-content:flex-end;align-items:baseline;gap:1mm;flex-shrink:0;overflow:hidden;}
           .name{font-size:4pt;font-weight:bold;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
