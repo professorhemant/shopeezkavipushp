@@ -623,13 +623,14 @@ const generateThermalBarcodeDataUrl = (text) => {
 const LABEL_W = 800   // dots
 const LABEL_H = 120   // dots
 const DESIGNER_SCALE = 0.75  // display at 75% → 600×90 px in designer
+const RIGHT_MARGIN = 24      // dots (~3mm) — printer non-printable right edge
 
 // Default layout: LEFT EMPTY (51mm), all content on RIGHT side
 const DEFAULT_LABEL_TEMPLATE = {
   name:    { x: 412, y: 3,  w: 185, h: 19, fontSize: 11, bold: true,  show: true },
-  price:   { x: 602, y: 3,  w: 190, h: 19, fontSize: 11, bold: false, show: true },
-  barcode: { x: 412, y: 22, w: 383, h: 70, show: true },
-  code:    { x: 412, y: 95, w: 383, h: 12, fontSize: 8,  bold: false, show: true },
+  price:   { x: 590, y: 3,  w: 186, h: 19, fontSize: 11, bold: false, show: true },
+  barcode: { x: 412, y: 22, w: 360, h: 70, show: true },
+  code:    { x: 412, y: 95, w: 360, h: 12, fontSize: 8,  bold: false, show: true },
 }
 
 function getLabelTemplate() {
@@ -720,7 +721,7 @@ function LabelDesignerModal({ onClose }) {
     const dx = ((e.clientX - rect.left) - drag.sx) / DESIGNER_SCALE
     const dy = ((e.clientY - rect.top) - drag.sy) / DESIGNER_SCALE
     const el = tpl[drag.key]
-    const nx = Math.max(0, Math.min(LABEL_W - el.w, drag.ox + dx))
+    const nx = Math.max(0, Math.min(LABEL_W - RIGHT_MARGIN - el.w, drag.ox + dx))
     const ny = Math.max(0, Math.min(LABEL_H - el.h, drag.oy + dy))
     setTpl(t => ({ ...t, [drag.key]: { ...t[drag.key], x: Math.round(nx), y: Math.round(ny) } }))
   }
@@ -778,6 +779,9 @@ function LabelDesignerModal({ onClose }) {
               {Array.from({ length: 1 }, (_, i) => (
                 <div key={`h${i}`} style={{ position: 'absolute', top: (i + 1) * 60 * DESIGNER_SCALE, left: 0, height: 1, width: '100%', background: '#e2e8f0' }} />
               ))}
+              {/* Right margin guide — dashed red line at safe-zone boundary */}
+              <div style={{ position: 'absolute', left: Math.round((LABEL_W - RIGHT_MARGIN) * DESIGNER_SCALE), top: 0, width: 1, height: '100%', background: '#ef4444', opacity: 0.6, borderLeft: '1px dashed #ef4444', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', right: 0, top: 0, width: Math.round(RIGHT_MARGIN * DESIGNER_SCALE), height: '100%', background: 'rgba(239,68,68,0.08)', pointerEvents: 'none' }} />
 
               {/* Draggable elements */}
               {['name', 'price', 'barcode', 'code'].map(key => {
