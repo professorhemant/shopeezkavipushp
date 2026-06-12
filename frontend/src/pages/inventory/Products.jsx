@@ -699,12 +699,13 @@ function LabelDesignerModal({ onClose, product, onSaved }) {
     }).catch(() => {})
   }, [])
 
-  // Draw PREVIEW with real product data every time template changes
+  // Draw PREVIEW with real product data — uses 0.5 scale to fit right panel
+  const PREV_SCALE = 0.5
   useEffect(() => {
     const canvas = previewRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    const S = DESIGNER_SCALE
+    const S = PREV_SCALE
     const W = canvas.width, H = canvas.height
 
     const draw = () => {
@@ -909,9 +910,9 @@ function LabelDesignerModal({ onClose, product, onSaved }) {
 
             <canvas
               ref={previewRef}
-              width={Math.round(LABEL_W * DESIGNER_SCALE)}
-              height={Math.round(LABEL_H * DESIGNER_SCALE)}
-              style={{ border: '2px solid #e2e8f0', borderRadius: 6, background: '#fff', display: 'block', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+              width={Math.round(LABEL_W * 0.5)}
+              height={Math.round(LABEL_H * 0.5)}
+              style={{ border: '2px solid #e2e8f0', borderRadius: 6, background: '#fff', display: 'block', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', width: '100%' }}
             />
 
             <div className="mt-3 bg-slate-50 rounded-lg p-3 text-xs space-y-1">
