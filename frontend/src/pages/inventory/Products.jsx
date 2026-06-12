@@ -633,20 +633,7 @@ const DEFAULT_LABEL_TEMPLATE = {
 }
 
 function getLabelTemplate() {
-  try {
-    const s = localStorage.getItem('kavipushp_label_tpl')
-    if (s) {
-      const parsed = JSON.parse(s)
-      if (parsed.name || parsed.barcode) {
-        return {
-          name:    { ...DEFAULT_LABEL_TEMPLATE.name,    ...parsed.name },
-          price:   { ...DEFAULT_LABEL_TEMPLATE.price,   ...parsed.price },
-          barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode, ...parsed.barcode },
-          code:    { ...DEFAULT_LABEL_TEMPLATE.code,    ...parsed.code },
-        }
-      }
-    }
-  } catch {}
+  localStorage.removeItem('kavipushp_label_tpl')
   return { ...DEFAULT_LABEL_TEMPLATE }
 }
 
