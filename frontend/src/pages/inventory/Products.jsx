@@ -682,7 +682,7 @@ function buildTSPL(name, barcodeText, price, qty) {
   if (tpl.price.show)
     lines.push(`TEXT ${tpl.price.x},${tpl.price.y},"${tsplFont(tpl.price.fontSize)}",0,1,1,"${priceStr}"`)
   if (tpl.barcode.show)
-    lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128B",${tpl.barcode.h},0,0,2,5,"${safeCode}"`)
+    lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${tpl.barcode.h},0,0,2,5,"${safeCode}"`)
   if (tpl.code.show)
     lines.push(`TEXT ${tpl.code.x},${tpl.code.y},"${tsplFont(tpl.code.fontSize)}",0,1,1,"${safeCode}"`)
   lines.push(`PRINT ${qty},1`)
