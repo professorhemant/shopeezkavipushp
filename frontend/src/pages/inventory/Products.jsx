@@ -630,8 +630,8 @@ const RIGHT_MARGIN   = 48          // 6mm non-printable right edge
 const DEFAULT_LABEL_TEMPLATE = {
   name:    { x: 400, y: 2,  w: 175, h: 18, fontSize: 11, bold: true,  show: true },
   price:   { x: 575, y: 2,  w: 177, h: 18, fontSize: 11, bold: false, show: true },
-  barcode: { x: 400, y: 22, w: 176, h: 32, show: true },
-  code:    { x: 400, y: 90, w: 352, h: 18, fontSize: 8,  bold: false, show: true },
+  barcode: { x: 400, y: 20, w: 280, h: 60, show: true },
+  code:    { x: 400, y: 84, w: 352, h: 18, fontSize: 8,  bold: false, show: true },
 }
 
 const EL_COLORS = {
@@ -660,7 +660,7 @@ function buildTSPL(name, barcodeText, price, qty, tpl) {
   const lines = ['SIZE 100 mm,15 mm','GAP 2 mm,0 mm','DIRECTION 1','REFERENCE 0,0','SPEED 2','DENSITY 12','CLS']
   if (tpl.name.show)    lines.push(`TEXT ${tpl.name.x},${tpl.name.y},"${tsplFont(tpl.name.fontSize)}",0,1,1,"${safeName}"`)
   if (tpl.price.show)   lines.push(`TEXT ${tpl.price.x},${tpl.price.y},"${tsplFont(tpl.price.fontSize)}",0,1,1,"${priceStr}"`)
-  if (tpl.barcode.show) lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${tpl.barcode.h},0,0,2,5,"${safeCode}"`)
+  if (tpl.barcode.show) lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${Math.max(40, tpl.barcode.h)},0,0,2,5,"${safeCode}"`)
   if (tpl.code.show)    lines.push(`TEXT ${tpl.code.x},${tpl.code.y},"${tsplFont(tpl.code.fontSize)}",0,1,1,"${safeCode}"`)
   lines.push(`PRINT ${qty},1`)
   return lines.join('\r\n')
