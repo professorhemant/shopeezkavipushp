@@ -623,14 +623,16 @@ const generateThermalBarcodeDataUrl = (text) => {
 const LABEL_W = 800   // dots
 const LABEL_H = 120   // dots
 const DESIGNER_SCALE = 0.75  // display at 75% → 600×90 px in designer
-const RIGHT_MARGIN = 24      // dots (~3mm) — printer non-printable right edge
+const RIGHT_MARGIN = 48      // dots (~6mm) — printer non-printable right edge
+const LABEL_TPL_VERSION = 3  // bump to force reset when defaults change
 
 // Default layout: LEFT EMPTY (51mm), all content on RIGHT side
+// Safe print zone: x 412–752 (340 dots = 42.5mm), right margin 48 dots (6mm)
 const DEFAULT_LABEL_TEMPLATE = {
-  name:    { x: 412, y: 3,  w: 185, h: 19, fontSize: 11, bold: true,  show: true },
-  price:   { x: 590, y: 3,  w: 186, h: 19, fontSize: 11, bold: false, show: true },
-  barcode: { x: 412, y: 22, w: 360, h: 70, show: true },
-  code:    { x: 412, y: 95, w: 360, h: 12, fontSize: 8,  bold: false, show: true },
+  name:    { x: 412, y: 3,  w: 170, h: 19, fontSize: 11, bold: true,  show: true },
+  price:   { x: 582, y: 3,  w: 170, h: 19, fontSize: 11, bold: false, show: true },
+  barcode: { x: 412, y: 22, w: 340, h: 70, show: true },
+  code:    { x: 412, y: 95, w: 340, h: 12, fontSize: 8,  bold: false, show: true },
 }
 
 function getLabelTemplate() {
@@ -638,11 +640,13 @@ function getLabelTemplate() {
     const s = localStorage.getItem('kavipushp_label_tpl')
     if (s) {
       const parsed = JSON.parse(s)
-      return {
-        name:    { ...DEFAULT_LABEL_TEMPLATE.name,    ...parsed.name },
-        price:   { ...DEFAULT_LABEL_TEMPLATE.price,   ...parsed.price },
-        barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode, ...parsed.barcode },
-        code:    { ...DEFAULT_LABEL_TEMPLATE.code,    ...parsed.code },
+      if (parsed._version === LABEL_TPL_VERSION) {
+        return {
+          name:    { ...DEFAULT_LABEL_TEMPLATE.name,    ...parsed.name },
+          price:   { ...DEFAULT_LABEL_TEMPLATE.price,   ...parsed.price },
+          barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode, ...parsed.barcode },
+          code:    { ...DEFAULT_LABEL_TEMPLATE.code,    ...parsed.code },
+        }
       }
     }
   } catch {}
@@ -729,7 +733,7 @@ function LabelDesignerModal({ onClose }) {
   const update = (key, prop, val) => setTpl(t => ({ ...t, [key]: { ...t[key], [prop]: val } }))
 
   const handleSave = () => {
-    localStorage.setItem('kavipushp_label_tpl', JSON.stringify(tpl))
+    localStorage.setItem('kavipushp_label_tpl', JSON.stringify({ ...tpl, _version: LABEL_TPL_VERSION }))
     toast.success('Label design saved!')
     onClose()
   }
