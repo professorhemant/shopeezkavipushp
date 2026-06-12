@@ -626,10 +626,10 @@ const LABEL_H = 120   // dots
 // Default layout: LEFT EMPTY (51mm), all content on RIGHT side
 // Safe print zone: x 412–752 (340 dots = 42.5mm), right margin 48 dots (6mm)
 const DEFAULT_LABEL_TEMPLATE = {
-  name:    { x: 412, y: 3,  w: 170, h: 19, fontSize: 11, bold: true,  show: true },
-  price:   { x: 582, y: 3,  w: 170, h: 19, fontSize: 11, bold: false, show: true },
-  barcode: { x: 412, y: 22, w: 73, h: 15, show: true },
-  code:    { x: 412, y: 95, w: 340, h: 12, fontSize: 8,  bold: false, show: true },
+  name:    { x: 577, y: 3,  w: 90,  h: 19, fontSize: 11, bold: true,  show: true },
+  price:   { x: 667, y: 3,  w: 85,  h: 19, fontSize: 11, bold: false, show: true },
+  barcode: { x: 577, y: 22, w: 146, h: 30, show: true },
+  code:    { x: 577, y: 95, w: 175, h: 12, fontSize: 8,  bold: false, show: true },
 }
 
 // Map CSS fontSize → TSPL font number
