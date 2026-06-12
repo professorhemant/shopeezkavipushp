@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Plus, Search, Edit2, Trash2, Barcode, Upload,
@@ -698,7 +698,7 @@ const EL_COLORS = {
 }
 const EL_LABELS = { name: 'Product Name', price: 'Price', barcode: 'Barcode Image', code: 'Barcode Number' }
 
-function LabelDesignerModal({ onClose }) {
+function LabelDesignerModal({ onClose, product }) {
   const [tpl, setTpl] = useState(() => getLabelTemplate())
   const [sel, setSel] = useState('name')
   const [drag, setDrag] = useState(null)
@@ -745,7 +745,12 @@ function LabelDesignerModal({ onClose }) {
     toast.success('Reset to default layout')
   }
 
-  // Live print preview — redraws whenever template changes
+  // Live print preview — redraws whenever template or product changes
+  const previewBarcodeText = (product?.barcode || product?.sku || '1234567890')
+  const previewName        = product?.name || 'Product Name'
+  const previewPrice       = `Rs.${parseFloat(product?.sell_price || product?.sale_price || 9500).toFixed(0)}`
+  const previewBarcodeImg  = useMemo(() => generateThermalBarcodeDataUrl(previewBarcodeText), [previewBarcodeText])
+
   useEffect(() => {
     const canvas = previewCanvasRef.current
     if (!canvas) return
@@ -753,37 +758,41 @@ function LabelDesignerModal({ onClose }) {
     const S = DESIGNER_SCALE
     const W = canvas.width, H = canvas.height
 
-    ctx.clearRect(0, 0, W, H)
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, W, H)
-    ctx.strokeStyle = '#d1d5db'
-    ctx.lineWidth = 1
-    ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
-    ctx.textBaseline = 'top'
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H)
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, W, H)
+      ctx.strokeStyle = '#d1d5db'
+      ctx.lineWidth = 1
+      ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
+      ctx.textBaseline = 'top'
 
-    if (tpl.name.show) {
-      ctx.fillStyle = '#111111'
-      ctx.font = `${tpl.name.bold ? 'bold ' : ''}${Math.round(tpl.name.fontSize * S)}px Arial, sans-serif`
-      ctx.fillText('Product Name', tpl.name.x * S, tpl.name.y * S)
+      if (tpl.name.show) {
+        ctx.fillStyle = '#111111'
+        ctx.font = `${tpl.name.bold ? 'bold ' : ''}${Math.round(tpl.name.fontSize * S)}px Arial, sans-serif`
+        ctx.fillText(previewName, tpl.name.x * S, tpl.name.y * S)
+      }
+      if (tpl.price.show) {
+        ctx.fillStyle = '#111111'
+        ctx.font = `${tpl.price.bold ? 'bold ' : ''}${Math.round(tpl.price.fontSize * S)}px Arial, sans-serif`
+        ctx.fillText(previewPrice, tpl.price.x * S, tpl.price.y * S)
+      }
+      if (tpl.code.show) {
+        ctx.fillStyle = '#444444'
+        ctx.font = `${Math.round(tpl.code.fontSize * S)}px Courier New, monospace`
+        const tw = ctx.measureText(previewBarcodeText).width
+        ctx.fillText(previewBarcodeText, tpl.code.x * S + (tpl.code.w * S - tw) / 2, tpl.code.y * S)
+      }
     }
-    if (tpl.price.show) {
-      ctx.fillStyle = '#111111'
-      ctx.font = `${tpl.price.bold ? 'bold ' : ''}${Math.round(tpl.price.fontSize * S)}px Arial, sans-serif`
-      ctx.fillText('Rs.9,500', tpl.price.x * S, tpl.price.y * S)
-    }
-    if (tpl.code.show) {
-      ctx.fillStyle = '#444444'
-      ctx.font = `${Math.round(tpl.code.fontSize * S)}px Courier New, monospace`
-      const text = 'B56APS001'
-      const tw = ctx.measureText(text).width
-      ctx.fillText(text, tpl.code.x * S + (tpl.code.w * S - tw) / 2, tpl.code.y * S)
-    }
-    if (tpl.barcode.show && sampleBarcode) {
+
+    draw()
+
+    if (tpl.barcode.show && previewBarcodeImg) {
       const img = new Image()
-      img.onload = () => ctx.drawImage(img, tpl.barcode.x * S, tpl.barcode.y * S, tpl.barcode.w * S, tpl.barcode.h * S)
-      img.src = sampleBarcode
+      img.onload = () => { draw(); ctx.drawImage(img, tpl.barcode.x * S, tpl.barcode.y * S, tpl.barcode.w * S, tpl.barcode.h * S) }
+      img.src = previewBarcodeImg
     }
-  }, [tpl, sampleBarcode])
+  }, [tpl, previewName, previewPrice, previewBarcodeText, previewBarcodeImg])
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
@@ -943,7 +952,7 @@ function LabelDesignerModal({ onClose }) {
             height={Math.round(LABEL_H * DESIGNER_SCALE)}
             style={{ border: '1px solid #e2e8f0', borderRadius: 4, background: '#fff', display: 'block', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
           />
-          <p className="text-xs text-slate-400 mt-1.5">Sample data: "Product Name", "Rs.9,500", barcode "B56APS001"</p>
+          <p className="text-xs text-slate-400 mt-1.5">{product ? `Preview: "${previewName}" · ${previewPrice} · ${previewBarcodeText}` : 'No product selected — select a product to see actual preview'}</p>
         </div>
 
         {/* Footer */}
@@ -1381,7 +1390,7 @@ bBQusfbKqlGg61r07k8bA4M=
           </div>
         </div>
       </div>
-      {showDesigner && <LabelDesignerModal onClose={() => setShowDesigner(false)} />}
+      {showDesigner && <LabelDesignerModal onClose={() => setShowDesigner(false)} product={selectedProducts[0]} />}
     </div>
   )
 }
