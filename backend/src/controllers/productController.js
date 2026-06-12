@@ -51,7 +51,7 @@ const getAll = async (req, res, next) => {
       where,
       attributes: isGallery ? undefined : { exclude: ['images'] },
       order: orderByCategory
-        ? [[{ model: Category, as: 'Category' }, 'name', 'ASC'], ['name', 'ASC']]
+        ? [literal("CAST(SUBSTRING_INDEX(`Product`.`name`, ' ', -1) AS UNSIGNED) ASC")]
         : [['id', 'DESC']],
       limit,
       offset,
