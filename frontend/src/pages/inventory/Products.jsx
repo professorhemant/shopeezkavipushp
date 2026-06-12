@@ -13,7 +13,7 @@ import JsBarcode from 'jsbarcode'
 import { jsPDF } from 'jspdf'
 import ExcelJS from 'exceljs'
 import toast from 'react-hot-toast'
-import { productAPI, categoryAPI, brandAPI } from '../../api'
+import { productAPI, categoryAPI, brandAPI, settingsAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
@@ -632,11 +632,6 @@ const DEFAULT_LABEL_TEMPLATE = {
   code:    { x: 412, y: 95, w: 340, h: 12, fontSize: 8,  bold: false, show: true },
 }
 
-function getLabelTemplate() {
-  localStorage.removeItem('kavipushp_label_tpl')
-  return { ...DEFAULT_LABEL_TEMPLATE }
-}
-
 // Map CSS fontSize → TSPL font number
 function tsplFont(fs) {
   if (fs <= 8)  return '0'
@@ -646,9 +641,9 @@ function tsplFont(fs) {
   return '4'
 }
 
-// Generate TSPL for TVS LP46 Neo using saved template
-function buildTSPL(name, barcodeText, price, qty) {
-  const tpl = getLabelTemplate()
+// Generate TSPL for TVS LP46 Neo — tpl comes from DB (or DEFAULT_LABEL_TEMPLATE fallback)
+function buildTSPL(name, barcodeText, price, qty, tpl) {
+  if (!tpl) tpl = DEFAULT_LABEL_TEMPLATE
   const safeName = String(name).replace(/"/g, "'").substring(0, 22)
   const safeCode = String(barcodeText).replace(/"/g, "'")
   const priceStr = `Rs.${parseFloat(price).toFixed(0)}`
@@ -681,6 +676,26 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const [showPrice, setShowPrice] = useState(true)
   const [labelFormat, setLabelFormat] = useState('standard') // 'standard' | 'thermal100x15'
   const [qzStatus, setQzStatus] = useState('idle') // 'idle' | 'connecting' | 'printing' | 'error'
+  const [labelTpl, setLabelTpl] = useState(DEFAULT_LABEL_TEMPLATE)
+
+  // Load label template from DB on open
+  useEffect(() => {
+    localStorage.removeItem('kavipushp_label_tpl')
+    settingsAPI.getSettings().then(res => {
+      const raw = res.data?.data?.label_template
+      if (raw) {
+        try {
+          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+          setLabelTpl({
+            name:    { ...DEFAULT_LABEL_TEMPLATE.name,    ...parsed.name },
+            price:   { ...DEFAULT_LABEL_TEMPLATE.price,   ...parsed.price },
+            barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode, ...parsed.barcode },
+            code:    { ...DEFAULT_LABEL_TEMPLATE.code,    ...parsed.code },
+          })
+        } catch {}
+      }
+    }).catch(() => {})
+  }, [])
 
   const QZ_CERT = `-----BEGIN CERTIFICATE-----
 MIIDhzCCAm+gAwIBAgIUBg2wbdE+ysKv0l2ODbPJgjW6hOQwDQYJKoZIhvcNAQEL
@@ -783,7 +798,7 @@ bBQusfbKqlGg61r07k8bA4M=
         const barcodeText = p.barcode || p.sku || ''
         if (!barcodeText) continue
         const price = p.sale_price || p.sell_price || 0
-        const tspl = buildTSPL(p.name || '', barcodeText, price, copies)
+        const tspl = buildTSPL(p.name || '', barcodeText, price, copies, labelTpl)
         await qz.print(config, [{ type: 'raw', format: 'plain', data: tspl }])
       }
 
