@@ -630,7 +630,7 @@ const RIGHT_MARGIN   = 48          // 6mm non-printable right edge
 const DEFAULT_LABEL_TEMPLATE = {
   name:    { x: 400, y: 2,  w: 175, h: 18, fontSize: 11, bold: true,  show: true },
   price:   { x: 575, y: 2,  w: 177, h: 18, fontSize: 11, bold: false, show: true },
-  barcode: { x: 400, y: 22, w: 352, h: 64, show: true },
+  barcode: { x: 400, y: 22, w: 176, h: 32, show: true },
   code:    { x: 400, y: 90, w: 352, h: 18, fontSize: 8,  bold: false, show: true },
 }
 
