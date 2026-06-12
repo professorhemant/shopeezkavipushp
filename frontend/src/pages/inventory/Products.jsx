@@ -628,7 +628,7 @@ const LABEL_H = 120   // dots
 const DEFAULT_LABEL_TEMPLATE = {
   name:    { x: 412, y: 3,  w: 170, h: 19, fontSize: 11, bold: true,  show: true },
   price:   { x: 582, y: 3,  w: 170, h: 19, fontSize: 11, bold: false, show: true },
-  barcode: { x: 412, y: 22, w: 145, h: 30, show: true },
+  barcode: { x: 412, y: 22, w: 73, h: 15, show: true },
   code:    { x: 412, y: 95, w: 340, h: 12, fontSize: 8,  bold: false, show: true },
 }
 
