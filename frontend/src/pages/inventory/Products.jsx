@@ -709,6 +709,7 @@ function LabelDesignerModal({ onClose }) {
   const [sel, setSel] = useState('name')
   const [drag, setDrag] = useState(null)
   const canvasRef = useRef(null)
+  const previewCanvasRef = useRef(null)
 
   const sampleBarcode = generateThermalBarcodeDataUrl('1234567890') || ''
 
@@ -749,6 +750,46 @@ function LabelDesignerModal({ onClose }) {
     localStorage.removeItem('kavipushp_label_tpl')
     toast.success('Reset to default layout')
   }
+
+  // Live print preview — redraws whenever template changes
+  useEffect(() => {
+    const canvas = previewCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const S = DESIGNER_SCALE
+    const W = canvas.width, H = canvas.height
+
+    ctx.clearRect(0, 0, W, H)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, W, H)
+    ctx.strokeStyle = '#d1d5db'
+    ctx.lineWidth = 1
+    ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
+    ctx.textBaseline = 'top'
+
+    if (tpl.name.show) {
+      ctx.fillStyle = '#111111'
+      ctx.font = `${tpl.name.bold ? 'bold ' : ''}${Math.round(tpl.name.fontSize * S)}px Arial, sans-serif`
+      ctx.fillText('Product Name', tpl.name.x * S, tpl.name.y * S)
+    }
+    if (tpl.price.show) {
+      ctx.fillStyle = '#111111'
+      ctx.font = `${tpl.price.bold ? 'bold ' : ''}${Math.round(tpl.price.fontSize * S)}px Arial, sans-serif`
+      ctx.fillText('Rs.9,500', tpl.price.x * S, tpl.price.y * S)
+    }
+    if (tpl.code.show) {
+      ctx.fillStyle = '#444444'
+      ctx.font = `${Math.round(tpl.code.fontSize * S)}px Courier New, monospace`
+      const text = 'B56APS001'
+      const tw = ctx.measureText(text).width
+      ctx.fillText(text, tpl.code.x * S + (tpl.code.w * S - tw) / 2, tpl.code.y * S)
+    }
+    if (tpl.barcode.show && sampleBarcode) {
+      const img = new Image()
+      img.onload = () => ctx.drawImage(img, tpl.barcode.x * S, tpl.barcode.y * S, tpl.barcode.w * S, tpl.barcode.h * S)
+      img.src = sampleBarcode
+    }
+  }, [tpl, sampleBarcode])
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
@@ -897,6 +938,18 @@ function LabelDesignerModal({ onClose }) {
               )
             })}
           </div>
+        </div>
+
+        {/* Print Preview */}
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Print Preview — actual label output</p>
+          <canvas
+            ref={previewCanvasRef}
+            width={Math.round(LABEL_W * DESIGNER_SCALE)}
+            height={Math.round(LABEL_H * DESIGNER_SCALE)}
+            style={{ border: '1px solid #e2e8f0', borderRadius: 4, background: '#fff', display: 'block', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
+          />
+          <p className="text-xs text-slate-400 mt-1.5">Sample data: "Product Name", "Rs.9,500", barcode "B56APS001"</p>
         </div>
 
         {/* Footer */}
