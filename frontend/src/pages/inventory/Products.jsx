@@ -624,15 +624,15 @@ const LABEL_W = 800   // dots
 const LABEL_H = 120   // dots
 const DESIGNER_SCALE = 0.75  // display at 75% → 600×90 px in designer
 const RIGHT_MARGIN = 48      // dots (~6mm) — printer non-printable right edge
-const LABEL_TPL_VERSION = 4  // bump to force reset when defaults change
+const LABEL_TPL_VERSION = 3  // bump to force reset when defaults change
 
 // Default layout: LEFT EMPTY (51mm), all content on RIGHT side
 // Safe print zone: x 412–752 (340 dots = 42.5mm), right margin 48 dots (6mm)
 const DEFAULT_LABEL_TEMPLATE = {
   name:    { x: 412, y: 3,  w: 170, h: 19, fontSize: 11, bold: true,  show: true },
   price:   { x: 582, y: 3,  w: 170, h: 19, fontSize: 11, bold: false, show: true },
-  barcode: { x: 412, y: 22, w: 238, h: 49, show: true },
-  code:    { x: 412, y: 74, w: 340, h: 12, fontSize: 8,  bold: false, show: true },
+  barcode: { x: 412, y: 22, w: 340, h: 70, show: true },
+  code:    { x: 412, y: 95, w: 340, h: 12, fontSize: 8,  bold: false, show: true },
 }
 
 function getLabelTemplate() {
