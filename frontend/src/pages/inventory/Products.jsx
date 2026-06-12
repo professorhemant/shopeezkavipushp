@@ -619,18 +619,28 @@ const generateThermalBarcodeDataUrl = (text) => {
   }
 }
 
-// ── Label constants (100×15mm at 203 DPI = 800×120 dots) ────────────────────
-const LABEL_W = 800   // dots
-const LABEL_H = 120   // dots
+// ── Label constants — 100×15mm at 203 DPI = 800×120 dots ───────────────────
+const LABEL_W = 800
+const LABEL_H = 120
+const DESIGNER_SCALE = 0.75        // 600×90 px on screen
+const RIGHT_MARGIN   = 48          // 6mm non-printable right edge
 
-// Default layout: LEFT EMPTY (51mm), all content on RIGHT side
-// Safe print zone: x 412–752 (340 dots = 42.5mm), right margin 48 dots (6mm)
+// Jewellery-optimised default: left 50mm blank (tag string), right 50mm content
+// Safe print zone: x 400–752 (352 dots = 44mm)
 const DEFAULT_LABEL_TEMPLATE = {
-  name:    { x: 577, y: 3,  w: 90,  h: 19, fontSize: 11, bold: true,  show: true },
-  price:   { x: 667, y: 3,  w: 85,  h: 19, fontSize: 11, bold: false, show: true },
-  barcode: { x: 577, y: 22, w: 146, h: 30, show: true },
-  code:    { x: 577, y: 95, w: 175, h: 12, fontSize: 8,  bold: false, show: true },
+  name:    { x: 400, y: 2,  w: 175, h: 18, fontSize: 11, bold: true,  show: true },
+  price:   { x: 575, y: 2,  w: 177, h: 18, fontSize: 11, bold: false, show: true },
+  barcode: { x: 400, y: 22, w: 352, h: 64, show: true },
+  code:    { x: 400, y: 90, w: 352, h: 18, fontSize: 8,  bold: false, show: true },
 }
+
+const EL_COLORS = {
+  name:    { bg: 'rgba(59,130,246,0.18)',  border: '#3b82f6' },
+  price:   { bg: 'rgba(16,185,129,0.18)', border: '#10b981' },
+  barcode: { bg: 'rgba(245,158,11,0.18)', border: '#f59e0b' },
+  code:    { bg: 'rgba(139,92,246,0.18)', border: '#8b5cf6' },
+}
+const EL_LABELS = { name: 'Product Name', price: 'Price', barcode: 'Barcode', code: 'Code Text' }
 
 // Map CSS fontSize → TSPL font number
 function tsplFont(fs) {
@@ -641,31 +651,297 @@ function tsplFont(fs) {
   return '4'
 }
 
-// Generate TSPL for TVS LP46 Neo — tpl comes from DB (or DEFAULT_LABEL_TEMPLATE fallback)
+// Build TSPL commands for TVS LP46 Neo
 function buildTSPL(name, barcodeText, price, qty, tpl) {
   if (!tpl) tpl = DEFAULT_LABEL_TEMPLATE
   const safeName = String(name).replace(/"/g, "'").substring(0, 22)
   const safeCode = String(barcodeText).replace(/"/g, "'")
   const priceStr = `Rs.${parseFloat(price).toFixed(0)}`
-  const lines = [
-    'SIZE 100 mm,15 mm',
-    'GAP 2 mm,0 mm',
-    'DIRECTION 1',
-    'REFERENCE 0,0',
-    'SPEED 2',
-    'DENSITY 12',
-    'CLS',
-  ]
-  if (tpl.name.show)
-    lines.push(`TEXT ${tpl.name.x},${tpl.name.y},"${tsplFont(tpl.name.fontSize)}",0,1,1,"${safeName}"`)
-  if (tpl.price.show)
-    lines.push(`TEXT ${tpl.price.x},${tpl.price.y},"${tsplFont(tpl.price.fontSize)}",0,1,1,"${priceStr}"`)
-  if (tpl.barcode.show)
-    lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${tpl.barcode.h},0,0,1,2,"${safeCode}"`)
-  if (tpl.code.show)
-    lines.push(`TEXT ${tpl.code.x},${tpl.code.y},"${tsplFont(tpl.code.fontSize)}",0,1,1,"${safeCode}"`)
+  const lines = ['SIZE 100 mm,15 mm','GAP 2 mm,0 mm','DIRECTION 1','REFERENCE 0,0','SPEED 2','DENSITY 12','CLS']
+  if (tpl.name.show)    lines.push(`TEXT ${tpl.name.x},${tpl.name.y},"${tsplFont(tpl.name.fontSize)}",0,1,1,"${safeName}"`)
+  if (tpl.price.show)   lines.push(`TEXT ${tpl.price.x},${tpl.price.y},"${tsplFont(tpl.price.fontSize)}",0,1,1,"${priceStr}"`)
+  if (tpl.barcode.show) lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${tpl.barcode.h},0,0,2,5,"${safeCode}"`)
+  if (tpl.code.show)    lines.push(`TEXT ${tpl.code.x},${tpl.code.y},"${tsplFont(tpl.code.fontSize)}",0,1,1,"${safeCode}"`)
   lines.push(`PRINT ${qty},1`)
   return lines.join('\r\n')
+}
+
+function mergeTpl(saved) {
+  return {
+    name:    { ...DEFAULT_LABEL_TEMPLATE.name,    ...saved?.name },
+    price:   { ...DEFAULT_LABEL_TEMPLATE.price,   ...saved?.price },
+    barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode, ...saved?.barcode },
+    code:    { ...DEFAULT_LABEL_TEMPLATE.code,    ...saved?.code },
+  }
+}
+
+// ── Label Designer Modal ──────────────────────────────────────────────────────
+function LabelDesignerModal({ onClose, product, onSaved }) {
+  const [tpl, setTpl]   = useState(DEFAULT_LABEL_TEMPLATE)
+  const [sel, setSel]   = useState('barcode')
+  const [drag, setDrag] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const canvasRef      = useRef(null)
+  const previewRef     = useRef(null)
+
+  // Real product data — never sample data
+  const realName    = product?.name    || '—'
+  const realPrice   = `Rs.${parseFloat(product?.sell_price || product?.sale_price || product?.mrp || 0).toFixed(0)}`
+  const realBarcode = product?.barcode || product?.sku || ''
+  const realBarcodeImg = useMemo(() => realBarcode ? generateThermalBarcodeDataUrl(realBarcode) : null, [realBarcode])
+
+  // Load saved template from DB on open
+  useEffect(() => {
+    localStorage.removeItem('kavipushp_label_tpl')
+    settingsAPI.getSettings().then(res => {
+      const raw = res.data?.data?.label_template
+      if (raw) { try { setTpl(mergeTpl(typeof raw === 'string' ? JSON.parse(raw) : raw)) } catch {} }
+    }).catch(() => {})
+  }, [])
+
+  // Draw PREVIEW with real product data every time template changes
+  useEffect(() => {
+    const canvas = previewRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const S = DESIGNER_SCALE
+    const W = canvas.width, H = canvas.height
+
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H)
+      ctx.fillStyle = '#fff'
+      ctx.fillRect(0, 0, W, H)
+      ctx.strokeStyle = '#cbd5e1'
+      ctx.lineWidth = 1
+      ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
+      ctx.textBaseline = 'top'
+      if (tpl.name.show) {
+        ctx.fillStyle = '#111'
+        ctx.font = `${tpl.name.bold ? 'bold ' : ''}${Math.round(tpl.name.fontSize * S)}px Arial,sans-serif`
+        ctx.fillText(realName, tpl.name.x * S, tpl.name.y * S)
+      }
+      if (tpl.price.show) {
+        ctx.fillStyle = '#111'
+        ctx.font = `${tpl.price.bold ? 'bold ' : ''}${Math.round(tpl.price.fontSize * S)}px Arial,sans-serif`
+        ctx.fillText(realPrice, tpl.price.x * S, tpl.price.y * S)
+      }
+      if (tpl.code.show) {
+        ctx.fillStyle = '#333'
+        ctx.font = `${Math.round(tpl.code.fontSize * S)}px Courier New,monospace`
+        ctx.fillText(realBarcode, tpl.code.x * S, tpl.code.y * S)
+      }
+    }
+    draw()
+    if (tpl.barcode.show && realBarcodeImg) {
+      const img = new Image()
+      img.onload = () => { draw(); ctx.drawImage(img, tpl.barcode.x * S, tpl.barcode.y * S, tpl.barcode.w * S, tpl.barcode.h * S) }
+      img.src = realBarcodeImg
+    }
+  }, [tpl, realName, realPrice, realBarcode, realBarcodeImg])
+
+  const update = (key, prop, val) => setTpl(t => ({ ...t, [key]: { ...t[key], [prop]: val } }))
+
+  const onElMouseDown = (e, key) => {
+    e.preventDefault(); setSel(key)
+    const rect = canvasRef.current.getBoundingClientRect()
+    setDrag({ key, sx: e.clientX - rect.left, sy: e.clientY - rect.top, ox: tpl[key].x, oy: tpl[key].y })
+  }
+  const onMouseMove = (e) => {
+    if (!drag) return
+    const rect = canvasRef.current.getBoundingClientRect()
+    const el = tpl[drag.key]
+    const nx = Math.max(0, Math.min(LABEL_W - RIGHT_MARGIN - el.w, drag.ox + ((e.clientX - rect.left) - drag.sx) / DESIGNER_SCALE))
+    const ny = Math.max(0, Math.min(LABEL_H - el.h, drag.oy + ((e.clientY - rect.top) - drag.sy) / DESIGNER_SCALE))
+    setTpl(t => ({ ...t, [drag.key]: { ...t[drag.key], x: Math.round(nx), y: Math.round(ny) } }))
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await settingsAPI.updateSettings({ label_template: JSON.stringify(tpl) })
+      toast.success('Label design saved to database!')
+      onSaved && onSaved(tpl)
+      onClose()
+    } catch { toast.error('Save failed. Try again.') }
+    finally { setSaving(false) }
+  }
+
+  const handleReset = () => { setTpl({ ...DEFAULT_LABEL_TEMPLATE }); toast.success('Reset to default') }
+
+  const sampleBarcodeImg = useMemo(() => generateThermalBarcodeDataUrl('1234567890'), [])
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-xl shadow-2xl flex flex-col" style={{ width: 940 }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100">
+          <div>
+            <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2">
+              <Palette className="h-4 w-4 text-violet-500" /> Label Designer — 100×15 mm
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">TVS LP46 Neo · 203 DPI · Drag elements to reposition · Preview shows real product data</p>
+          </div>
+          <button onClick={onClose}><X className="h-5 w-5 text-slate-400 hover:text-slate-600" /></button>
+        </div>
+
+        <div className="flex gap-0">
+
+          {/* Left — Design canvas + properties */}
+          <div className="flex flex-col p-5 border-r border-slate-100" style={{ width: 480 }}>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Layout Editor — drag to reposition</p>
+
+            {/* Canvas */}
+            <div
+              ref={canvasRef}
+              style={{ width: Math.round(LABEL_W * DESIGNER_SCALE), height: Math.round(LABEL_H * DESIGNER_SCALE), position: 'relative', background: '#fff', border: '2px solid #cbd5e1', userSelect: 'none', cursor: drag ? 'grabbing' : 'default', flexShrink: 0 }}
+              onMouseMove={onMouseMove}
+              onMouseUp={() => setDrag(null)}
+              onMouseLeave={() => setDrag(null)}
+            >
+              {/* Grid */}
+              {Array.from({ length: 7 }, (_, i) => (
+                <div key={`v${i}`} style={{ position: 'absolute', left: (i + 1) * 100 * DESIGNER_SCALE, top: 0, width: 1, height: '100%', background: '#f1f5f9' }} />
+              ))}
+              <div style={{ position: 'absolute', top: 60 * DESIGNER_SCALE, left: 0, height: 1, width: '100%', background: '#f1f5f9' }} />
+              {/* Right margin */}
+              <div style={{ position: 'absolute', left: Math.round((LABEL_W - RIGHT_MARGIN) * DESIGNER_SCALE), top: 0, width: 1, height: '100%', borderLeft: '1px dashed #ef4444', opacity: 0.6, pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', right: 0, top: 0, width: Math.round(RIGHT_MARGIN * DESIGNER_SCALE), height: '100%', background: 'rgba(239,68,68,0.06)', pointerEvents: 'none' }} />
+              {/* Mid-label guide (left 50mm / right 50mm split) */}
+              <div style={{ position: 'absolute', left: Math.round(400 * DESIGNER_SCALE), top: 0, width: 1, height: '100%', borderLeft: '1px dashed #94a3b8', opacity: 0.5, pointerEvents: 'none' }} />
+
+              {/* Draggable elements */}
+              {['name', 'price', 'barcode', 'code'].map(key => {
+                const el = tpl[key]; if (!el.show) return null
+                const isSel = sel === key; const c = EL_COLORS[key]
+                return (
+                  <div key={key} onMouseDown={e => onElMouseDown(e, key)}
+                    style={{
+                      position: 'absolute',
+                      left: Math.round(el.x * DESIGNER_SCALE), top: Math.round(el.y * DESIGNER_SCALE),
+                      width: Math.round(el.w * DESIGNER_SCALE), height: Math.round(el.h * DESIGNER_SCALE),
+                      background: isSel ? c.bg.replace('0.18','0.35') : c.bg,
+                      border: `${isSel ? 2 : 1}px ${isSel ? 'solid' : 'dashed'} ${c.border}`,
+                      cursor: 'grab', overflow: 'hidden', display: 'flex', alignItems: 'center', boxSizing: 'border-box', borderRadius: 2,
+                    }}>
+                    {key === 'barcode'
+                      ? (sampleBarcodeImg ? <img src={sampleBarcodeImg} style={{ width: '100%', height: '100%', objectFit: 'fill' }} draggable={false} /> : <span style={{ fontSize: 7, color: '#aaa', width: '100%', textAlign: 'center' }}>Barcode</span>)
+                      : <span style={{ fontSize: Math.min(el.fontSize, 9), fontWeight: el.bold ? 'bold' : 'normal', whiteSpace: 'nowrap', paddingLeft: 2, color: c.border, lineHeight: 1 }}>{EL_LABELS[key]}</span>
+                    }
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Legend */}
+            <div className="flex gap-2 mt-2 flex-wrap">
+              {['name','price','barcode','code'].map(key => (
+                <button key={key} onClick={() => setSel(key)}
+                  className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded border transition-colors ${sel === key ? 'font-semibold' : 'text-slate-500'}`}
+                  style={{ borderColor: EL_COLORS[key].border, background: sel === key ? EL_COLORS[key].bg : 'transparent', color: sel === key ? EL_COLORS[key].border : '' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 2, background: EL_COLORS[key].border, display: 'inline-block' }} />
+                  {EL_LABELS[key]}
+                </button>
+              ))}
+            </div>
+
+            {/* Compact properties table */}
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Properties</p>
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="text-left px-2 py-1 font-semibold text-slate-400 border border-slate-200">Element</th>
+                    <th className="text-center px-1 py-1 font-semibold text-slate-400 border border-slate-200">Show</th>
+                    <th className="text-center px-1 py-1 font-semibold text-slate-400 border border-slate-200">X</th>
+                    <th className="text-center px-1 py-1 font-semibold text-slate-400 border border-slate-200">Y</th>
+                    <th className="text-center px-1 py-1 font-semibold text-slate-400 border border-slate-200">W/Size</th>
+                    <th className="text-center px-1 py-1 font-semibold text-slate-400 border border-slate-200">H/Bold</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {['name','price','barcode','code'].map(key => {
+                    const el = tpl[key]; const isSel = sel === key; const c = EL_COLORS[key]
+                    return (
+                      <tr key={key} onClick={() => setSel(key)} className="cursor-pointer"
+                        style={{ background: isSel ? c.bg : 'transparent' }}>
+                        <td className="px-2 py-1 border border-slate-200 font-semibold text-xs" style={{ color: c.border }}>
+                          <span className="flex items-center gap-1">
+                            <span style={{ width: 6, height: 6, borderRadius: 1, background: c.border, display: 'inline-block' }} />
+                            {EL_LABELS[key]}
+                          </span>
+                        </td>
+                        <td className="px-1 py-1 border border-slate-200 text-center">
+                          <input type="checkbox" checked={el.show} onChange={e => { e.stopPropagation(); update(key,'show',e.target.checked) }} onClick={e => e.stopPropagation()} />
+                        </td>
+                        <td className="px-1 py-1 border border-slate-200">
+                          <input type="number" value={el.x} min={0} max={LABEL_W} onChange={e => update(key,'x',+e.target.value)} onClick={e => e.stopPropagation()} className="w-14 border border-slate-200 rounded px-1 py-0.5 text-center text-xs" />
+                        </td>
+                        <td className="px-1 py-1 border border-slate-200">
+                          <input type="number" value={el.y} min={0} max={LABEL_H} onChange={e => update(key,'y',+e.target.value)} onClick={e => e.stopPropagation()} className="w-10 border border-slate-200 rounded px-1 py-0.5 text-center text-xs" />
+                        </td>
+                        <td className="px-1 py-1 border border-slate-200">
+                          {key === 'barcode'
+                            ? <input type="number" value={el.w} min={20} max={LABEL_W} onChange={e => update(key,'w',+e.target.value)} onClick={e => e.stopPropagation()} className="w-14 border border-slate-200 rounded px-1 py-0.5 text-center text-xs" />
+                            : <input type="number" value={el.fontSize} min={6} max={28} onChange={e => update(key,'fontSize',+e.target.value)} onClick={e => e.stopPropagation()} className="w-14 border border-slate-200 rounded px-1 py-0.5 text-center text-xs" />
+                          }
+                        </td>
+                        <td className="px-1 py-1 border border-slate-200 text-center">
+                          {key === 'barcode'
+                            ? <input type="number" value={el.h} min={10} max={LABEL_H} onChange={e => update(key,'h',+e.target.value)} onClick={e => e.stopPropagation()} className="w-10 border border-slate-200 rounded px-1 py-0.5 text-center text-xs" />
+                            : <input type="checkbox" checked={el.bold || false} onChange={e => { e.stopPropagation(); update(key,'bold',e.target.checked) }} onClick={e => e.stopPropagation()} />
+                          }
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              <p className="text-xs text-slate-400 mt-1">W/Size = Width (barcode) or Font size (text) · H/Bold = Height or Bold</p>
+            </div>
+          </div>
+
+          {/* Right — Live preview with REAL product data */}
+          <div className="flex flex-col p-5 flex-1">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+              Live Preview — real product data
+            </p>
+
+            <canvas
+              ref={previewRef}
+              width={Math.round(LABEL_W * DESIGNER_SCALE)}
+              height={Math.round(LABEL_H * DESIGNER_SCALE)}
+              style={{ border: '2px solid #e2e8f0', borderRadius: 6, background: '#fff', display: 'block', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+            />
+
+            <div className="mt-3 bg-slate-50 rounded-lg p-3 text-xs space-y-1">
+              <div className="flex gap-2"><span className="text-slate-400 w-20">Product:</span><span className="font-semibold text-slate-700">{realName}</span></div>
+              <div className="flex gap-2"><span className="text-slate-400 w-20">Price:</span><span className="font-semibold text-slate-700">{realPrice}</span></div>
+              <div className="flex gap-2"><span className="text-slate-400 w-20">Barcode:</span><span className="font-mono text-slate-700">{realBarcode || <span className="text-red-400">No barcode/SKU on product</span>}</span></div>
+            </div>
+
+            <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
+              Preview updates live as you drag or change properties. What you see here is exactly what will print.
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50 rounded-b-xl">
+          <button onClick={handleReset} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700">
+            <RotateCcw className="h-3 w-3" /> Reset to Default
+          </button>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm">Cancel</button>
+            <button onClick={handleSave} disabled={saving}
+              className="bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Palette className="h-4 w-4" /> {saving ? 'Saving…' : 'Save to Database'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function PrintBarcodesModal({ products, selectedIds, onClose }) {
@@ -677,23 +953,14 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const [labelFormat, setLabelFormat] = useState('standard') // 'standard' | 'thermal100x15'
   const [qzStatus, setQzStatus] = useState('idle') // 'idle' | 'connecting' | 'printing' | 'error'
   const [labelTpl, setLabelTpl] = useState(DEFAULT_LABEL_TEMPLATE)
+  const [showDesigner, setShowDesigner] = useState(false)
 
   // Load label template from DB on open
   useEffect(() => {
     localStorage.removeItem('kavipushp_label_tpl')
     settingsAPI.getSettings().then(res => {
       const raw = res.data?.data?.label_template
-      if (raw) {
-        try {
-          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-          setLabelTpl({
-            name:    { ...DEFAULT_LABEL_TEMPLATE.name,    ...parsed.name },
-            price:   { ...DEFAULT_LABEL_TEMPLATE.price,   ...parsed.price },
-            barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode, ...parsed.barcode },
-            code:    { ...DEFAULT_LABEL_TEMPLATE.code,    ...parsed.code },
-          })
-        } catch {}
-      }
+      if (raw) { try { setLabelTpl(mergeTpl(typeof raw === 'string' ? JSON.parse(raw) : raw)) } catch {} }
     }).catch(() => {})
   }, [])
 
@@ -1081,6 +1348,10 @@ bBQusfbKqlGg61r07k8bA4M=
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 flex-wrap">
+          <button onClick={() => setShowDesigner(true)}
+            className="flex items-center gap-2 text-sm font-medium text-violet-600 hover:text-violet-800 border border-violet-200 hover:border-violet-400 px-4 py-2 rounded-lg bg-violet-50 hover:bg-violet-100">
+            <Palette className="h-4 w-4" /> Design Label
+          </button>
           <div className="flex items-center gap-3 flex-wrap">
             <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
               Cancel
@@ -1101,6 +1372,13 @@ bBQusfbKqlGg61r07k8bA4M=
           </div>
         </div>
       </div>
+      {showDesigner && (
+        <LabelDesignerModal
+          onClose={() => setShowDesigner(false)}
+          product={selectedProducts[0]}
+          onSaved={(saved) => setLabelTpl(saved)}
+        />
+      )}
     </div>
   )
 }
