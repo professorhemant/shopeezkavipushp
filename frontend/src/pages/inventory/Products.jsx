@@ -640,7 +640,7 @@ function getLabelTemplate() {
     const s = localStorage.getItem('kavipushp_label_tpl')
     if (s) {
       const parsed = JSON.parse(s)
-      if (parsed._version === LABEL_TPL_VERSION) {
+      if (parsed.name || parsed.barcode) {
         return {
           name:    { ...DEFAULT_LABEL_TEMPLATE.name,    ...parsed.name },
           price:   { ...DEFAULT_LABEL_TEMPLATE.price,   ...parsed.price },
@@ -699,13 +699,7 @@ const EL_COLORS = {
 const EL_LABELS = { name: 'Product Name', price: 'Price', barcode: 'Barcode Image', code: 'Barcode Number' }
 
 function LabelDesignerModal({ onClose }) {
-  const [tpl, setTpl] = useState(() => ({
-    name:    { ...DEFAULT_LABEL_TEMPLATE.name },
-    price:   { ...DEFAULT_LABEL_TEMPLATE.price },
-    barcode: { ...DEFAULT_LABEL_TEMPLATE.barcode },
-    code:    { ...DEFAULT_LABEL_TEMPLATE.code },
-    ...(() => { try { const s = localStorage.getItem('kavipushp_label_tpl'); return s ? JSON.parse(s) : {} } catch { return {} } })(),
-  }))
+  const [tpl, setTpl] = useState(() => getLabelTemplate())
   const [sel, setSel] = useState('name')
   const [drag, setDrag] = useState(null)
   const canvasRef = useRef(null)
