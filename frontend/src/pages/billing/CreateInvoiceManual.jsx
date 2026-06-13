@@ -395,16 +395,16 @@ export default function CreateInvoiceManual() {
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">Disc %</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">Unit Price</th>
                   <th className="px-2 py-2 text-right text-slate-200 font-medium">Tax %</th>
-                  <th className="px-2 py-2 text-right text-slate-200 font-medium">
+                  <th className="px-2 py-2 text-right text-slate-200 font-medium sticky bg-slate-800 z-10 border-l border-slate-600" style={{ right: '138px' }}>
                     Total <span className="text-slate-300 font-normal">(Before Tax)</span>
                   </th>
-                  <th className="px-2 py-2 text-right text-slate-200 font-medium">Total (After Tax)</th>
-                  <th className="px-2 py-2"></th>
+                  <th className="px-2 py-2 text-right text-slate-200 font-medium sticky bg-slate-800 z-10" style={{ right: '28px' }}>Total (After Tax)</th>
+                  <th className="px-2 py-2 sticky bg-slate-800 z-10" style={{ right: '0' }}></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, idx) => (
-                  <tr key={row._id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={row._id} className="group border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-2 py-1.5 text-gray-400">{idx + 1}</td>
 
                     {/* Item Name */}
@@ -478,17 +478,17 @@ export default function CreateInvoiceManual() {
                     </td>
 
                     {/* Total Before Tax */}
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="px-2 py-1.5 text-right sticky bg-white group-hover:bg-slate-50 z-[1] border-l border-slate-100" style={{ right: '138px' }}>
                       <span className="inline-block w-full text-right text-xs font-semibold text-indigo-700 bg-indigo-50 border-2 border-indigo-300 rounded-lg px-2 py-1">{(row.total_before || 0).toFixed(2)}</span>
                     </td>
 
                     {/* Total After Tax */}
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="px-2 py-1.5 text-right sticky bg-white group-hover:bg-slate-50 z-[1]" style={{ right: '28px' }}>
                       <span className="inline-block w-full text-right text-xs font-bold text-green-700 bg-green-50 border-2 border-green-400 rounded-lg px-2 py-1">{(row.total_after || 0).toFixed(2)}</span>
                     </td>
 
                     {/* Remove */}
-                    <td className="px-2 py-1.5">
+                    <td className="px-2 py-1.5 sticky bg-white group-hover:bg-slate-50 z-[1]" style={{ right: '0' }}>
                       <button onClick={() => removeRow(idx)}
                         className="text-gray-300 hover:text-red-500 p-0.5 rounded hover:bg-red-50">
                         <X className="h-3.5 w-3.5" />
