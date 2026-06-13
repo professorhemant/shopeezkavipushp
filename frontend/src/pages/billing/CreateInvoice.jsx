@@ -583,7 +583,7 @@ export default function CreateInvoice() {
         {/* LEFT: items table */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="overflow-x-auto flex-1">
-            <table className="text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%' }}>
+            <table className="text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1023px' }}>
               <colgroup>
                 <col style={{ width: '28px' }} />
                 <col style={{ width: '140px' }} />
