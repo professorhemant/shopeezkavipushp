@@ -7,7 +7,7 @@ const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 const { User, Firm } = require('../models');
 
-const OWNER_EMAIL = 'ryn2624@gmail.com';
+const OWNER_EMAIL = 'arthav12@gmail.com';
 
 const createTransporter = () => nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
