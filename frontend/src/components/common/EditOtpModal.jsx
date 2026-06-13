@@ -13,7 +13,7 @@ export default function EditOtpModal({ onVerified, onClose, actionLabel = 'Edit'
     try {
       await authAPI.requestEditOtp()
       setOtpSent(true)
-      toast.success('OTP sent to registered WhatsApp')
+      toast.success('OTP sent to registered mobile')
     } catch {
       toast.error('Failed to send OTP')
     } finally {
@@ -49,8 +49,8 @@ export default function EditOtpModal({ onVerified, onClose, actionLabel = 'Edit'
           <h2 className="text-lg font-semibold text-slate-800">Verify to {actionLabel}</h2>
           <p className="text-sm text-slate-500">
             {otpSent
-              ? `OTP sent to registered WhatsApp. Enter it below to proceed.`
-              : 'An OTP will be sent to the registered WhatsApp number.'}
+              ? `OTP sent to registered mobile. Enter it below to proceed.`
+              : 'An OTP will be sent to the registered mobile number.'}
           </p>
         </div>
 

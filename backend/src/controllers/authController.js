@@ -6,19 +6,26 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { User, Firm } = require('../models');
 
-const OWNER_PHONE = '918770555924';
+const OWNER_PHONE = '8770555924';
 
-const sendOtpWhatsApp = async (otp, context = '') => {
-  const apiKey = process.env.CALLMEBOT_API_KEY;
+const sendOtpSMS = async (otp, context = '') => {
+  const apiKey = process.env.FAST2SMS_API_KEY;
   if (!apiKey) {
-    console.log(`[OTP] Callmebot not configured. OTP${context ? ' (' + context + ')' : ''}: ${otp}`);
+    console.log(`[OTP] Fast2SMS not configured. OTP${context ? ' (' + context + ')' : ''}: ${otp}`);
     return;
   }
   try {
-    const text = encodeURIComponent(`Kavipushp Jewels OTP: ${otp}. Valid 10 min. Do not share.`);
-    await axios.get(`https://api.callmebot.com/whatsapp.php?phone=${OWNER_PHONE}&text=${text}&apikey=${apiKey}`);
+    await axios.post(
+      'https://www.fast2sms.com/dev/bulkV2',
+      {
+        route: 'q',
+        message: `Your Kavipushp Jewels OTP is ${otp}. Valid for 10 minutes. Do not share.`,
+        numbers: OWNER_PHONE,
+      },
+      { headers: { authorization: apiKey } }
+    );
   } catch (err) {
-    console.error('Callmebot OTP send failed:', err.message);
+    console.error('Fast2SMS OTP send failed:', err?.response?.data || err.message);
   }
 };
 
@@ -184,7 +191,7 @@ const forgotPassword = async (req, res, next) => {
 
     await user.update({ otp, otp_expires: otpExpires });
 
-    await sendOtpWhatsApp(otp, `forgot password for ${email}`);
+    await sendOtpSMS(otp, `forgot password for ${email}`);
 
     return res.status(200).json({
       success: true,
@@ -329,7 +336,7 @@ const requestEditOtp = async (req, res, next) => {
       ? phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4)
       : '****';
 
-    await sendOtpWhatsApp(otp, `edit by ${user.email}`);
+    await sendOtpSMS(otp, `edit by ${user.email}`);
 
     return res.status(200).json({
       success: true,
