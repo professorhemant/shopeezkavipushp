@@ -587,15 +587,15 @@ export default function CreateInvoice() {
               <colgroup>
                 <col style={{ width: '28px' }} />
                 <col style={{ width: '140px' }} />
-                <col style={{ width: '60px' }} />
-                <col style={{ width: '50px' }} />
-                <col style={{ width: '60px' }} />
-                <col style={{ width: '75px' }} />
-                <col style={{ width: '55px' }} />
+                <col style={{ width: '100px' }} />
+                <col style={{ width: '72px' }} />
                 <col style={{ width: '80px' }} />
-                <col style={{ width: '60px' }} />
                 <col style={{ width: '95px' }} />
-                <col style={{ width: '95px' }} />
+                <col style={{ width: '75px' }} />
+                <col style={{ width: '105px' }} />
+                <col style={{ width: '80px' }} />
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '110px' }} />
                 <col style={{ width: '28px' }} />
               </colgroup>
               <thead className="bg-slate-800 sticky top-0">

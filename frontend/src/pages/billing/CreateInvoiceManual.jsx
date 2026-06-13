@@ -373,15 +373,15 @@ export default function CreateInvoiceManual() {
               <colgroup>
                 <col style={{ width: '28px' }} />
                 <col style={{ width: '150px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '48px' }} />
-                <col style={{ width: '55px' }} />
-                <col style={{ width: '70px' }} />
-                <col style={{ width: '55px' }} />
-                <col style={{ width: '80px' }} />
-                <col style={{ width: '55px' }} />
+                <col style={{ width: '130px' }} />
+                <col style={{ width: '72px' }} />
+                <col style={{ width: '75px' }} />
                 <col style={{ width: '90px' }} />
-                <col style={{ width: '90px' }} />
+                <col style={{ width: '75px' }} />
+                <col style={{ width: '105px' }} />
+                <col style={{ width: '75px' }} />
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '110px' }} />
                 <col style={{ width: '28px' }} />
               </colgroup>
               <thead className="bg-slate-800 sticky top-0">
