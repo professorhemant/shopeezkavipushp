@@ -3,20 +3,17 @@ import { ShieldCheck, X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { authAPI } from '../../api'
 
-export default function EditOtpModal({ onVerified, onClose }) {
+export default function EditOtpModal({ onVerified, onClose, actionLabel = 'Edit' }) {
   const [otp, setOtp] = useState('')
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
-  const [maskedPhone, setMaskedPhone] = useState('')
-
   const requestOtp = async () => {
     setSending(true)
     try {
-      const { data } = await authAPI.requestEditOtp()
-      setMaskedPhone(data.maskedPhone || '')
+      await authAPI.requestEditOtp()
       setOtpSent(true)
-      toast.success(`OTP sent to ${data.maskedPhone}`)
+      toast.success('OTP sent to registered WhatsApp')
     } catch {
       toast.error('Failed to send OTP')
     } finally {
@@ -49,11 +46,11 @@ export default function EditOtpModal({ onVerified, onClose }) {
           <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
             <ShieldCheck className="h-7 w-7 text-amber-600" />
           </div>
-          <h2 className="text-lg font-semibold text-slate-800">Verify to Edit</h2>
+          <h2 className="text-lg font-semibold text-slate-800">Verify to {actionLabel}</h2>
           <p className="text-sm text-slate-500">
             {otpSent
-              ? `OTP sent to ${maskedPhone}. Enter it below to proceed.`
-              : 'An OTP will be sent to your registered mobile number.'}
+              ? `OTP sent to registered WhatsApp. Enter it below to proceed.`
+              : 'An OTP will be sent to the registered WhatsApp number.'}
           </p>
         </div>
 
@@ -84,7 +81,7 @@ export default function EditOtpModal({ onVerified, onClose }) {
               className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl text-sm"
             >
               {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {verifying ? 'Verifying…' : 'Verify & Edit'}
+              {verifying ? 'Verifying…' : `Verify & ${actionLabel}`}
             </button>
             <button
               onClick={() => { setOtpSent(false); setOtp('') }}

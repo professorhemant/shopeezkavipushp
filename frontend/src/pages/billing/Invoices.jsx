@@ -23,7 +23,7 @@ export default function Invoices() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [summary, setSummary] = useState({ count: 0, total: 0, received: 0, balance: 0 })
-  const [otpModal, setOtpModal] = useState({ open: false, editId: null })
+  const [otpModal, setOtpModal] = useState({ open: false, action: null, invoiceId: null })
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
@@ -96,7 +96,6 @@ export default function Invoices() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Permanently delete this invoice? This cannot be undone.')) return
     try {
       await saleAPI.delete(id)
       toast.success('Invoice deleted')
@@ -206,7 +205,7 @@ export default function Invoices() {
                         <button onClick={() => handleDownloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600" title="Download">
                           <Download className="h-4 w-4" />
                         </button>
-                        <button onClick={() => setOtpModal({ open: true, editId: inv.id })} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="Edit">
+                        <button onClick={() => setOtpModal({ open: true, action: 'edit', invoiceId: inv.id })} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="Edit">
                           <Edit2 className="h-4 w-4" />
                         </button>
                         {inv.status !== 'cancelled' && (
@@ -214,7 +213,7 @@ export default function Invoices() {
                             <XCircle className="h-4 w-4" />
                           </button>
                         )}
-                        <button onClick={() => handleDelete(inv.id)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-400 hover:text-red-700" title="Delete permanently">
+                        <button onClick={() => setOtpModal({ open: true, action: 'delete', invoiceId: inv.id })} className="p-1.5 rounded-lg hover:bg-red-100 text-red-400 hover:text-red-700" title="Delete permanently">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -260,8 +259,14 @@ export default function Invoices() {
 
     {otpModal.open && (
       <EditOtpModal
-        onVerified={() => { setOtpModal({ open: false, editId: null }); navigate(`/billing/invoices/${otpModal.editId}/edit`) }}
-        onClose={() => setOtpModal({ open: false, editId: null })}
+        actionLabel={otpModal.action === 'delete' ? 'Delete' : 'Edit'}
+        onVerified={() => {
+          const { action, invoiceId } = otpModal
+          setOtpModal({ open: false, action: null, invoiceId: null })
+          if (action === 'delete') handleDelete(invoiceId)
+          else navigate(`/billing/invoices/${invoiceId}/edit`)
+        }}
+        onClose={() => setOtpModal({ open: false, action: null, invoiceId: null })}
       />
     )}
     </>
