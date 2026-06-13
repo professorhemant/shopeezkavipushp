@@ -583,48 +583,44 @@ export default function CreateInvoice() {
         {/* LEFT: items table */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="overflow-x-auto flex-1">
-            <table className="text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1023px' }}>
+            <table className="text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '684px' }}>
               <colgroup>
-                <col style={{ width: '28px' }} />
-                <col style={{ width: '140px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '72px' }} />
-                <col style={{ width: '80px' }} />
-                <col style={{ width: '95px' }} />
+                <col style={{ width: '18px' }} />
+                <col style={{ width: '115px' }} />
+                <col style={{ width: '65px' }} />
+                <col style={{ width: '42px' }} />
+                <col style={{ width: '50px' }} />
+                <col style={{ width: '60px' }} />
+                <col style={{ width: '48px' }} />
+                <col style={{ width: '70px' }} />
+                <col style={{ width: '48px' }} />
                 <col style={{ width: '75px' }} />
-                <col style={{ width: '105px' }} />
-                <col style={{ width: '80px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '110px' }} />
-                <col style={{ width: '28px' }} />
+                <col style={{ width: '75px' }} />
+                <col style={{ width: '18px' }} />
               </colgroup>
               <thead className="bg-slate-800 sticky top-0">
                 <tr className="border-b-2 border-slate-600">
-                  <th className="px-2 py-2 text-left text-slate-200 font-medium">#</th>
-                  <th className="px-2 py-2 text-left text-slate-200 font-medium">Name</th>
-                  <th className="px-2 py-2 text-left text-slate-200 font-medium">Barcode</th>
-                  <th className="px-2 py-2 text-center text-slate-200 font-medium">Qty</th>
-                  <th className="px-2 py-2 text-right text-slate-200 font-medium">Stock</th>
-                  <th className="px-2 py-2 text-right text-slate-200 font-medium">MRP.</th>
-                  <th className="px-2 py-2 text-center text-slate-200 font-medium">
-                    Disc%
-                  </th>
-                  <th className="px-2 py-2 text-right text-slate-200 font-medium">UnitPrice</th>
-                  <th className="px-2 py-2 text-right text-slate-200 font-medium">Tax</th>
-                  <th className="px-2 py-2 text-right text-slate-200 font-medium sticky bg-slate-800 z-10 border-l border-slate-600" style={{ right: '138px' }}>
-                    Total <span className="text-slate-300 font-normal">(Before Tax)</span>
-                  </th>
-                  <th className="px-2 py-2 text-right text-slate-200 font-medium sticky bg-slate-800 z-10" style={{ right: '28px' }}>Total(After Tax)</th>
-                  <th className="px-2 py-2 sticky bg-slate-800 z-10" style={{ right: '0' }}></th>
+                  <th className="px-1 py-1.5 text-left text-slate-200 font-medium">#</th>
+                  <th className="px-1 py-1.5 text-left text-slate-200 font-medium">Name</th>
+                  <th className="px-1 py-1.5 text-left text-slate-200 font-medium">Barcode</th>
+                  <th className="px-1 py-1.5 text-center text-slate-200 font-medium">Qty</th>
+                  <th className="px-1 py-1.5 text-right text-slate-200 font-medium">Stock</th>
+                  <th className="px-1 py-1.5 text-right text-slate-200 font-medium">MRP.</th>
+                  <th className="px-1 py-1.5 text-center text-slate-200 font-medium">Disc%</th>
+                  <th className="px-1 py-1.5 text-right text-slate-200 font-medium">UnitPrice</th>
+                  <th className="px-1 py-1.5 text-right text-slate-200 font-medium">Tax</th>
+                  <th className="px-1 py-1.5 text-right text-slate-200 font-medium">Total<span className="text-slate-300 font-normal">(BT)</span></th>
+                  <th className="px-1 py-1.5 text-right text-slate-200 font-medium">Total<span className="text-slate-300 font-normal">(AT)</span></th>
+                  <th className="px-1 py-1.5"></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, idx) => (
-                  <tr key={row._id} className="group border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-2 py-1.5 text-gray-400">{idx + 1}</td>
+                  <tr key={row._id} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="px-1 py-1 text-gray-400">{idx + 1}</td>
 
                     {/* Name with search dropdown */}
-                    <td className="px-2 py-1.5">
+                    <td className="px-1 py-1">
                       <div className="relative">
                         <input
                           type="text"
@@ -633,7 +629,7 @@ export default function CreateInvoice() {
                           onFocus={() => { setActiveRowSearch(idx); setRowSearch(row.product_name) }}
                           onBlur={() => setTimeout(() => { if (activeRowSearch === idx) setActiveRowSearch(null) }, 200)}
                           placeholder="Search product..."
-                          className="w-full border-2 border-amber-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
+                          className="w-full border-2 border-amber-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
                         />
                         {activeRowSearch === idx && rowResults.length > 0 && (
                           <div className="absolute top-full left-0 bg-white border border-slate-200 rounded shadow-lg z-40 max-h-72 overflow-y-auto min-w-[260px]">
@@ -661,7 +657,7 @@ export default function CreateInvoice() {
                     </td>
 
                     {/* Barcode */}
-                    <td className="px-2 py-1.5">
+                    <td className="px-1 py-1">
                       <input
                         type="text"
                         value={row.batch}
@@ -696,40 +692,40 @@ export default function CreateInvoice() {
                           }
                         }}
                         placeholder="Scan barcode..."
-                        className="w-full border-2 border-amber-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
+                        className="w-full border-2 border-amber-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
                       />
                     </td>
 
                     {/* Qty */}
-                    <td className="px-2 py-1.5">
+                    <td className="px-1 py-1">
                       <input type="number" min="1" value={row.qty}
                         onChange={(e) => updateRow(idx, 'qty', e.target.value)}
-                        className="w-full border-2 border-green-300 rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-500 bg-white"
+                        className="w-full border-2 border-green-300 rounded-lg px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-500 bg-white"
                       />
                     </td>
 
                     {/* Stock */}
-                    <td className="px-2 py-1.5 text-right">
-                      <span className="inline-block w-full text-right text-xs font-semibold text-cyan-700 bg-cyan-50 border-2 border-cyan-300 rounded-lg px-2 py-1">{row.stock}</span>
+                    <td className="px-1 py-1 text-right">
+                      <span className="inline-block w-full text-right text-xs font-semibold text-cyan-700 bg-cyan-50 border-2 border-cyan-300 rounded-lg px-1 py-0.5">{row.stock}</span>
                     </td>
 
                     {/* MRP */}
-                    <td className="px-2 py-1.5">
+                    <td className="px-1 py-1">
                       <input type="number" min="0" step="0.01" value={row.mrp}
                         onChange={(e) => updateRow(idx, 'mrp', e.target.value)}
-                        className="w-full border-2 border-amber-300 rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+                        className="w-full border-2 border-amber-300 rounded-lg px-1 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
                       />
                     </td>
 
                     {/* Disc% */}
-                    <td className="px-2 py-1.5">
+                    <td className="px-1 py-1">
                       <input
                         type="number" min="0" max="100" step="0.01"
                         value={row.discount_per}
                         onChange={(e) => updateRowDisc(idx, e.target.value)}
                         placeholder="0"
                         title={parseFloat(row.discount_per) > 0 ? 'Auto from product' : 'Manual discount %'}
-                        className={`w-full border-2 rounded-lg px-1 py-1 text-xs text-center focus:outline-none focus:ring-2 bg-white ${
+                        className={`w-full border-2 rounded-lg px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-2 bg-white ${
                           parseFloat(row.discount_per) > 0
                             ? 'border-green-400 text-green-700 focus:ring-green-400 bg-green-50'
                             : 'border-slate-300 text-slate-600 focus:ring-slate-400'
@@ -738,7 +734,7 @@ export default function CreateInvoice() {
                     </td>
 
                     {/* UnitPrice */}
-                    <td className="px-2 py-1.5">
+                    <td className="px-1 py-1">
                       <input type="number" min="0" step="0.01" value={row.unit_price}
                         onChange={(e) => {
                           setRows((prev) => {
@@ -748,30 +744,30 @@ export default function CreateInvoice() {
                             return next
                           })
                         }}
-                        className="w-full border-2 border-orange-300 rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-500 bg-white"
+                        className="w-full border-2 border-orange-300 rounded-lg px-1 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-500 bg-white"
                       />
                     </td>
 
                     {/* Tax */}
-                    <td className="px-2 py-1.5">
+                    <td className="px-1 py-1">
                       <input type="number" min="0" max="28" step="0.01" value={row.tax_rate}
                         onChange={(e) => updateRow(idx, 'tax_rate', e.target.value)}
-                        className="w-full border-2 border-amber-300 rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+                        className="w-full border-2 border-amber-300 rounded-lg px-1 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
                       />
                     </td>
 
                     {/* Total Before Tax */}
-                    <td className="px-2 py-1.5 text-right sticky bg-white group-hover:bg-slate-50 z-[1] border-l border-slate-100" style={{ right: '138px' }}>
-                      <span className="inline-block w-full text-right text-xs font-semibold text-indigo-700 bg-indigo-50 border-2 border-indigo-300 rounded-lg px-2 py-1">{(row.total_before || 0).toFixed(2)}</span>
+                    <td className="px-1 py-1 text-right">
+                      <span className="inline-block w-full text-right text-xs font-semibold text-indigo-700 bg-indigo-50 border-2 border-indigo-300 rounded-lg px-1 py-0.5">{(row.total_before || 0).toFixed(2)}</span>
                     </td>
 
                     {/* Total After Tax */}
-                    <td className="px-2 py-1.5 text-right sticky bg-white group-hover:bg-slate-50 z-[1]" style={{ right: '28px' }}>
-                      <span className="inline-block w-full text-right text-xs font-bold text-green-700 bg-green-50 border-2 border-green-400 rounded-lg px-2 py-1">{(row.total_after || 0).toFixed(2)}</span>
+                    <td className="px-1 py-1 text-right">
+                      <span className="inline-block w-full text-right text-xs font-bold text-green-700 bg-green-50 border-2 border-green-400 rounded-lg px-1 py-0.5">{(row.total_after || 0).toFixed(2)}</span>
                     </td>
 
                     {/* Remove */}
-                    <td className="px-2 py-1.5 sticky bg-white group-hover:bg-slate-50 z-[1]" style={{ right: '0' }}>
+                    <td className="px-1 py-1">
                       <button onClick={() => removeRow(idx)}
                         className="text-gray-300 hover:text-red-500 p-0.5 rounded hover:bg-red-50">
                         <X className="h-3.5 w-3.5" />
