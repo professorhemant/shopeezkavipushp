@@ -3,8 +3,39 @@
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 const { User, Firm } = require('../models');
+
+const OWNER_EMAIL = 'ryn2624@gmail.com';
+
+const createTransporter = () => nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+const sendOtpEmail = async (otp, context = '') => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log(`[OTP] SMTP not configured. OTP${context ? ' (' + context + ')' : ''}: ${otp}`);
+    return;
+  }
+  try {
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: `"Kavipushp Jewels" <${process.env.SMTP_USER}>`,
+      to: OWNER_EMAIL,
+      subject: `Your OTP: ${otp}`,
+      text: `Your Kavipushp Jewels OTP${context ? ' for ' + context : ''} is: ${otp}\n\nValid for 10-15 minutes. Do not share with anyone.`,
+    });
+  } catch (err) {
+    console.error('Email OTP send failed:', err.message);
+  }
+};
 
 const JWT_SECRET = process.env.JWT_SECRET || 'shopeezkavi_secret_key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -168,8 +199,7 @@ const forgotPassword = async (req, res, next) => {
 
     await user.update({ otp, otp_expires: otpExpires });
 
-    // TODO: integrate real email/SMS service
-    console.log(`OTP for ${email}: ${otp}`);
+    await sendOtpEmail(otp, `forgot password for ${email}`);
 
     return res.status(200).json({
       success: true,
@@ -314,24 +344,7 @@ const requestEditOtp = async (req, res, next) => {
       ? phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4)
       : '****';
 
-    // Send OTP via Fast2SMS
-    if (process.env.FAST2SMS_API_KEY && phone) {
-      try {
-        await axios.post(
-          'https://www.fast2sms.com/dev/bulkV2',
-          {
-            route: 'q',
-            message: `Your Kavipushp Jewels edit OTP is ${otp}. Valid for 10 minutes. Do not share with anyone.`,
-            numbers: phone.replace(/\D/g, '').slice(-10),
-          },
-          { headers: { authorization: process.env.FAST2SMS_API_KEY } }
-        );
-      } catch (smsErr) {
-        console.error('Fast2SMS error:', smsErr?.response?.data || smsErr.message);
-      }
-    } else {
-      console.log(`Edit OTP for user ${user.email}: ${otp}`);
-    }
+    await sendOtpEmail(otp, `edit by ${user.email}`);
 
     return res.status(200).json({
       success: true,
