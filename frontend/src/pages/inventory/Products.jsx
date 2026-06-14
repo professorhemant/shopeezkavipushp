@@ -1042,19 +1042,19 @@ bBQusfbKqlGg61r07k8bA4M=
         await qz.websocket.connect()
       }
 
-      // Find TVS LP46 Neo printer
+      // Find TVS LP46 Neo printer — try multiple name variations, never fall back to default
       let printerName = ''
-      try {
-        const found = await qz.printers.find('TVS')
-        printerName = Array.isArray(found) ? found[0] : found
-      } catch {
-        // fallback: try common name variations
-        const all = await qz.printers.getDefault()
-        printerName = all
+      const tvsNames = ['TVS LP 46 NEO', 'TVS LP46 NEO', 'TVS LP 46 Neo', 'TVS LP46 Neo', 'TVS LP 46', 'TVS LP46', 'TVS']
+      for (const candidate of tvsNames) {
+        try {
+          const found = await qz.printers.find(candidate)
+          const match = Array.isArray(found) ? found[0] : found
+          if (match) { printerName = match; break }
+        } catch { /* not found with this name, try next */ }
       }
 
       if (!printerName) {
-        toast.error('TVS LP46 Neo printer not found. Check it is installed.')
+        toast.error('TVS LP 46 NEO printer not found. Make sure it is installed and powered on.')
         setQzStatus('error')
         return
       }
