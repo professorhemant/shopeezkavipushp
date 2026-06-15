@@ -52,10 +52,9 @@ const getAll = async (req, res, next) => {
       attributes: isGallery ? undefined : { exclude: ['images'] },
       order: orderByCategory
         ? [
-            // Primary: category name alphabetically
-            literal("`Category`.`name` ASC"),
-            // Secondary: barcode alphabetically — works correctly because numeric
-            // parts are zero-padded (e.g. B3A080012 < B3A080032 < B4A080013)
+            // Primary: category name alphabetically (Sequelize association syntax)
+            [{ model: Category, as: 'Category' }, 'name', 'ASC'],
+            // Secondary: barcode alphabetically (zero-padded so alpha = numeric order)
             ['barcode', 'ASC'],
           ]
         : [['id', 'DESC']],
