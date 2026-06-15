@@ -45,15 +45,17 @@ const getAll = async (req, res, next) => {
     // without building a large temporary table (avoids sort_buffer OOM on Railway)
     const isGallery = with_images === 'true';
 
-    const orderByCategory = sort_by === 'category' && !isGallery;
+    const orderByBox = sort_by === 'category' && !isGallery;
 
     const queryOptions = {
       where,
-      subQuery: false, // prevents subquery wrapping that breaks ORDER BY on JOIN columns
       attributes: isGallery ? undefined : { exclude: ['images'] },
-      order: orderByCategory
+      order: orderByBox
         ? [
-            [{ model: Category, as: 'Category' }, 'name', 'ASC'],
+            // Primary: box number = leading digits after first letter, sorted numerically
+            // e.g. B1... < B2... < B9... < B10... < B11...
+            literal("CAST(REGEXP_SUBSTR(`Product`.`barcode`, '[0-9]+') AS UNSIGNED) ASC"),
+            // Secondary: full barcode alphabetically (groups same-box same-code products together)
             ['barcode', 'ASC'],
           ]
         : [['id', 'DESC']],
@@ -72,26 +74,26 @@ const getAll = async (req, res, next) => {
 
     const { count, rows } = await Product.findAndCountAll(queryOptions);
 
-    // Aggregate total counts per category across all pages (same filters, no pagination)
-    const countRows = await Product.findAll({
+    // Box counts: total products per box number across all pages
+    const boxCountRows = await Product.findAll({
       where,
-      attributes: ['category_id', [fn('COUNT', col('Product.id')), 'total']],
-      include: [{ model: Category, as: 'Category', attributes: ['name'] }],
-      group: ['category_id', 'Category.id'],
+      attributes: [
+        [literal("CAST(REGEXP_SUBSTR(barcode, '[0-9]+') AS UNSIGNED)"), 'box_num'],
+        [fn('COUNT', col('id')), 'total'],
+      ],
+      group: [literal("CAST(REGEXP_SUBSTR(barcode, '[0-9]+') AS UNSIGNED)")],
       raw: true,
-      nest: true,
     });
-    const category_counts = {};
-    for (const r of countRows) {
-      const name = r['Category.name'] || r.Category?.name || 'Uncategorised';
-      category_counts[name] = parseInt(r.total, 10);
+    const box_counts = {};
+    for (const r of boxCountRows) {
+      box_counts[r.box_num] = parseInt(r.total, 10);
     }
 
     return res.status(200).json({
       success: true,
       data: rows,
       pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
-      category_counts,
+      box_counts,
     });
   } catch (err) {
     next(err);

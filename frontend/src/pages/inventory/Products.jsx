@@ -1469,7 +1469,7 @@ const PER_PAGE = 35
 export default function Products() {
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
-  const [categoryCounts, setCategoryCounts] = useState({})
+  const [boxCounts, setBoxCounts] = useState({})
   const [categories, setCategories] = useState([])
   const [brands, setBrands] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1509,7 +1509,7 @@ export default function Products() {
       setProducts(data.data || data.products || data.results || [])
       setTotalPages(data.pagination?.pages || 1)
       setTotal(data.pagination?.total || 0)
-      setCategoryCounts(data.category_counts || {})
+      setBoxCounts(data.box_counts || {})
       setSelected([])
     } catch {
       toast.error('Failed to load products')
@@ -1869,16 +1869,25 @@ export default function Products() {
               <tbody>
                 {(() => {
                   const rows = []
-                  let lastCategory = null
+                  let lastBox = null
+                  const getBoxNum = (p) => {
+                    const m = (p.barcode || p.sku || '').match(/^[A-Za-z](\d+)/i)
+                    return m ? parseInt(m[1], 10) : 0
+                  }
                   products.forEach((p, pIdx) => {
-                    const catName = p.Category?.name || p.category_name || 'Uncategorised'
-                    if (catName !== lastCategory) {
-                      lastCategory = catName
+                    const boxNum  = getBoxNum(p)
+                    const boxKey  = boxNum || 'unknown'
+                    const boxLabel = boxNum ? `Box ${boxNum}` : 'No Box'
+                    if (boxKey !== lastBox) {
+                      lastBox = boxKey
+                      const cnt = boxCounts[boxNum]
                       rows.push(
-                        <tr key={`cat-${catName}`} className="bg-amber-50 border-b border-amber-100">
-                          <td colSpan={15} className="px-4 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
-                            {catName}
-                            <span className="font-normal text-amber-500 normal-case">({categoryCounts[catName]} product{categoryCounts[catName] !== 1 ? 's' : ''})</span>
+                        <tr key={`box-${boxKey}`} className="bg-amber-50 border-b border-amber-100">
+                          <td colSpan={15} className="px-4 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider">
+                            {boxLabel}
+                            {cnt != null && (
+                              <span className="font-normal text-amber-500 normal-case ml-2">({cnt} product{cnt !== 1 ? 's' : ''})</span>
+                            )}
                           </td>
                         </tr>
                       )
