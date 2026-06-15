@@ -49,12 +49,11 @@ const getAll = async (req, res, next) => {
 
     const queryOptions = {
       where,
+      subQuery: false, // prevents subquery wrapping that breaks ORDER BY on JOIN columns
       attributes: isGallery ? undefined : { exclude: ['images'] },
       order: orderByCategory
         ? [
-            // Primary: category name alphabetically (Sequelize association syntax)
             [{ model: Category, as: 'Category' }, 'name', 'ASC'],
-            // Secondary: barcode alphabetically (zero-padded so alpha = numeric order)
             ['barcode', 'ASC'],
           ]
         : [['id', 'DESC']],
