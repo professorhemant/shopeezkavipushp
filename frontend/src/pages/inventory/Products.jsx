@@ -958,6 +958,16 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const [labelTpl, setLabelTpl] = useState(DEFAULT_LABEL_TEMPLATE)
   const [showDesigner, setShowDesigner] = useState(false)
 
+  // Preview: first valid product
+  const previewProduct = useMemo(
+    () => selectedProducts.find(p => p.barcode || p.sku) || selectedProducts[0],
+    [selectedProducts]
+  )
+  const previewBarcode   = previewProduct?.barcode || previewProduct?.sku || 'SAMPLE'
+  const previewName      = previewProduct?.name || 'Product Name'
+  const previewPrice     = parseFloat(previewProduct?.sale_price || previewProduct?.sell_price || previewProduct?.mrp || 0).toFixed(0)
+  const previewBarcodeUrl = useMemo(() => generateThermalBarcodeDataUrl(previewBarcode), [previewBarcode])
+
   // Load label template from DB on open
   useEffect(() => {
     localStorage.removeItem('kavipushp_label_tpl')
@@ -1338,6 +1348,74 @@ bBQusfbKqlGg61r07k8bA4M=
               Price
             </label>
           </div>
+
+          {/* Label Preview */}
+          {previewProduct && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Label Preview — {previewName}</p>
+
+              {/* Standard label preview */}
+              {labelFormat === 'standard' && (
+                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white" style={{ width: 180 }}>
+                  {showName && (
+                    <div className="flex justify-between items-center px-2 pt-1.5 pb-0.5">
+                      <span className="text-xs font-bold text-slate-800 truncate max-w-[100px]">{previewName.length > 14 ? previewName.slice(0,14)+'…' : previewName}</span>
+                      {showPrice && <span className="text-xs text-slate-600 font-medium ml-1">Rs.{previewPrice}</span>}
+                    </div>
+                  )}
+                  {!showName && showPrice && (
+                    <div className="px-2 pt-1.5 pb-0.5 text-xs font-medium text-slate-600">Rs.{previewPrice}</div>
+                  )}
+                  {previewBarcodeUrl && (
+                    <div className="px-2 py-1">
+                      <img src={previewBarcodeUrl} alt="barcode" className="w-full" style={{ height: 36, objectFit: 'fill' }} />
+                    </div>
+                  )}
+                  <div className="text-center pb-1.5 font-mono text-xs text-slate-700">{previewBarcode}</div>
+                </div>
+              )}
+
+              {/* Thermal 100×15 mm preview */}
+              {labelFormat === 'thermal100x15' && (
+                <div className="border-2 border-slate-300 rounded bg-white flex items-stretch overflow-hidden" style={{ width: 340, height: 52 }}>
+                  {/* Left blank (tag string area) */}
+                  <div className="border-r border-dashed border-slate-300" style={{ width: 170 }} />
+                  {/* Right content area */}
+                  <div className="flex-1 px-1.5 py-1 flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                      {showName && <span className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[90px]">{previewName.length > 12 ? previewName.slice(0,12)+'…' : previewName}</span>}
+                      {showPrice && <span className="text-xs text-slate-700 font-medium">Rs.{previewPrice}</span>}
+                    </div>
+                    {previewBarcodeUrl && (
+                      <img src={previewBarcodeUrl} alt="barcode" style={{ height: 22, objectFit: 'fill', width: '100%' }} />
+                    )}
+                    <div className="text-center font-mono text-slate-700" style={{ fontSize: 7 }}>{previewBarcode}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* A4 sheet preview — shows 3 sample cards in a row */}
+              {labelFormat === 'a4sheet5x13' && (
+                <div className="flex gap-1">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="border border-slate-300 rounded bg-white flex flex-col overflow-hidden" style={{ width: 100 }}>
+                      <div className="flex justify-between px-1 pt-1">
+                        {showName && <span className="text-xs font-bold text-slate-800 truncate" style={{ fontSize: 7, maxWidth: 60 }}>{previewName.slice(0,10)}</span>}
+                        {showPrice && <span className="font-medium text-slate-700" style={{ fontSize: 7 }}>Rs.{previewPrice}</span>}
+                      </div>
+                      {previewBarcodeUrl && (
+                        <img src={previewBarcodeUrl} alt="barcode" className="px-1" style={{ height: 22, objectFit: 'fill' }} />
+                      )}
+                      <div className="text-center font-mono text-slate-700 pb-1" style={{ fontSize: 6 }}>{previewBarcode}</div>
+                    </div>
+                  ))}
+                  <div className="flex items-center text-slate-400 text-xs px-1">…</div>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-400 mt-1.5">Preview updates as you change format and options above.</p>
+            </div>
+          )}
 
           {/* Summary */}
           <div className="bg-slate-50 rounded-lg px-4 py-3 text-xs text-slate-600">
