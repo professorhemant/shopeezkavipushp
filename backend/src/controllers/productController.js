@@ -54,10 +54,9 @@ const getAll = async (req, res, next) => {
         ? [
             // Primary: category name alphabetically
             literal("`Category`.`name` ASC"),
-            // Secondary: box number = digits immediately after leading letter → numeric
-            literal("CAST(SUBSTRING(`Product`.`barcode`, 2) AS UNSIGNED) ASC"),
-            // Tertiary: product number = last 3 chars of barcode → numeric
-            literal("CAST(RIGHT(`Product`.`barcode`, 3) AS UNSIGNED) ASC"),
+            // Secondary: barcode alphabetically — works correctly because numeric
+            // parts are zero-padded (e.g. B3A080012 < B3A080032 < B4A080013)
+            ['barcode', 'ASC'],
           ]
         : [['id', 'DESC']],
       limit,
