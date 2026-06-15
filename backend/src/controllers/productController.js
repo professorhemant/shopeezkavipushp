@@ -51,7 +51,7 @@ const getAll = async (req, res, next) => {
       where,
       attributes: isGallery ? undefined : { exclude: ['images'] },
       order: orderByCategory
-        ? [literal("CAST(SUBSTRING_INDEX(`Product`.`name`, ' ', -1) AS UNSIGNED) ASC")]
+        ? [['barcode', 'ASC']]
         : [['id', 'DESC']],
       limit,
       offset,

@@ -968,6 +968,12 @@ function BarcodeRangeModal({ onClose, onPrint }) {
         if (from)       return bc >= from
         return bc <= to
       })
+      // Sort by barcode so results and printed labels come out in serial order
+      filtered.sort((a, b) => {
+        const bcA = (a.barcode || a.sku || '').toUpperCase()
+        const bcB = (b.barcode || b.sku || '').toUpperCase()
+        return bcA.localeCompare(bcB)
+      })
       setMatched(filtered)
       if (!filtered.length) toast.error('No products found in this barcode range')
     } catch {
