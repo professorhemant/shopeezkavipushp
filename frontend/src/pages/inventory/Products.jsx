@@ -945,6 +945,156 @@ function LabelDesignerModal({ onClose, product, onSaved }) {
   )
 }
 
+// ── Barcode Range Selection Modal ─────────────────────────────────────────────
+function BarcodeRangeModal({ onClose, onPrint }) {
+  const [fromBarcode, setFromBarcode] = useState('')
+  const [toBarcode, setToBarcode]     = useState('')
+  const [loading, setLoading]         = useState(false)
+  const [matched, setMatched]         = useState(null) // null = not searched yet
+
+  const handleFind = async () => {
+    const from = fromBarcode.trim().toUpperCase()
+    const to   = toBarcode.trim().toUpperCase()
+    if (!from && !to) return toast.error('Enter at least one barcode (From or To)')
+    setLoading(true)
+    try {
+      const { data } = await productAPI.getAll({ limit: 10000, is_active: true })
+      const all = data.data || data.products || data.results || []
+      const filtered = all.filter(p => {
+        const bc = (p.barcode || p.sku || '').toUpperCase()
+        if (!bc) return false
+        if (from && to) return bc >= from && bc <= to
+        if (from)       return bc >= from
+        return bc <= to
+      })
+      setMatched(filtered)
+      if (!filtered.length) toast.error('No products found in this barcode range')
+    } catch {
+      toast.error('Failed to fetch products')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+              <Barcode className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800">Select by Barcode Range</h2>
+              <p className="text-xs text-slate-500">Enter From / To barcode to select a range for printing</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+          {/* Range inputs */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">From Barcode</label>
+              <input
+                type="text"
+                value={fromBarcode}
+                onChange={e => { setFromBarcode(e.target.value.toUpperCase()); setMatched(null) }}
+                onKeyDown={e => e.key === 'Enter' && handleFind()}
+                placeholder="e.g. BPOE01"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">To Barcode</label>
+              <input
+                type="text"
+                value={toBarcode}
+                onChange={e => { setToBarcode(e.target.value.toUpperCase()); setMatched(null) }}
+                onKeyDown={e => e.key === 'Enter' && handleFind()}
+                placeholder="e.g. BPOE99"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+              />
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-400 -mt-1">Tip: Leave one field empty to select all barcodes from/up to a value. Matching is alphabetical.</p>
+
+          <button
+            onClick={handleFind}
+            disabled={loading}
+            className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+          >
+            {loading ? <LoadingSpinner size="sm" /> : <Search className="h-4 w-4" />}
+            {loading ? 'Finding…' : 'Find Products in Range'}
+          </button>
+
+          {/* Results */}
+          {matched !== null && (
+            matched.length === 0 ? (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-sm text-orange-700">
+                No products found in this barcode range. Try different values.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                  <p className="text-sm font-semibold text-green-800">
+                    {matched.length} product{matched.length !== 1 ? 's' : ''} found in range
+                  </p>
+                </div>
+                <div className="border border-slate-200 rounded-lg overflow-hidden max-h-52 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-50 sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-slate-500">#</th>
+                        <th className="px-3 py-2 text-left text-slate-500">Barcode</th>
+                        <th className="px-3 py-2 text-left text-slate-500">Name</th>
+                        <th className="px-3 py-2 text-right text-slate-500">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {matched.slice(0, 100).map((p, i) => (
+                        <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50">
+                          <td className="px-3 py-1.5 text-slate-400">{i + 1}</td>
+                          <td className="px-3 py-1.5 font-mono text-slate-600">{p.barcode || p.sku || '—'}</td>
+                          <td className="px-3 py-1.5 text-slate-800 truncate max-w-[130px]">{p.name}</td>
+                          <td className="px-3 py-1.5 text-right text-slate-700">₹{parseFloat(p.sale_price || p.sell_price || 0).toFixed(0)}</td>
+                        </tr>
+                      ))}
+                      {matched.length > 100 && (
+                        <tr><td colSpan={4} className="px-3 py-2 text-center text-gray-400">…and {matched.length - 100} more</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
+          <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
+            Cancel
+          </button>
+          {matched?.length > 0 && (
+            <button
+              onClick={() => { onPrint(matched); onClose() }}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
+            >
+              <Printer className="h-4 w-4" /> Print {matched.length} Label{matched.length !== 1 ? 's' : ''}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const selectedProducts = products.filter((p) => selectedIds.includes(p.id))
   const [copies, setCopies] = useState(1)
@@ -1409,6 +1559,8 @@ export default function Products() {
   const [showImport,        setShowImport]        = useState(false)
   const [showPriceUpdate,   setShowPriceUpdate]   = useState(false)
   const [showPrintBarcodes, setShowPrintBarcodes] = useState(false)
+  const [showBarcodeRange,  setShowBarcodeRange]  = useState(false)
+  const [rangeProducts,     setRangeProducts]     = useState(null)
   const [exporting, setExporting] = useState(false)
 
   const fetchProducts = useCallback(async () => {
@@ -1639,6 +1791,14 @@ export default function Products() {
               className="border border-amber-600 text-amber-600 hover:bg-amber-50 px-3 py-2 rounded-lg text-sm flex items-center gap-1.5"
             >
               <Printer className="h-4 w-4" /> Print Barcodes
+            </button>
+            {/* Select by Barcode Range */}
+            <button
+              onClick={() => setShowBarcodeRange(true)}
+              className="border border-amber-500 text-amber-700 hover:bg-amber-50 px-3 py-2 rounded-lg text-sm flex items-center gap-1.5 bg-amber-50"
+              title="Select products by barcode range to print"
+            >
+              <Barcode className="h-4 w-4" /> By Range
             </button>
             {/* Tabs */}
             <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm">
@@ -1882,11 +2042,19 @@ export default function Products() {
       </div>
 
       {/* Print Barcodes Modal */}
-      {showPrintBarcodes && (
+      {(showPrintBarcodes || rangeProducts) && (
         <PrintBarcodesModal
-          products={products}
-          selectedIds={selected}
-          onClose={() => setShowPrintBarcodes(false)}
+          products={rangeProducts || products}
+          selectedIds={rangeProducts ? rangeProducts.map(p => p.id) : selected}
+          onClose={() => { setShowPrintBarcodes(false); setRangeProducts(null) }}
+        />
+      )}
+
+      {/* Barcode Range Selection Modal */}
+      {showBarcodeRange && (
+        <BarcodeRangeModal
+          onClose={() => setShowBarcodeRange(false)}
+          onPrint={(matched) => { setRangeProducts(matched) }}
         />
       )}
 
