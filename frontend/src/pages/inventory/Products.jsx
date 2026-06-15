@@ -661,7 +661,8 @@ function buildTSPL(name, barcodeText, price, qty, tpl) {
   if (tpl.name.show)    lines.push(`TEXT ${tpl.name.x},${tpl.name.y},"${tsplFont(tpl.name.fontSize)}",0,1,1,"${safeName}"`)
   if (tpl.price.show)   lines.push(`TEXT ${tpl.price.x},${tpl.price.y},"${tsplFont(tpl.price.fontSize)}",0,1,1,"${priceStr}"`)
   if (tpl.barcode.show) lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${Math.max(40, tpl.barcode.h)},0,0,2,5,"${safeCode}"`)
-  if (tpl.code.show)    lines.push(`TEXT ${tpl.code.x},${tpl.code.y},"${tsplFont(tpl.code.fontSize)}",0,1,1,"${safeCode}"`)
+  // Always print barcode serial number as readable text below bars — never suppress even if code.show is false in saved template
+  lines.push(`TEXT ${tpl.code.x},${tpl.code.y},"${tsplFont(tpl.code.fontSize)}",0,1,1,"${safeCode}"`)
   lines.push(`PRINT ${qty},1`)
   return lines.join('\r\n')
 }
@@ -1289,10 +1290,10 @@ bBQusfbKqlGg61r07k8bA4M=
       doc.addImage(r.imgUrl, 'PNG', x + 2, cy, imgW, imgH)
       cy += imgH
 
-      // Barcode code text centered
-      doc.setFontSize(6.5)
-      doc.setFont('courier', 'normal')
-      doc.setTextColor(80, 80, 80)
+      // Barcode serial number — always shown, larger font for readability
+      doc.setFontSize(8)
+      doc.setFont('courier', 'bold')
+      doc.setTextColor(30, 30, 30)
       doc.text(r.barcodeText, x + cardW / 2, cy + codeH - 0.5, { align: 'center' })
 
       col++
@@ -1350,9 +1351,9 @@ bBQusfbKqlGg61r07k8bA4M=
         ctx.drawImage(bc, cx, 18, cw, 58)
       } catch { /* skip */ }
 
-      // Barcode number (bottom, centered in content area)
-      ctx.fillStyle = '#444444'
-      ctx.font = '8.5px Courier New, monospace'
+      // Barcode serial number — bold and larger for visibility
+      ctx.fillStyle = '#111111'
+      ctx.font = 'bold 11px Courier New, monospace'
       const ctw = ctx.measureText(barcodeText).width
       ctx.fillText(barcodeText, cx + (cw - ctw) / 2, 83)
 
