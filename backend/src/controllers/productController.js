@@ -51,7 +51,12 @@ const getAll = async (req, res, next) => {
       where,
       attributes: isGallery ? undefined : { exclude: ['images'] },
       order: orderByCategory
-        ? [['barcode', 'ASC']]
+        ? [
+            // Box number = digits immediately after leading 'B' (stops at first letter) → numeric
+            literal("CAST(SUBSTRING(`Product`.`barcode`, 2) AS UNSIGNED) ASC"),
+            // Product number = last 3 chars of barcode → numeric
+            literal("CAST(RIGHT(`Product`.`barcode`, 3) AS UNSIGNED) ASC"),
+          ]
         : [['id', 'DESC']],
       limit,
       offset,

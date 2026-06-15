@@ -968,11 +968,16 @@ function BarcodeRangeModal({ onClose, onPrint }) {
         if (from)       return bc >= from
         return bc <= to
       })
-      // Sort by barcode so results and printed labels come out in serial order
+      // Sort by box number then product number — both numeric — so B9 stays before B10, etc.
+      const parseBarcode = (bc) => {
+        const boxMatch  = bc.match(/^[A-Z](\d+)/i)   // digits right after leading letter = box number
+        const prodMatch = bc.match(/(\d+)$/)           // trailing digits = product number
+        return [boxMatch ? parseInt(boxMatch[1], 10) : 0, prodMatch ? parseInt(prodMatch[1], 10) : 0]
+      }
       filtered.sort((a, b) => {
-        const bcA = (a.barcode || a.sku || '').toUpperCase()
-        const bcB = (b.barcode || b.sku || '').toUpperCase()
-        return bcA.localeCompare(bcB)
+        const [boxA, prodA] = parseBarcode((a.barcode || a.sku || '').toUpperCase())
+        const [boxB, prodB] = parseBarcode((b.barcode || b.sku || '').toUpperCase())
+        return boxA !== boxB ? boxA - boxB : prodA - prodB
       })
       setMatched(filtered)
       if (!filtered.length) toast.error('No products found in this barcode range')
