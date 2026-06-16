@@ -1936,7 +1936,7 @@ export default function Products() {
                         {isLow && <AlertTriangle className="h-3 w-3 text-red-500 inline ml-1" />}
                       </td>
                       <td className="px-3 py-2 text-center font-mono text-xs text-slate-600">{p.barcode || '-'}</td>
-                      <td className="px-3 py-2 text-slate-600 text-xs">{catName}</td>
+                      <td className="px-3 py-2 text-slate-600 text-xs">{p.category?.name || p.Category?.name || '-'}</td>
                       <td className="px-3 py-2 text-center text-slate-600 text-xs">{p.min_stock ?? '-'}</td>
                       <td className="px-3 py-2 text-center">
                         {p.has_variants ? (
