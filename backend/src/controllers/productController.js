@@ -45,18 +45,18 @@ const getAll = async (req, res, next) => {
     // without building a large temporary table (avoids sort_buffer OOM on Railway)
     const isGallery = with_images === 'true';
 
-    const orderByBox = sort_by === 'category' && !isGallery;
+    const orderBySku = (sort_by === 'sku' || sort_by === 'category') && !isGallery;
 
     const queryOptions = {
       where,
       attributes: isGallery ? undefined : { exclude: ['images'] },
-      order: orderByBox
+      order: orderBySku
         ? [
-            // Primary: box number = leading digits after first letter, sorted numerically
+            // Primary: box number = first digit sequence in SKU, sorted numerically
             // e.g. B1... < B2... < B9... < B10... < B11...
-            literal("CAST(REGEXP_SUBSTR(`Product`.`barcode`, '[0-9]+') AS UNSIGNED) ASC"),
-            // Secondary: full barcode alphabetically (groups same-box same-code products together)
-            ['barcode', 'ASC'],
+            literal("CAST(REGEXP_SUBSTR(`Product`.`sku`, '[0-9]+') AS UNSIGNED) ASC"),
+            // Secondary: full SKU alphabetically (within same box)
+            ['sku', 'ASC'],
           ]
         : [['id', 'DESC']],
       limit,
@@ -74,14 +74,14 @@ const getAll = async (req, res, next) => {
 
     const { count, rows } = await Product.findAndCountAll(queryOptions);
 
-    // Box counts: total products per box number across all pages
+    // Box counts: total products per box number across all pages (keyed by SKU prefix digit)
     const boxCountRows = await Product.findAll({
       where,
       attributes: [
-        [literal("CAST(REGEXP_SUBSTR(barcode, '[0-9]+') AS UNSIGNED)"), 'box_num'],
+        [literal("CAST(REGEXP_SUBSTR(sku, '[0-9]+') AS UNSIGNED)"), 'box_num'],
         [fn('COUNT', col('id')), 'total'],
       ],
-      group: [literal("CAST(REGEXP_SUBSTR(barcode, '[0-9]+') AS UNSIGNED)")],
+      group: [literal("CAST(REGEXP_SUBSTR(sku, '[0-9]+') AS UNSIGNED)")],
       raw: true,
     });
     const box_counts = {};

@@ -1504,7 +1504,7 @@ export default function Products() {
         brand_id: brandFilter || undefined,
         page, limit: PER_PAGE,
         is_active: tab === 'active',
-        sort_by: 'category',
+        sort_by: 'sku',
       })
       setProducts(data.data || data.products || data.results || [])
       setTotalPages(data.pagination?.pages || 1)
@@ -1871,7 +1871,7 @@ export default function Products() {
                   const rows = []
                   let lastBox = null
                   const getBoxNum = (p) => {
-                    const m = (p.barcode || p.sku || '').match(/^[A-Za-z](\d+)/i)
+                    const m = (p.sku || p.barcode || '').match(/^[A-Za-z](\d+)/i)
                     return m ? parseInt(m[1], 10) : 0
                   }
                   products.forEach((p, pIdx) => {
