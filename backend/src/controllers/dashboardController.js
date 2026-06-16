@@ -272,15 +272,15 @@ const getTopCustomers = async (req, res, next) => {
         [fn('SUM', col('Sale.total')), 'spent'],
         [fn('MAX', col('Sale.invoice_date')), 'last_purchase'],
       ],
-      include: [{ model: Customer, as: 'customer', attributes: ['name', 'mobile'], required: true }],
-      group: ['customer_id', 'customer.id', 'customer.name', 'customer.mobile'],
+      include: [{ model: Customer, as: 'customer', attributes: ['name', 'phone'], required: true }],
+      group: ['customer_id', 'customer.id', 'customer.name', 'customer.phone'],
       order: [[fn('SUM', col('Sale.total')), 'DESC']],
       limit: 8,
     });
 
     const data = raw.map((r) => ({
       name: r.customer?.name || '-',
-      mobile: r.customer?.mobile || '-',
+      mobile: r.customer?.phone || '-',
       last_purchase: r.dataValues.last_purchase
         ? new Date(r.dataValues.last_purchase).toLocaleDateString('en-IN')
         : '-',
