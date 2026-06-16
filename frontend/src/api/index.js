@@ -266,3 +266,12 @@ export const toolsAPI = {
   generateBarcode: (data) => api.get('/tools/barcode', { params: data }),
   generateQR: (data) => api.get('/tools/qr', { params: data }),
 }
+
+export const promotionAPI = {
+  getAll:       (params) => api.get('/promotions', { params }),
+  getOne:       (id)     => api.get(`/promotions/${id}`),
+  create:       (data)   => api.post('/promotions', data),
+  update:       (id, data) => api.put(`/promotions/${id}`, data),
+  markReturned: (id)     => api.put(`/promotions/${id}/return`),
+  remove:       (id)     => api.delete(`/promotions/${id}`),
+}

@@ -59,6 +59,7 @@ const Analytics = lazy(() => import('./pages/reports/Analytics'))
 
 const Appointments = lazy(() => import('./pages/appointments/Appointments'))
 const WhatsAppCampaigns = lazy(() => import('./pages/whatsapp/WhatsAppCampaigns'))
+const SentForPromotions = lazy(() => import('./pages/promotions/SentForPromotions'))
 
 const QRGenerator = lazy(() => import('./pages/tools/QRGenerator'))
 const InvoiceGenerator = lazy(() => import('./pages/tools/InvoiceGenerator'))
@@ -181,6 +182,7 @@ function App() {
 
           {/* Appointments */}
           <Route path="appointments" element={<Appointments />} />
+          <Route path="promotions" element={<SentForPromotions />} />
 
           {/* WhatsApp */}
           <Route path="whatsapp/campaigns" element={<WhatsAppCampaigns />} />

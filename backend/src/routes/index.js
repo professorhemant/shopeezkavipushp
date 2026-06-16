@@ -25,6 +25,7 @@ const settingsRoutes = require('./settings');
 const gstRoutes = require('./gst');
 const toolsRoutes = require('./tools');
 const dayBookRoutes = require('./daybook');
+const promotionRoutes = require('./promotions');
 const upload = require('../middleware/upload');
 const path = require('path');
 
@@ -51,6 +52,7 @@ router.use('/settings', authenticate, settingsRoutes);
 router.use('/gst', authenticate, gstRoutes);
 router.use('/tools', authenticate, toolsRoutes);
 router.use('/daybook', authenticate, dayBookRoutes);
+router.use('/promotions', authenticate, promotionRoutes);
 
 // Image upload endpoint
 router.post('/upload', authenticate, (req, res, next) => {

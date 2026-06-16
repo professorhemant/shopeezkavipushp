@@ -9,7 +9,7 @@ import {
   Calculator, FileSpreadsheet, Zap, User, DollarSign,
   Landmark, Wrench, Store, Hammer, Warehouse, BookOpen,
   ClipboardList, Factory, MessageSquare, Calendar,
-  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine
+  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 
@@ -69,8 +69,9 @@ const MENU = [
   {
     id: 'rental', label: 'Rental Module', icon: Store,
     children: [
-      { label: 'Appointments', path: '/appointments',       icon: Calendar },
-      { label: 'WhatsApp',     path: '/whatsapp/campaigns', icon: MessageSquare },
+      { label: 'Appointments',        path: '/appointments',       icon: Calendar },
+      { label: 'Sent for Promotions', path: '/promotions',         icon: Megaphone },
+      { label: 'WhatsApp',            path: '/whatsapp/campaigns', icon: MessageSquare },
     ],
   },
   {
