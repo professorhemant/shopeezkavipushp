@@ -22,13 +22,30 @@ export default function Login() {
   })
 
   const onSubmit = async (values) => {
-    try {
-      await login(values)
-      toast.success('Welcome back!')
-      navigate('/dashboard')
-    } catch (err) {
-      toast.error(err.response?.data?.message || err.response?.data?.error || 'Login failed')
+    let lastErr
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await login(values)
+        toast.success('Welcome back!')
+        navigate('/dashboard')
+        return
+      } catch (err) {
+        lastErr = err
+        // If server returned a real auth error (401/400), don't retry
+        if (err.response) break
+        // Network error = server waking up (Railway cold start) — retry silently
+        if (attempt < 2) {
+          toast.loading('Connecting to server…', { id: 'login-wake' })
+          await new Promise((r) => setTimeout(r, 3000))
+          toast.dismiss('login-wake')
+        }
+      }
     }
+    toast.error(
+      lastErr?.response?.data?.message ||
+      lastErr?.response?.data?.error ||
+      'Login failed. Please try again.'
+    )
   }
 
   return (
