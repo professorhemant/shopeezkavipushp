@@ -1628,6 +1628,11 @@ export default function Products() {
     try {
       const { data } = await productAPI.getAll({ limit: 10000, is_active: true })
       const all = data.data || data.products || data.results || []
+      const parseBC = (bc) => {
+        const boxMatch  = bc.match(/^[A-Za-z](\d+)/i)
+        const prodMatch = bc.match(/(\d+)$/)
+        return [boxMatch ? parseInt(boxMatch[1], 10) : 0, prodMatch ? parseInt(prodMatch[1], 10) : 0]
+      }
       const filtered = all
         .filter(p => {
           const bc = (p.barcode || p.sku || '').toUpperCase()
@@ -1637,9 +1642,9 @@ export default function Products() {
           return bc <= to
         })
         .sort((a, b) => {
-          const ba = (a.barcode || a.sku || '').toUpperCase()
-          const bb = (b.barcode || b.sku || '').toUpperCase()
-          return ba < bb ? -1 : ba > bb ? 1 : 0
+          const [boxA, prodA] = parseBC((a.barcode || a.sku || '').toUpperCase())
+          const [boxB, prodB] = parseBC((b.barcode || b.sku || '').toUpperCase())
+          return boxA !== boxB ? boxA - boxB : prodA - prodB
         })
       if (!filtered.length) return toast.error('No products found in this barcode range')
       setRangeProducts(filtered)
