@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Plus, Search, Megaphone, RotateCcw, Trash2, Edit2, X, Check, Image, Upload } from 'lucide-react'
+import { Plus, Search, Megaphone, RotateCcw, Trash2, Edit2, X, Check, Image, Upload, ChevronLeft, ChevronRight, ZoomIn, Images } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { promotionAPI } from '../../api'
 
@@ -26,29 +26,159 @@ const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://backend-production-
 function isOverdue(promo) {
   return promo.status === 'sent' && promo.expected_return_date && promo.expected_return_date < new Date().toISOString().split('T')[0]
 }
-
-function displayStatus(promo) {
-  return isOverdue(promo) ? 'overdue' : promo.status
-}
-
+function displayStatus(promo) { return isOverdue(promo) ? 'overdue' : promo.status }
 function fmt(d) {
   if (!d) return '—'
   const [y, m, day] = d.split('-')
   return `${day}/${m}/${y}`
 }
-
 function getImageSrc(url) {
   if (!url) return null
   if (url.startsWith('http')) return url
   return `${BACKEND_URL}${url}`
 }
-
 function parseImages(promo) {
   let imgs = []
   try { imgs = JSON.parse(promo.images_json || '[]') } catch {}
   if (imgs.length === 0 && promo.image_url) imgs = [promo.image_url]
   return imgs
 }
+
+// ─── Gallery Lightbox ────────────────────────────────────────────────────────
+function GalleryLightbox({ promo, onClose }) {
+  const [activeIdx, setActiveIdx] = useState(null) // null = grid, number = full-size
+  const imgs = parseImages(promo)
+  const thumbsRef = useRef(null)
+
+  const goPrev = useCallback(() => {
+    setActiveIdx(i => (i <= 0 ? imgs.length - 1 : i - 1))
+  }, [imgs.length])
+
+  const goNext = useCallback(() => {
+    setActiveIdx(i => (i >= imgs.length - 1 ? 0 : i + 1))
+  }, [imgs.length])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        if (activeIdx !== null) setActiveIdx(null)
+        else onClose()
+      }
+      if (activeIdx !== null) {
+        if (e.key === 'ArrowLeft') goPrev()
+        if (e.key === 'ArrowRight') goNext()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [activeIdx, goPrev, goNext, onClose])
+
+  // Scroll active thumb into view
+  useEffect(() => {
+    if (activeIdx !== null && thumbsRef.current) {
+      const thumb = thumbsRef.current.children[activeIdx]
+      if (thumb) thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    }
+  }, [activeIdx])
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="relative w-full max-w-4xl mx-4 flex flex-col" style={{ maxHeight: '92vh' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 bg-black/60 rounded-t-2xl backdrop-blur-sm">
+          <div>
+            <p className="text-white font-semibold text-sm">{promo.sent_to_name}</p>
+            <p className="text-slate-400 text-xs mt-0.5">
+              {activeIdx !== null ? `Photo ${activeIdx + 1} of ${imgs.length}` : `${imgs.length} photo${imgs.length !== 1 ? 's' : ''}`}
+              {promo.event_name ? ` · ${promo.event_name}` : ''}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeIdx !== null && (
+              <button onClick={() => setActiveIdx(null)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs transition-colors">
+                <Images className="h-3.5 w-3.5" /> Grid
+              </button>
+            )}
+            <button onClick={onClose} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content area */}
+        {activeIdx === null ? (
+          /* ── Grid view ── */
+          <div className="bg-black/40 backdrop-blur-sm rounded-b-2xl p-4 overflow-y-auto" style={{ maxHeight: 'calc(92vh - 64px)' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {imgs.map((url, i) => (
+                <button key={i} onClick={() => setActiveIdx(i)}
+                  className="relative aspect-square rounded-xl overflow-hidden group border-2 border-transparent hover:border-amber-400 transition-all focus:outline-none focus:border-amber-400">
+                  <img src={getImageSrc(url)} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                  </div>
+                  {i === 0 && (
+                    <span className="absolute top-1.5 left-1.5 bg-amber-500 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">Cover</span>
+                  )}
+                  <span className="absolute bottom-1.5 right-1.5 bg-black/50 text-white text-[9px] px-1 py-0.5 rounded">{i + 1}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* ── Full-size view ── */
+          <div className="bg-black/40 backdrop-blur-sm rounded-b-2xl flex flex-col" style={{ maxHeight: 'calc(92vh - 64px)' }}>
+            {/* Main image */}
+            <div className="relative flex-1 flex items-center justify-center min-h-0 px-12 py-4">
+              <img
+                key={activeIdx}
+                src={getImageSrc(imgs[activeIdx])}
+                alt={`Photo ${activeIdx + 1}`}
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                style={{ maxHeight: 'calc(92vh - 64px - 100px)' }}
+              />
+              {/* Prev arrow */}
+              {imgs.length > 1 && (
+                <button onClick={goPrev}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors">
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+              )}
+              {/* Next arrow */}
+              {imgs.length > 1 && (
+                <button onClick={goNext}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors">
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              )}
+              {/* Open original */}
+              <a href={getImageSrc(imgs[activeIdx])} target="_blank" rel="noreferrer"
+                className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white transition-colors" title="Open original">
+                <ZoomIn className="h-3.5 w-3.5" />
+              </a>
+            </div>
+
+            {/* Thumbnail strip */}
+            {imgs.length > 1 && (
+              <div ref={thumbsRef} className="flex gap-2 overflow-x-auto px-4 pb-4 scroll-smooth" style={{ scrollbarWidth: 'thin' }}>
+                {imgs.map((url, i) => (
+                  <button key={i} onClick={() => setActiveIdx(i)}
+                    className={`flex-shrink-0 h-16 w-16 rounded-lg overflow-hidden border-2 transition-all ${i === activeIdx ? 'border-amber-400 opacity-100' : 'border-transparent opacity-50 hover:opacity-80'}`}>
+                    <img src={getImageSrc(url)} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function SentForPromotions() {
   const [promos, setPromos]       = useState([])
@@ -60,10 +190,9 @@ export default function SentForPromotions() {
   const [form, setForm]           = useState(EMPTY_FORM)
   const [items, setItems]         = useState([])
   const [saving, setSaving]       = useState(false)
-  // existingImages: relative URLs already in DB (sent back as keep_images)
   const [existingImages, setExistingImages] = useState([])
-  // newImageFiles: { file: File, preview: string }[] — selected but not yet saved
-  const [newImageFiles, setNewImageFiles] = useState([])
+  const [newImageFiles, setNewImageFiles]   = useState([])
+  const [galleryPromo, setGalleryPromo]     = useState(null)
   const fileInputRef = useRef(null)
 
   const fetchAll = useCallback(async () => {
@@ -110,15 +239,11 @@ export default function SentForPromotions() {
   const handleFilesAdded = (e) => {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
-    const entries = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }))
-    setNewImageFiles(prev => [...prev, ...entries])
+    setNewImageFiles(prev => [...prev, ...files.map(f => ({ file: f, preview: URL.createObjectURL(f) }))])
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const removeExisting = (idx) => {
-    setExistingImages(prev => prev.filter((_, i) => i !== idx))
-  }
-
+  const removeExisting = (idx) => setExistingImages(prev => prev.filter((_, i) => i !== idx))
   const removeNew = (idx) => {
     setNewImageFiles(prev => {
       URL.revokeObjectURL(prev[idx].preview)
@@ -132,11 +257,9 @@ export default function SentForPromotions() {
     if (!form.sent_date) return toast.error('Sent date is required')
     setSaving(true)
     try {
-      const filteredItems = items.filter(i => i.name.trim())
       const fd = new FormData()
-      Object.entries({ ...form, items_json: JSON.stringify(filteredItems) }).forEach(([k, v]) => {
-        if (v !== null && v !== undefined) fd.append(k, v)
-      })
+      Object.entries({ ...form, items_json: JSON.stringify(items.filter(i => i.name.trim())) })
+        .forEach(([k, v]) => { if (v !== null && v !== undefined) fd.append(k, v) })
       fd.append('keep_images', JSON.stringify(existingImages))
       newImageFiles.forEach(({ file }) => fd.append('images', file))
 
@@ -158,23 +281,17 @@ export default function SentForPromotions() {
 
   const handleReturn = async (p) => {
     if (!confirm(`Mark "${p.sent_to_name}" record as returned?`)) return
-    try {
-      await promotionAPI.markReturned(p.id)
-      toast.success('Marked as returned')
-      fetchAll()
-    } catch { toast.error('Failed') }
+    try { await promotionAPI.markReturned(p.id); toast.success('Marked as returned'); fetchAll() }
+    catch { toast.error('Failed') }
   }
 
   const handleDelete = async (p) => {
     if (!confirm(`Delete record for "${p.sent_to_name}"?`)) return
-    try {
-      await promotionAPI.remove(p.id)
-      toast.success('Deleted')
-      fetchAll()
-    } catch { toast.error('Failed') }
+    try { await promotionAPI.remove(p.id); toast.success('Deleted'); fetchAll() }
+    catch { toast.error('Failed') }
   }
 
-  const addItem = () => setItems(prev => [...prev, { ...EMPTY_ITEM }])
+  const addItem    = () => setItems(prev => [...prev, { ...EMPTY_ITEM }])
   const removeItem = (i) => setItems(prev => prev.filter((_, idx) => idx !== i))
   const updateItem = (i, field, val) => setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [field]: val } : it))
 
@@ -182,11 +299,14 @@ export default function SentForPromotions() {
   const out     = promos.filter(p => p.status === 'sent').length
   const ret     = promos.filter(p => p.status === 'returned').length
   const overdue = promos.filter(p => isOverdue(p)).length
-
   const totalImageCount = existingImages.length + newImageFiles.length
 
   return (
     <div className="p-6 space-y-5">
+
+      {/* Gallery lightbox */}
+      {galleryPromo && <GalleryLightbox promo={galleryPromo} onClose={() => setGalleryPromo(null)} />}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -203,10 +323,10 @@ export default function SentForPromotions() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Records', val: total,   color: 'text-slate-700',  bg: 'bg-slate-50' },
-          { label: 'Currently Out', val: out,     color: 'text-amber-600',  bg: 'bg-amber-50' },
-          { label: 'Returned',      val: ret,     color: 'text-green-600',  bg: 'bg-green-50' },
-          { label: 'Overdue',       val: overdue, color: 'text-red-600',    bg: 'bg-red-50'   },
+          { label: 'Total Records', val: total,   color: 'text-slate-700', bg: 'bg-slate-50' },
+          { label: 'Currently Out', val: out,     color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Returned',      val: ret,     color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Overdue',       val: overdue, color: 'text-red-600',   bg: 'bg-red-50'   },
         ].map(s => (
           <div key={s.label} className={`${s.bg} rounded-xl p-4 border border-slate-100`}>
             <div className={`text-2xl font-bold ${s.color}`}>{s.val}</div>
@@ -264,24 +384,31 @@ export default function SentForPromotions() {
                   return (
                     <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.promo_number}</td>
-                      {/* Photo strip — up to 3 thumbnails */}
+
+                      {/* Photos column */}
                       <td className="px-4 py-3">
                         {imgs.length > 0 ? (
-                          <div className="flex items-center gap-1">
-                            {imgs.slice(0, 3).map((url, i) => (
-                              <img
-                                key={i}
-                                src={getImageSrc(url)}
-                                alt={`photo ${i + 1}`}
-                                className="h-9 w-9 rounded-lg object-cover border border-slate-200 cursor-pointer hover:opacity-80 flex-shrink-0"
-                                onClick={() => window.open(getImageSrc(url), '_blank')}
-                              />
-                            ))}
-                            {imgs.length > 3 && (
-                              <span className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-500 flex-shrink-0">
-                                +{imgs.length - 3}
-                              </span>
-                            )}
+                          <div className="flex flex-col gap-1.5">
+                            {/* Thumbnail strip */}
+                            <div className="flex items-center gap-1">
+                              {imgs.slice(0, 3).map((url, i) => (
+                                <img key={i} src={getImageSrc(url)} alt={`photo ${i + 1}`}
+                                  className="h-9 w-9 rounded-lg object-cover border border-slate-200 cursor-pointer hover:opacity-80 flex-shrink-0"
+                                  onClick={() => setGalleryPromo(p)} />
+                              ))}
+                              {imgs.length > 3 && (
+                                <button onClick={() => setGalleryPromo(p)}
+                                  className="h-9 w-9 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-600 flex items-center justify-center text-xs font-semibold text-slate-500 flex-shrink-0 transition-colors">
+                                  +{imgs.length - 3}
+                                </button>
+                              )}
+                            </div>
+                            {/* View All button */}
+                            <button onClick={() => setGalleryPromo(p)}
+                              className="flex items-center gap-1 text-[10px] font-medium text-amber-600 hover:text-amber-700 transition-colors leading-none">
+                              <Images className="h-3 w-3" />
+                              View all {imgs.length} photo{imgs.length !== 1 ? 's' : ''}
+                            </button>
                           </div>
                         ) : (
                           <div className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center">
@@ -289,6 +416,7 @@ export default function SentForPromotions() {
                           </div>
                         )}
                       </td>
+
                       <td className="px-4 py-3">
                         <div className="font-medium text-slate-800">{p.sent_to_name}</div>
                         {p.contact_phone && <div className="text-xs text-slate-400">{p.contact_phone}</div>}
@@ -306,9 +434,7 @@ export default function SentForPromotions() {
                         {p.actual_return_date && <div className="text-xs text-green-600">↩ {fmt(p.actual_return_date)}</div>}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_STYLE[st] || STATUS_STYLE.sent}`}>
-                          {st}
-                        </span>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_STYLE[st] || STATUS_STYLE.sent}`}>{st}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
@@ -334,7 +460,7 @@ export default function SentForPromotions() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 px-4 bg-black/50" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -442,17 +568,13 @@ export default function SentForPromotions() {
                     {items.map((item, i) => (
                       <div key={i} className="flex gap-2 items-start">
                         <div className="flex-1 grid grid-cols-2 gap-2">
-                          <input value={item.name} onChange={e => updateItem(i, 'name', e.target.value)}
-                            placeholder="Item / Set name" required
+                          <input value={item.name} onChange={e => updateItem(i, 'name', e.target.value)} placeholder="Item / Set name" required
                             className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-400" />
-                          <input value={item.code} onChange={e => updateItem(i, 'code', e.target.value)}
-                            placeholder="Code (e.g. KP001)"
+                          <input value={item.code} onChange={e => updateItem(i, 'code', e.target.value)} placeholder="Code (e.g. KP001)"
                             className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-400" />
-                          <input value={item.category} onChange={e => updateItem(i, 'category', e.target.value)}
-                            placeholder="Category"
+                          <input value={item.category} onChange={e => updateItem(i, 'category', e.target.value)} placeholder="Category"
                             className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-400" />
-                          <input value={item.notes} onChange={e => updateItem(i, 'notes', e.target.value)}
-                            placeholder="Notes (optional)"
+                          <input value={item.notes} onChange={e => updateItem(i, 'notes', e.target.value)} placeholder="Notes (optional)"
                             className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-400" />
                         </div>
                         <button type="button" onClick={() => removeItem(i)} className="mt-1.5 p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500">
@@ -464,7 +586,7 @@ export default function SentForPromotions() {
                 )}
               </div>
 
-              {/* Photos — multiple upload */}
+              {/* Photos */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-xs font-semibold text-amber-500 uppercase tracking-wider">
@@ -477,16 +599,8 @@ export default function SentForPromotions() {
                     </button>
                   )}
                 </div>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                  multiple
-                  onChange={handleFilesAdded}
-                  className="hidden"
-                />
-
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  multiple onChange={handleFilesAdded} className="hidden" />
                 {totalImageCount === 0 ? (
                   <button type="button" onClick={() => fileInputRef.current?.click()}
                     className="w-full py-6 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-2 text-slate-400 hover:border-amber-300 hover:text-amber-500 transition-colors">
@@ -496,53 +610,30 @@ export default function SentForPromotions() {
                   </button>
                 ) : (
                   <div className="grid grid-cols-4 gap-2">
-                    {/* Existing saved images */}
                     {existingImages.map((url, i) => (
                       <div key={`ex-${i}`} className="relative group aspect-square">
-                        <img
-                          src={getImageSrc(url)}
-                          alt={`photo ${i + 1}`}
+                        <img src={getImageSrc(url)} alt={`photo ${i + 1}`}
                           className="w-full h-full object-cover rounded-xl border border-slate-200 cursor-pointer"
-                          onClick={() => window.open(getImageSrc(url), '_blank')}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeExisting(i)}
-                          className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow"
-                          title="Remove"
-                        >
+                          onClick={() => window.open(getImageSrc(url), '_blank')} />
+                        <button type="button" onClick={() => removeExisting(i)}
+                          className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow" title="Remove">
                           <X className="h-3 w-3" />
                         </button>
-                        {i === 0 && (
-                          <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-medium">Cover</span>
-                        )}
+                        {i === 0 && <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-medium">Cover</span>}
                       </div>
                     ))}
-                    {/* Newly selected files (not yet saved) */}
                     {newImageFiles.map(({ preview }, i) => (
                       <div key={`new-${i}`} className="relative group aspect-square">
-                        <img
-                          src={preview}
-                          alt={`new photo ${i + 1}`}
-                          className="w-full h-full object-cover rounded-xl border-2 border-amber-300"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeNew(i)}
-                          className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow"
-                          title="Remove"
-                        >
+                        <img src={preview} alt={`new photo ${i + 1}`} className="w-full h-full object-cover rounded-xl border-2 border-amber-300" />
+                        <button type="button" onClick={() => removeNew(i)}
+                          className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow" title="Remove">
                           <X className="h-3 w-3" />
                         </button>
                         <span className="absolute bottom-1 left-1 bg-amber-500/80 text-white text-[9px] px-1.5 py-0.5 rounded font-medium">New</span>
                       </div>
                     ))}
-                    {/* Add more tile */}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-amber-300 hover:text-amber-500 transition-colors"
-                    >
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      className="aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-amber-300 hover:text-amber-500 transition-colors">
                       <Plus className="h-5 w-5" />
                       <span className="text-[10px] font-medium">Add</span>
                     </button>
