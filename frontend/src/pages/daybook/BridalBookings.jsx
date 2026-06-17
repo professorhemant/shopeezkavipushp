@@ -41,6 +41,7 @@ export default function BridalBookings() {
 
   // Standalone checker
   const [checkerCode, setCheckerCode] = useState('')
+  const [checkerDate, setCheckerDate] = useState('')
   const [checkerResult, setCheckerResult] = useState(null) // null = not checked yet, [] = available, [...] = conflicts
   const [checkerLoading, setCheckerLoading] = useState(false)
   const checkerDebounceRef = useRef(null)
@@ -71,21 +72,21 @@ export default function BridalBookings() {
     return () => clearTimeout(debounceRef.current)
   }, [splitForm.slip_no, editId])
 
-  // Standalone checker debounce
+  // Standalone checker debounce — requires both set code AND function date
   useEffect(() => {
     const code = checkerCode.trim()
     if (checkerDebounceRef.current) clearTimeout(checkerDebounceRef.current)
-    if (!code) { setCheckerResult(null); return }
+    if (!code || !checkerDate) { setCheckerResult(null); return }
     checkerDebounceRef.current = setTimeout(async () => {
       setCheckerLoading(true)
       try {
-        const res = await dayBookAPI.checkBridalAvailability(code)
+        const res = await dayBookAPI.checkBridalAvailability(code, checkerDate)
         setCheckerResult(res.data.data || [])
       } catch { setCheckerResult([]) }
       finally { setCheckerLoading(false) }
     }, 500)
     return () => clearTimeout(checkerDebounceRef.current)
-  }, [checkerCode])
+  }, [checkerCode, checkerDate])
 
   const handleFunctionDate = (val, isEdit) => {
     const pickup = addDays(val, -1)
@@ -194,35 +195,53 @@ export default function BridalBookings() {
       {/* Standalone Availability Checker */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Check Set Availability</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            value={checkerCode}
-            onChange={(e) => setCheckerCode(e.target.value)}
-            placeholder="Enter set code to check…"
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 w-64"
-          />
-          {checkerLoading && <p className="text-xs text-slate-400 italic">Checking…</p>}
-          {!checkerLoading && checkerResult !== null && checkerCode.trim() && (
-            checkerResult.length === 0 ? (
-              <span className="flex items-center gap-1.5 text-green-600 text-sm font-medium">
-                <CheckCircle className="h-4 w-4" /> Available — no existing bookings for &ldquo;{checkerCode}&rdquo;
-              </span>
-            ) : (
-              <div className="flex flex-wrap items-start gap-2">
-                <span className="flex items-center gap-1.5 text-red-600 text-sm font-semibold">
-                  <AlertCircle className="h-4 w-4 shrink-0" /> &ldquo;{checkerCode}&rdquo; already booked:
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Set Code</label>
+            <input
+              value={checkerCode}
+              onChange={(e) => { setCheckerCode(e.target.value); setCheckerResult(null) }}
+              placeholder="e.g. A001"
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 w-44"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Function Date Required</label>
+            <input
+              type="date"
+              value={checkerDate}
+              onChange={(e) => { setCheckerDate(e.target.value); setCheckerResult(null) }}
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 w-44"
+            />
+          </div>
+
+          <div className="pb-0.5">
+            {(!checkerCode.trim() || !checkerDate) && (
+              <p className="text-xs text-slate-400 italic">Enter set code + function date to check</p>
+            )}
+            {checkerLoading && <p className="text-xs text-slate-400 italic">Checking…</p>}
+            {!checkerLoading && checkerResult !== null && checkerCode.trim() && checkerDate && (
+              checkerResult.length === 0 ? (
+                <span className="flex items-center gap-1.5 text-green-600 text-sm font-semibold">
+                  <CheckCircle className="h-4 w-4" />
+                  &ldquo;{checkerCode}&rdquo; is available for {fmtDate(checkerDate)}
                 </span>
-                <div className="flex flex-wrap gap-2">
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-red-600 text-sm font-semibold">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    &ldquo;{checkerCode}&rdquo; not available for {fmtDate(checkerDate)}:
+                  </span>
                   {checkerResult.map((r, i) => (
                     <span key={i} className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-1.5">
-                      Not available from <strong>{fmtDate(r.pickup_date)}</strong> to <strong>{fmtDate(r.return_date)}</strong>
-                      {r.function_date ? <span className="text-red-400"> · Function: {fmtDate(r.function_date)}</span> : ''}
+                      Already booked from <strong>{fmtDate(r.pickup_date)}</strong> to <strong>{fmtDate(r.return_date)}</strong>
+                      {r.function_date ? <span className="text-red-400"> (Function: {fmtDate(r.function_date)})</span> : ''}
                     </span>
                   ))}
                 </div>
-              </div>
-            )
-          )}
+              )
+            )}
+          </div>
         </div>
       </div>
 

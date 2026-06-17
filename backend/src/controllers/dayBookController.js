@@ -47,11 +47,31 @@ const bridalBookingHandlers = makeHandlers(DayBookBridalBooking);
 
 const checkBridalAvailability = async (req, res, next) => {
   try {
-    const { set_code } = req.query;
+    const { set_code, function_date } = req.query;
     if (!set_code) return res.json({ success: true, data: [] });
     const { Op } = require('sequelize');
+
+    const shiftDate = (dateStr, days) => {
+      const d = new Date(dateStr);
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().split('T')[0];
+    };
+
+    // Build where clause — if function_date provided, only return overlapping conflicts
+    let where = { slip_no: set_code, pickup_date: { [Op.ne]: null } };
+    if (function_date) {
+      const wantPickup = shiftDate(function_date, -1);
+      const wantReturn = shiftDate(function_date, +1);
+      // Overlap: existing.pickup <= wantReturn AND existing.return >= wantPickup
+      where = {
+        slip_no: set_code,
+        pickup_date: { [Op.ne]: null, [Op.lte]: wantReturn },
+        return_date: { [Op.gte]: wantPickup },
+      };
+    }
+
     const bookings = await DayBookBridalBooking.findAll({
-      where: { slip_no: set_code, pickup_date: { [Op.ne]: null } },
+      where,
       attributes: ['pickup_date', 'return_date', 'function_date'],
       order: [['pickup_date', 'ASC']],
     });
