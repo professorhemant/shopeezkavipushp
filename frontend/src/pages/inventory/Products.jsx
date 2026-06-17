@@ -1644,17 +1644,21 @@ export default function Products() {
         const prodMatch = bc.match(/(\d+)$/)
         return [boxMatch ? parseInt(boxMatch[1], 10) : 0, prodMatch ? parseInt(prodMatch[1], 10) : 0]
       }
+      const inRange = (val) => {
+        if (!val) return false
+        if (from && to) return val >= from && val <= to
+        if (from) return val >= from
+        return val <= to
+      }
       const filtered = all
         .filter(p => {
-          const bc = (p.sku || p.barcode || '').toUpperCase()
-          if (!bc) return false
-          if (from && to) return bc >= from && bc <= to
-          if (from) return bc >= from
-          return bc <= to
+          const bc1 = (p.barcode || '').toUpperCase()
+          const bc2 = (p.sku || '').toUpperCase()
+          return inRange(bc1) || inRange(bc2)
         })
         .sort((a, b) => {
-          const [boxA, prodA] = parseBC((a.sku || a.barcode || '').toUpperCase())
-          const [boxB, prodB] = parseBC((b.sku || b.barcode || '').toUpperCase())
+          const [boxA, prodA] = parseBC((a.barcode || a.sku || '').toUpperCase())
+          const [boxB, prodB] = parseBC((b.barcode || b.sku || '').toUpperCase())
           return boxA !== boxB ? boxA - boxB : prodA - prodB
         })
       if (!filtered.length) return toast.error('No products found in this barcode range')
