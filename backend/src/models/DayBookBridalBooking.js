@@ -12,6 +12,8 @@ const DayBookBridalBooking = sequelize.define('DayBookBridalBooking', {
   pickup_date:    { type: DataTypes.DATEONLY },
   return_date:    { type: DataTypes.DATEONLY },
   booking_amount: { type: DataTypes.DECIMAL(12, 2) },
+  customer_name:  { type: DataTypes.STRING(100) },
+  mobile_no:      { type: DataTypes.STRING(20) },
 }, { tableName: 'daybook_bridal_bookings' });
 
 module.exports = DayBookBridalBooking;

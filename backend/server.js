@@ -42,6 +42,8 @@ async function startServer() {
       "ALTER TABLE daybook_bridal_bookings ADD COLUMN pickup_date DATE NULL",
       "ALTER TABLE daybook_bridal_bookings ADD COLUMN return_date DATE NULL",
       "ALTER TABLE daybook_bridal_bookings ADD COLUMN booking_amount DECIMAL(12,2) NULL",
+      "ALTER TABLE daybook_bridal_bookings ADD COLUMN customer_name VARCHAR(100) NULL",
+      "ALTER TABLE daybook_bridal_bookings ADD COLUMN mobile_no VARCHAR(20) NULL",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }

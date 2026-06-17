@@ -21,8 +21,8 @@ const fmtDate = (d) => {
   return `${day}/${m}/${y}`
 }
 
-const EMPTY_SPLIT = { slip_no: '', cash: '', card: '', online: '', function_date: '', booking_date: today(), pickup_date: '', return_date: '', booking_amount: '' }
-const EMPTY_EDIT  = { slip_no: '', amount: '', payment_mode: 'cash', function_date: '', booking_date: '', pickup_date: '', return_date: '', booking_amount: '' }
+const EMPTY_SPLIT = { slip_no: '', cash: '', card: '', online: '', function_date: '', booking_date: today(), pickup_date: '', return_date: '', booking_amount: '', customer_name: '', mobile_no: '' }
+const EMPTY_EDIT  = { slip_no: '', amount: '', payment_mode: 'cash', function_date: '', booking_date: '', pickup_date: '', return_date: '', booking_amount: '', customer_name: '', mobile_no: '' }
 
 export default function BridalBookings() {
   const { user } = useAuthStore()
@@ -111,6 +111,8 @@ export default function BridalBookings() {
           pickup_date:    editForm.pickup_date    || null,
           return_date:    editForm.return_date    || null,
           booking_amount: editForm.booking_amount || null,
+          customer_name:  editForm.customer_name  || null,
+          mobile_no:      editForm.mobile_no      || null,
         })
         toast.success('Updated')
       } else {
@@ -131,6 +133,8 @@ export default function BridalBookings() {
             pickup_date:    splitForm.pickup_date    || null,
             return_date:    splitForm.return_date    || null,
             booking_amount: splitForm.booking_amount || null,
+            customer_name:  splitForm.customer_name  || null,
+            mobile_no:      splitForm.mobile_no      || null,
           })
         }
         toast.success(`${entries.length} entry/entries added`)
@@ -151,6 +155,8 @@ export default function BridalBookings() {
       pickup_date:    first.pickup_date    || '',
       return_date:    first.return_date    || '',
       booking_amount: first.booking_amount || '',
+      customer_name:  first.customer_name  || '',
+      mobile_no:      first.mobile_no      || '',
     })
     setEditId(first.id); setShowForm(true); setAvailability([])
   }
@@ -260,6 +266,22 @@ export default function BridalBookings() {
                   value={curForm.slip_no}
                   onChange={(e) => setField('slip_no', e.target.value)}
                   placeholder="Set code"
+                  className={`${inp} w-36`} />
+              </div>
+              <div>
+                <label className={lbl}>Customer Name</label>
+                <input
+                  value={curForm.customer_name}
+                  onChange={(e) => setField('customer_name', e.target.value)}
+                  placeholder="Customer name"
+                  className={`${inp} w-44`} />
+              </div>
+              <div>
+                <label className={lbl}>Mobile No.</label>
+                <input
+                  value={curForm.mobile_no}
+                  onChange={(e) => setField('mobile_no', e.target.value)}
+                  placeholder="Mobile number"
                   className={`${inp} w-36`} />
               </div>
               <div>
@@ -414,6 +436,8 @@ export default function BridalBookings() {
               pickup_date:    r.pickup_date,
               return_date:    r.return_date,
               booking_amount: r.booking_amount,
+              customer_name:  r.customer_name,
+              mobile_no:      r.mobile_no,
             }
             acc[key].entries.push(r)
             return acc
@@ -426,6 +450,7 @@ export default function BridalBookings() {
                   <tr>
                     <th className="px-4 py-3 text-left">#</th>
                     <th className="px-4 py-3 text-left">Set Code</th>
+                    <th className="px-4 py-3 text-left">Customer</th>
                     <th className="px-4 py-3 text-left">Function Date</th>
                     <th className="px-4 py-3 text-right text-amber-300">Booking Amt</th>
                     <th className="px-4 py-3 text-right text-green-300">Cash</th>
@@ -438,7 +463,7 @@ export default function BridalBookings() {
                 </thead>
                 <tbody>
                   {groups.length === 0 ? (
-                    <tr><td colSpan={10} className="text-center py-12 text-slate-400">No entries for this date</td></tr>
+                    <tr><td colSpan={12} className="text-center py-12 text-slate-400">No entries for this date</td></tr>
                   ) : groups.map((g, i) => {
                     const cash          = g.entries.filter(e => e.payment_mode === 'cash').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
                     const card          = g.entries.filter(e => e.payment_mode === 'card').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
@@ -450,6 +475,14 @@ export default function BridalBookings() {
                       <tr key={g.slip_no || i} className="border-b hover:bg-slate-50">
                         <td className="px-4 py-3 text-slate-500">{i + 1}</td>
                         <td className="px-4 py-3 font-semibold text-amber-600">{g.slip_no || '-'}</td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {g.customer_name ? (
+                            <div>
+                              <div className="font-medium">{g.customer_name}</div>
+                              {g.mobile_no && <div className="text-xs text-slate-400">{g.mobile_no}</div>}
+                            </div>
+                          ) : <span className="text-slate-300">—</span>}
+                        </td>
                         <td className="px-4 py-3 text-slate-600">
                           {g.function_date ? (
                             <div>
@@ -485,7 +518,7 @@ export default function BridalBookings() {
                 {groups.length > 0 && (
                   <tfoot className="bg-slate-50 text-sm font-semibold border-t-2 border-slate-200">
                     <tr>
-                      <td colSpan={4} className="px-4 py-3 text-slate-600">Total ({groups.length} sets)</td>
+                      <td colSpan={5} className="px-4 py-3 text-slate-600">Total ({groups.length} sets)</td>
                       <td className="px-4 py-3 text-right text-green-700">{cashTotal > 0 ? formatCurrency(cashTotal) : '—'}</td>
                       <td className="px-4 py-3 text-right text-blue-700">{cardTotal > 0 ? formatCurrency(cardTotal) : '—'}</td>
                       <td className="px-4 py-3 text-right text-violet-700">{onlineTotal > 0 ? formatCurrency(onlineTotal) : '—'}</td>
