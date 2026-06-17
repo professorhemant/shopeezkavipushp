@@ -43,19 +43,27 @@ function getImageSrc(url) {
   return `${BACKEND_URL}${url}`
 }
 
+function parseImages(promo) {
+  let imgs = []
+  try { imgs = JSON.parse(promo.images_json || '[]') } catch {}
+  if (imgs.length === 0 && promo.image_url) imgs = [promo.image_url]
+  return imgs
+}
+
 export default function SentForPromotions() {
-  const [promos, setPromos]     = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
+  const [promos, setPromos]       = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [search, setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing]   = useState(null)
-  const [form, setForm]         = useState(EMPTY_FORM)
-  const [items, setItems]       = useState([])
-  const [saving, setSaving]     = useState(false)
-  const [imageFile, setImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
-  const [existingImage, setExistingImage] = useState(null)
+  const [editing, setEditing]     = useState(null)
+  const [form, setForm]           = useState(EMPTY_FORM)
+  const [items, setItems]         = useState([])
+  const [saving, setSaving]       = useState(false)
+  // existingImages: relative URLs already in DB (sent back as keep_images)
+  const [existingImages, setExistingImages] = useState([])
+  // newImageFiles: { file: File, preview: string }[] — selected but not yet saved
+  const [newImageFiles, setNewImageFiles] = useState([])
   const fileInputRef = useRef(null)
 
   const fetchAll = useCallback(async () => {
@@ -72,19 +80,16 @@ export default function SentForPromotions() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  const resetImageState = () => {
-    setImageFile(null)
-    setImagePreview(null)
-    setExistingImage(null)
+  const resetImages = () => {
+    newImageFiles.forEach(f => URL.revokeObjectURL(f.preview))
+    setExistingImages([])
+    setNewImageFiles([])
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const openAdd = () => {
-    setEditing(null)
-    setForm(EMPTY_FORM)
-    setItems([{ ...EMPTY_ITEM }])
-    resetImageState()
-    setShowModal(true)
+    setEditing(null); setForm(EMPTY_FORM); setItems([{ ...EMPTY_ITEM }])
+    resetImages(); setShowModal(true)
   }
 
   const openEdit = (p) => {
@@ -97,24 +102,28 @@ export default function SentForPromotions() {
       status: p.status || 'sent', notes: p.notes || '', items_json: p.items_json || '[]',
     })
     try { setItems(JSON.parse(p.items_json || '[]')) } catch { setItems([]) }
-    resetImageState()
-    if (p.image_url) setExistingImage(getImageSrc(p.image_url))
+    resetImages()
+    setExistingImages(parseImages(p))
     setShowModal(true)
   }
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
-    setExistingImage(null)
+  const handleFilesAdded = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    const entries = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }))
+    setNewImageFiles(prev => [...prev, ...entries])
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const clearImage = () => {
-    setImageFile(null)
-    setImagePreview(null)
-    setExistingImage(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
+  const removeExisting = (idx) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const removeNew = (idx) => {
+    setNewImageFiles(prev => {
+      URL.revokeObjectURL(prev[idx].preview)
+      return prev.filter((_, i) => i !== idx)
+    })
   }
 
   const handleSave = async (e) => {
@@ -124,23 +133,18 @@ export default function SentForPromotions() {
     setSaving(true)
     try {
       const filteredItems = items.filter(i => i.name.trim())
-      let payload
-
-      if (imageFile) {
-        payload = new FormData()
-        Object.entries({ ...form, items_json: JSON.stringify(filteredItems) }).forEach(([k, v]) => {
-          if (v !== null && v !== undefined) payload.append(k, v)
-        })
-        payload.append('image', imageFile)
-      } else {
-        payload = { ...form, items_json: JSON.stringify(filteredItems) }
-      }
+      const fd = new FormData()
+      Object.entries({ ...form, items_json: JSON.stringify(filteredItems) }).forEach(([k, v]) => {
+        if (v !== null && v !== undefined) fd.append(k, v)
+      })
+      fd.append('keep_images', JSON.stringify(existingImages))
+      newImageFiles.forEach(({ file }) => fd.append('images', file))
 
       if (editing) {
-        await promotionAPI.update(editing, payload)
+        await promotionAPI.update(editing, fd)
         toast.success('Updated successfully')
       } else {
-        await promotionAPI.create(payload)
+        await promotionAPI.create(fd)
         toast.success('Promotion record saved')
       }
       setShowModal(false)
@@ -179,7 +183,7 @@ export default function SentForPromotions() {
   const ret     = promos.filter(p => p.status === 'returned').length
   const overdue = promos.filter(p => isOverdue(p)).length
 
-  const previewSrc = imagePreview || existingImage
+  const totalImageCount = existingImages.length + newImageFiles.length
 
   return (
     <div className="p-6 space-y-5">
@@ -243,7 +247,7 @@ export default function SentForPromotions() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  {['Ref #', 'Photo', 'Sent To', 'Type', 'Event', 'Items', 'Sent Date', 'Due Date', 'Status', 'Actions'].map(h => (
+                  {['Ref #', 'Photos', 'Sent To', 'Type', 'Event', 'Items', 'Sent Date', 'Due Date', 'Status', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -256,19 +260,31 @@ export default function SentForPromotions() {
                   const itemSummary = parsedItems.length > 0
                     ? parsedItems.slice(0, 2).map(i => i.name).join(', ') + (parsedItems.length > 2 ? ` +${parsedItems.length - 2}` : '')
                     : '—'
+                  const imgs = parseImages(p)
                   return (
                     <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.promo_number}</td>
+                      {/* Photo strip — up to 3 thumbnails */}
                       <td className="px-4 py-3">
-                        {p.image_url ? (
-                          <img
-                            src={getImageSrc(p.image_url)}
-                            alt="promo"
-                            className="h-10 w-10 rounded-lg object-cover border border-slate-200 cursor-pointer hover:opacity-80"
-                            onClick={() => window.open(getImageSrc(p.image_url), '_blank')}
-                          />
+                        {imgs.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            {imgs.slice(0, 3).map((url, i) => (
+                              <img
+                                key={i}
+                                src={getImageSrc(url)}
+                                alt={`photo ${i + 1}`}
+                                className="h-9 w-9 rounded-lg object-cover border border-slate-200 cursor-pointer hover:opacity-80 flex-shrink-0"
+                                onClick={() => window.open(getImageSrc(url), '_blank')}
+                              />
+                            ))}
+                            {imgs.length > 3 && (
+                              <span className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-500 flex-shrink-0">
+                                +{imgs.length - 3}
+                              </span>
+                            )}
+                          </div>
                         ) : (
-                          <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                          <div className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center">
                             <Image className="h-4 w-4 text-slate-300" />
                           </div>
                         )}
@@ -382,25 +398,16 @@ export default function SentForPromotions() {
                     <input type="date" value={form.expected_return_date} onChange={e => setForm(f => ({ ...f, expected_return_date: e.target.value }))}
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                   </div>
-                  {/* Task 1: Actual Return Date — optional, editable, clearable */}
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">
                       Actual Return Date <span className="text-slate-400 font-normal">(optional)</span>
                     </label>
                     <div className="relative">
-                      <input
-                        type="date"
-                        value={form.actual_return_date}
-                        onChange={e => setForm(f => ({ ...f, actual_return_date: e.target.value }))}
-                        className="w-full px-3 py-2 pr-8 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                      />
+                      <input type="date" value={form.actual_return_date} onChange={e => setForm(f => ({ ...f, actual_return_date: e.target.value }))}
+                        className="w-full px-3 py-2 pr-8 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                       {form.actual_return_date && (
-                        <button
-                          type="button"
-                          onClick={() => setForm(f => ({ ...f, actual_return_date: '' }))}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors"
-                          title="Clear date"
-                        >
+                        <button type="button" onClick={() => setForm(f => ({ ...f, actual_return_date: '' }))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors" title="Clear date">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -457,47 +464,89 @@ export default function SentForPromotions() {
                 )}
               </div>
 
-              {/* Task 2: Photo Upload */}
+              {/* Photos — multiple upload */}
               <div>
-                <h3 className="text-xs font-semibold text-amber-500 uppercase tracking-wider mb-3">Photo</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold text-amber-500 uppercase tracking-wider">
+                    Photos {totalImageCount > 0 && <span className="text-amber-400 font-normal">({totalImageCount})</span>}
+                  </h3>
+                  {totalImageCount > 0 && (
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      className="text-xs text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
+                      <Upload className="h-3 w-3" /> Add More
+                    </button>
+                  )}
+                </div>
+
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                  onChange={handleImageChange}
+                  multiple
+                  onChange={handleFilesAdded}
                   className="hidden"
-                  id="promo-image-input"
                 />
-                {previewSrc ? (
-                  <div className="flex items-start gap-4">
-                    <img src={previewSrc} alt="Preview" className="h-28 w-28 rounded-xl object-cover border border-slate-200 flex-shrink-0" />
-                    <div className="flex flex-col gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-medium"
-                      >
-                        <Upload className="h-3.5 w-3.5" /> Change Photo
-                      </button>
-                      <button
-                        type="button"
-                        onClick={clearImage}
-                        className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 font-medium"
-                      >
-                        <X className="h-3.5 w-3.5" /> Remove Photo
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-6 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-2 text-slate-400 hover:border-amber-300 hover:text-amber-500 transition-colors"
-                  >
+
+                {totalImageCount === 0 ? (
+                  <button type="button" onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-6 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-2 text-slate-400 hover:border-amber-300 hover:text-amber-500 transition-colors">
                     <Image className="h-8 w-8" />
-                    <span className="text-sm font-medium">Upload Photo</span>
-                    <span className="text-xs">JPG, PNG, WEBP up to 10MB</span>
+                    <span className="text-sm font-medium">Upload Photos</span>
+                    <span className="text-xs">Select multiple — JPG, PNG, WEBP up to 10MB each</span>
                   </button>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2">
+                    {/* Existing saved images */}
+                    {existingImages.map((url, i) => (
+                      <div key={`ex-${i}`} className="relative group aspect-square">
+                        <img
+                          src={getImageSrc(url)}
+                          alt={`photo ${i + 1}`}
+                          className="w-full h-full object-cover rounded-xl border border-slate-200 cursor-pointer"
+                          onClick={() => window.open(getImageSrc(url), '_blank')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExisting(i)}
+                          className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                          title="Remove"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        {i === 0 && (
+                          <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-medium">Cover</span>
+                        )}
+                      </div>
+                    ))}
+                    {/* Newly selected files (not yet saved) */}
+                    {newImageFiles.map(({ preview }, i) => (
+                      <div key={`new-${i}`} className="relative group aspect-square">
+                        <img
+                          src={preview}
+                          alt={`new photo ${i + 1}`}
+                          className="w-full h-full object-cover rounded-xl border-2 border-amber-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeNew(i)}
+                          className="absolute top-1 right-1 p-0.5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                          title="Remove"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 bg-amber-500/80 text-white text-[9px] px-1.5 py-0.5 rounded font-medium">New</span>
+                      </div>
+                    ))}
+                    {/* Add more tile */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-amber-300 hover:text-amber-500 transition-colors"
+                    >
+                      <Plus className="h-5 w-5" />
+                      <span className="text-[10px] font-medium">Add</span>
+                    </button>
+                  </div>
                 )}
               </div>
 

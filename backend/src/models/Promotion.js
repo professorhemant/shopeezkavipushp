@@ -17,6 +17,7 @@ const Promotion = sequelize.define('Promotion', {
   notes:                { type: DataTypes.TEXT },
   items_json:           { type: DataTypes.TEXT },
   image_url:            { type: DataTypes.STRING(500) },
+  images_json:          { type: DataTypes.TEXT },
 }, { tableName: 'promotions' });
 
 module.exports = Promotion;

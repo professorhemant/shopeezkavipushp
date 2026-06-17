@@ -43,11 +43,18 @@ const getOne = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const buildImagePayload = (req) => {
+  const newFiles = (req.files || []).map(f => `/uploads/promotions/${f.filename}`);
+  let kept = [];
+  try { kept = JSON.parse(req.body.keep_images || '[]'); } catch {}
+  const all = [...kept, ...newFiles];
+  return { images_json: JSON.stringify(all), image_url: all[0] || null };
+};
+
 const create = async (req, res, next) => {
   try {
     const promo_number = await genPromoNumber(req.firmId);
-    const payload = { ...req.body, firm_id: req.firmId, promo_number };
-    if (req.file) payload.image_url = `/uploads/promotions/${req.file.filename}`;
+    const payload = { ...req.body, firm_id: req.firmId, promo_number, ...buildImagePayload(req) };
     const promo = await Promotion.create(payload);
     return res.status(201).json({ success: true, data: promo });
   } catch (err) { next(err); }
@@ -57,8 +64,7 @@ const update = async (req, res, next) => {
   try {
     const promo = await Promotion.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
     if (!promo) return res.status(404).json({ success: false, message: 'Not found' });
-    const updates = { ...req.body };
-    if (req.file) updates.image_url = `/uploads/promotions/${req.file.filename}`;
+    const updates = { ...req.body, ...buildImagePayload(req) };
     await promo.update(updates);
     return res.json({ success: true, data: promo });
   } catch (err) { next(err); }

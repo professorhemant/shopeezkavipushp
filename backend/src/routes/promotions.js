@@ -6,12 +6,12 @@ const c = require('../controllers/promotionController');
 const upload = require('../middleware/upload');
 
 const setFolder = (req, res, next) => { req.uploadFolder = 'promotions'; next(); };
-const uploadImage = [setFolder, upload.single('image')];
+const uploadImages = [setFolder, upload.array('images', 10)];
 
 router.get('/',           c.getAll);
-router.post('/',          uploadImage, c.create);
+router.post('/',          uploadImages, c.create);
 router.get('/:id',        c.getOne);
-router.put('/:id',        uploadImage, c.update);
+router.put('/:id',        uploadImages, c.update);
 router.put('/:id/return', c.markReturned);
 router.delete('/:id',     c.remove);
 
