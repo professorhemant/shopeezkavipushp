@@ -7,6 +7,10 @@ const DayBookBridalBooking = sequelize.define('DayBookBridalBooking', {
   slip_no: { type: DataTypes.STRING(50) },
   amount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
   payment_mode: { type: DataTypes.ENUM('cash', 'online', 'card'), defaultValue: 'cash' },
+  function_date: { type: DataTypes.DATEONLY },
+  booking_date:  { type: DataTypes.DATEONLY },
+  pickup_date:   { type: DataTypes.DATEONLY },
+  return_date:   { type: DataTypes.DATEONLY },
 }, { tableName: 'daybook_bridal_bookings' });
 
 module.exports = DayBookBridalBooking;

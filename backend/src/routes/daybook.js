@@ -18,6 +18,7 @@ router.put('/sales/:id', c.updateSale);
 router.delete('/sales/:id', c.deleteSale);
 
 // Bridal Bookings
+router.get('/bridal-bookings/availability', c.checkBridalAvailability);
 router.get('/bridal-bookings', c.getBridalBookings);
 router.post('/bridal-bookings', c.createBridalBooking);
 router.put('/bridal-bookings/:id', c.updateBridalBooking);

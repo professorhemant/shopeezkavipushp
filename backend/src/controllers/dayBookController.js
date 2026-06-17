@@ -45,6 +45,30 @@ const salesHandlers = makeHandlers(DayBookSale);
 // ─── Bridal Bookings ─────────────────────────────────────────────
 const bridalBookingHandlers = makeHandlers(DayBookBridalBooking);
 
+const checkBridalAvailability = async (req, res, next) => {
+  try {
+    const { set_code } = req.query;
+    if (!set_code) return res.json({ success: true, data: [] });
+    const { Op } = require('sequelize');
+    const bookings = await DayBookBridalBooking.findAll({
+      where: { slip_no: set_code, pickup_date: { [Op.ne]: null } },
+      attributes: ['pickup_date', 'return_date', 'function_date'],
+      order: [['pickup_date', 'ASC']],
+    });
+    // Deduplicate ranges (multiple rows per booking due to split payment)
+    const seen = new Set();
+    const ranges = [];
+    for (const b of bookings) {
+      const key = `${b.pickup_date}_${b.return_date}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        ranges.push({ function_date: b.function_date, pickup_date: b.pickup_date, return_date: b.return_date });
+      }
+    }
+    return res.json({ success: true, data: ranges });
+  } catch (err) { next(err); }
+};
+
 // ─── Bridal Dispatch ─────────────────────────────────────────────
 const bridalDispatchHandlers = makeHandlers(DayBookBridalDispatch);
 
@@ -176,6 +200,7 @@ module.exports = {
   createBridalBooking: bridalBookingHandlers.create,
   updateBridalBooking: bridalBookingHandlers.update,
   deleteBridalBooking: bridalBookingHandlers.remove,
+  checkBridalAvailability,
   // Bridal Dispatch
   getBridalDispatch: bridalDispatchHandlers.getAll,
   createBridalDispatch: bridalDispatchHandlers.create,
