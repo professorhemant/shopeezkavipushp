@@ -41,6 +41,7 @@ const Sale = sequelize.define('Sale', {
   eway_bill_no: { type: DataTypes.STRING(100) },
   created_by: { type: DataTypes.UUID },
   pos_session: { type: DataTypes.STRING(100) },
+  images_json: { type: DataTypes.TEXT },
 }, {
   tableName: 'sales',
   indexes: [

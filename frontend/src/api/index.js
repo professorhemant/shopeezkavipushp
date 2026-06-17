@@ -132,6 +132,7 @@ export const saleAPI = {
   addPayment: (id, data) => api.post(`/sales/${id}/payment`, data),
   generatePDF: (id) => api.get(`/sales/${id}/pdf`, { responseType: 'blob' }),
   getNextInvoiceNo: () => api.get('/sales/next-invoice-no'),
+  uploadImages: (id, data) => api.post(`/sales/${id}/images`, data, data instanceof FormData ? multipartConfig : {}),
 }
 
 // ─── Purchases ──────────────────────────────────────────────────────

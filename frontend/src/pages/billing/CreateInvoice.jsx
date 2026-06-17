@@ -4,7 +4,7 @@ import {
   ScanBarcode, X, Truck, Package, Repeat2,
   Trash2, Plus, Calendar, Info, Banknote,
   CreditCard, Smartphone, FileText, ChevronDown,
-  RefreshCw
+  RefreshCw, Camera
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { saleAPI, customerAPI, productAPI, whatsappAPI, settingsAPI } from '../../api'
@@ -101,6 +101,11 @@ export default function CreateInvoice() {
   const [showQrModal,     setShowQrModal]     = useState(false)  // QR code modal
   const [upiIds,          setUpiIds]          = useState({ upi1: 'kavipushpjewels@oksbi', upi2: 'Kavipushpbank@okhdfcbank' })
 
+  // photos
+  const [invoiceImages,    setInvoiceImages]    = useState([]) // [{file, preview}] for new; existing loaded from DB
+  const [existingImages,   setExistingImages]   = useState([]) // string[] of existing URL paths
+  const invoiceFileRef = useRef(null)
+
   // ── load master data ─────────────────────────────────────────
   useEffect(() => {
     productAPI.getAll({ limit: 1000 })
@@ -160,6 +165,7 @@ export default function CreateInvoice() {
               }))
             : [newRow()]
         )
+        try { setExistingImages(JSON.parse(s.images_json || '[]')); } catch {}
       })
       .catch(() => toast.error('Failed to load invoice for editing'))
       .finally(() => setLoading(false))
@@ -367,11 +373,27 @@ export default function CreateInvoice() {
       }
       if (isEdit) {
         await saleAPI.update(id, payload)
+        if (invoiceImages.length > 0 || existingImages.length > 0) {
+          try {
+            const fd = new FormData()
+            invoiceImages.forEach(({ file }) => fd.append('images', file))
+            fd.append('keep_images', JSON.stringify(existingImages))
+            await saleAPI.uploadImages(id, fd)
+          } catch { /* non-critical */ }
+        }
         toast.success('Invoice updated')
       } else {
         const { data: saleRes } = await saleAPI.create(payload)
         toast.success('Order placed!')
         const saleId    = saleRes?.data?.id || saleRes?.id
+        if (saleId && invoiceImages.length > 0) {
+          try {
+            const fd = new FormData()
+            invoiceImages.forEach(({ file }) => fd.append('images', file))
+            fd.append('keep_images', '[]')
+            await saleAPI.uploadImages(saleId, fd)
+          } catch { /* non-critical */ }
+        }
         const custPhone = selectedCust?.phone || selectedCust?.mobile
         if (saleId && custPhone) {
           try {
@@ -398,6 +420,9 @@ export default function CreateInvoice() {
   }
 
   if (loading) return <LoadingSpinner fullscreen />
+
+  const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://backend-production-59b25.up.railway.app'
+  const getImgSrc = (url) => url?.startsWith('http') ? url : `${BACKEND_URL}${url}`
 
   return (
     <div className="flex flex-col min-h-full pb-16 -m-4 lg:-m-6 bg-white">
@@ -949,6 +974,60 @@ export default function CreateInvoice() {
                 Apply
               </button>
             </div>
+          </div>
+
+          {/* Photos Section */}
+          <div className="px-4 py-3 bg-sky-50 border-b-2 border-sky-200 shrink-0">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1.5 h-4 rounded-full bg-sky-400 shrink-0" />
+              <span className="text-xs font-bold text-sky-700 uppercase tracking-wide">Photos</span>
+              <span className="text-xs text-sky-500 ml-auto">{existingImages.length + invoiceImages.length}/10</span>
+            </div>
+            {(existingImages.length > 0 || invoiceImages.length > 0) && (
+              <div className="grid grid-cols-3 gap-1.5 mb-2">
+                {existingImages.map((url, i) => (
+                  <div key={`ex-${i}`} className="relative group aspect-square">
+                    <img src={getImgSrc(url)} alt="" className="w-full h-full object-cover rounded-lg border border-sky-200" />
+                    <button
+                      onClick={() => setExistingImages(prev => prev.filter((_, j) => j !== i))}
+                      className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                ))}
+                {invoiceImages.map((img, i) => (
+                  <div key={`new-${i}`} className="relative group aspect-square">
+                    <img src={img.preview} alt="" className="w-full h-full object-cover rounded-lg border border-sky-200" />
+                    <button
+                      onClick={() => setInvoiceImages(prev => { URL.revokeObjectURL(prev[i].preview); return prev.filter((_, j) => j !== i) })}
+                      className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              ref={invoiceFileRef}
+              type="file" accept="image/*" multiple className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || [])
+                const remaining = 10 - existingImages.length - invoiceImages.length
+                const toAdd = files.slice(0, remaining).map(file => ({ file, preview: URL.createObjectURL(file) }))
+                setInvoiceImages(prev => [...prev, ...toAdd])
+                e.target.value = ''
+              }}
+            />
+            <button
+              onClick={() => invoiceFileRef.current?.click()}
+              disabled={existingImages.length + invoiceImages.length >= 10}
+              className="w-full border-2 border-dashed border-sky-300 rounded-lg py-2 text-xs text-sky-600 hover:bg-sky-100 disabled:opacity-40 flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <Camera className="h-3.5 w-3.5" />
+              Add Photos
+            </button>
           </div>
         </div>
       </div>

@@ -529,6 +529,21 @@ const deleteSale = async (req, res, next) => {
   }
 };
 
+const uploadImages = async (req, res, next) => {
+  try {
+    const sale = await Sale.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
+    if (!sale) return res.status(404).json({ success: false, message: 'Sale not found.' });
+    const newFiles = (req.files || []).map(f => `/uploads/sales/${f.filename}`);
+    let kept = [];
+    try { kept = JSON.parse(req.body.keep_images || '[]'); } catch {}
+    const all = [...kept, ...newFiles];
+    await sale.update({ images_json: JSON.stringify(all) });
+    return res.json({ success: true, data: { images_json: JSON.stringify(all) } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getAll,
   getOne,
@@ -540,4 +555,5 @@ module.exports = {
   generatePDF: generatePDFRoute,
   getNextInvoiceNo,
   delete: deleteSale,
+  uploadImages,
 };
