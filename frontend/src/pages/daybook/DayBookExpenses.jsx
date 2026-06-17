@@ -163,10 +163,20 @@ export default function DayBookExpenses() {
             {activeCard === 'routine' && (
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">Category</label>
-                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+                <select value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value, description: e.target.value !== 'Others' ? '' : form.description })}
                   className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${COLOR[activeCardDef.color].ring}`}>
                   {ROUTINE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
+                {form.category === 'Others' && (
+                  <input
+                    autoFocus
+                    value={form.description || ''}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Specify expense (e.g. Glue, Bulb…)"
+                    className={`w-full mt-2 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${COLOR[activeCardDef.color].ring}`}
+                  />
+                )}
               </div>
             )}
             {activeCard === 'refund' && (
@@ -254,7 +264,11 @@ export default function DayBookExpenses() {
                       ) : rows.map((r, i) => (
                         <tr key={r.id} className="border-b hover:bg-slate-50">
                           <td className="px-4 py-2 text-slate-500">{i + 1}</td>
-                          {type === 'routine' && <td className="px-4 py-2 text-slate-700">{r.category || '-'}</td>}
+                          {type === 'routine' && (
+                            <td className="px-4 py-2 text-slate-700">
+                              {r.category === 'Others' && r.description ? `Others — ${r.description}` : (r.category || '-')}
+                            </td>
+                          )}
                           {type === 'refund'  && <td className="px-4 py-2 text-amber-600 font-medium">{r.slip_no || '-'}</td>}
                           {!['routine','refund'].includes(type) && <td className="px-4 py-2 text-slate-700">{r.description || '-'}</td>}
                           {['salary','advance_salary'].includes(type) && <td className="px-4 py-2 text-slate-600">{r.paid_by || '-'}</td>}
