@@ -16,6 +16,7 @@ const Promotion = sequelize.define('Promotion', {
   status:               { type: DataTypes.ENUM('sent','returned','lost'), defaultValue: 'sent' },
   notes:                { type: DataTypes.TEXT },
   items_json:           { type: DataTypes.TEXT },
+  image_url:            { type: DataTypes.STRING(500) },
 }, { tableName: 'promotions' });
 
 module.exports = Promotion;

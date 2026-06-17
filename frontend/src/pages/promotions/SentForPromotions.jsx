@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, Megaphone, RotateCcw, Trash2, Edit2, X, Check } from 'lucide-react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { Plus, Search, Megaphone, RotateCcw, Trash2, Edit2, X, Check, Image, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { promotionAPI } from '../../api'
 
@@ -21,6 +21,8 @@ const EMPTY_FORM = {
 
 const EMPTY_ITEM = { name: '', code: '', category: '', notes: '' }
 
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://backend-production-59b25.up.railway.app'
+
 function isOverdue(promo) {
   return promo.status === 'sent' && promo.expected_return_date && promo.expected_return_date < new Date().toISOString().split('T')[0]
 }
@@ -35,6 +37,12 @@ function fmt(d) {
   return `${day}/${m}/${y}`
 }
 
+function getImageSrc(url) {
+  if (!url) return null
+  if (url.startsWith('http')) return url
+  return `${BACKEND_URL}${url}`
+}
+
 export default function SentForPromotions() {
   const [promos, setPromos]     = useState([])
   const [loading, setLoading]   = useState(true)
@@ -45,6 +53,10 @@ export default function SentForPromotions() {
   const [form, setForm]         = useState(EMPTY_FORM)
   const [items, setItems]       = useState([])
   const [saving, setSaving]     = useState(false)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [existingImage, setExistingImage] = useState(null)
+  const fileInputRef = useRef(null)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -60,9 +72,21 @@ export default function SentForPromotions() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  const openAdd = () => {
-    setEditing(null); setForm(EMPTY_FORM); setItems([{ ...EMPTY_ITEM }]); setShowModal(true)
+  const resetImageState = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    setExistingImage(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
+
+  const openAdd = () => {
+    setEditing(null)
+    setForm(EMPTY_FORM)
+    setItems([{ ...EMPTY_ITEM }])
+    resetImageState()
+    setShowModal(true)
+  }
+
   const openEdit = (p) => {
     setEditing(p.id)
     setForm({
@@ -73,7 +97,24 @@ export default function SentForPromotions() {
       status: p.status || 'sent', notes: p.notes || '', items_json: p.items_json || '[]',
     })
     try { setItems(JSON.parse(p.items_json || '[]')) } catch { setItems([]) }
+    resetImageState()
+    if (p.image_url) setExistingImage(getImageSrc(p.image_url))
     setShowModal(true)
+  }
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    setExistingImage(null)
+  }
+
+  const clearImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    setExistingImage(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleSave = async (e) => {
@@ -82,7 +123,19 @@ export default function SentForPromotions() {
     if (!form.sent_date) return toast.error('Sent date is required')
     setSaving(true)
     try {
-      const payload = { ...form, items_json: JSON.stringify(items.filter(i => i.name.trim())) }
+      const filteredItems = items.filter(i => i.name.trim())
+      let payload
+
+      if (imageFile) {
+        payload = new FormData()
+        Object.entries({ ...form, items_json: JSON.stringify(filteredItems) }).forEach(([k, v]) => {
+          if (v !== null && v !== undefined) payload.append(k, v)
+        })
+        payload.append('image', imageFile)
+      } else {
+        payload = { ...form, items_json: JSON.stringify(filteredItems) }
+      }
+
       if (editing) {
         await promotionAPI.update(editing, payload)
         toast.success('Updated successfully')
@@ -121,11 +174,12 @@ export default function SentForPromotions() {
   const removeItem = (i) => setItems(prev => prev.filter((_, idx) => idx !== i))
   const updateItem = (i, field, val) => setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [field]: val } : it))
 
-  // Summary counts
   const total   = promos.length
   const out     = promos.filter(p => p.status === 'sent').length
   const ret     = promos.filter(p => p.status === 'returned').length
   const overdue = promos.filter(p => isOverdue(p)).length
+
+  const previewSrc = imagePreview || existingImage
 
   return (
     <div className="p-6 space-y-5">
@@ -189,7 +243,7 @@ export default function SentForPromotions() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  {['Ref #', 'Sent To', 'Type', 'Event', 'Items', 'Sent Date', 'Due Date', 'Status', 'Actions'].map(h => (
+                  {['Ref #', 'Photo', 'Sent To', 'Type', 'Event', 'Items', 'Sent Date', 'Due Date', 'Status', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -205,6 +259,20 @@ export default function SentForPromotions() {
                   return (
                     <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.promo_number}</td>
+                      <td className="px-4 py-3">
+                        {p.image_url ? (
+                          <img
+                            src={getImageSrc(p.image_url)}
+                            alt="promo"
+                            className="h-10 w-10 rounded-lg object-cover border border-slate-200 cursor-pointer hover:opacity-80"
+                            onClick={() => window.open(getImageSrc(p.image_url), '_blank')}
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                            <Image className="h-4 w-4 text-slate-300" />
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-slate-800">{p.sent_to_name}</div>
                         {p.contact_phone && <div className="text-xs text-slate-400">{p.contact_phone}</div>}
@@ -314,10 +382,29 @@ export default function SentForPromotions() {
                     <input type="date" value={form.expected_return_date} onChange={e => setForm(f => ({ ...f, expected_return_date: e.target.value }))}
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                   </div>
+                  {/* Task 1: Actual Return Date — optional, editable, clearable */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Actual Return Date</label>
-                    <input type="date" value={form.actual_return_date} onChange={e => setForm(f => ({ ...f, actual_return_date: e.target.value }))}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                      Actual Return Date <span className="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={form.actual_return_date}
+                        onChange={e => setForm(f => ({ ...f, actual_return_date: e.target.value }))}
+                        className="w-full px-3 py-2 pr-8 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      />
+                      {form.actual_return_date && (
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, actual_return_date: '' }))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors"
+                          title="Clear date"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Status</label>
@@ -367,6 +454,50 @@ export default function SentForPromotions() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+
+              {/* Task 2: Photo Upload */}
+              <div>
+                <h3 className="text-xs font-semibold text-amber-500 uppercase tracking-wider mb-3">Photo</h3>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  id="promo-image-input"
+                />
+                {previewSrc ? (
+                  <div className="flex items-start gap-4">
+                    <img src={previewSrc} alt="Preview" className="h-28 w-28 rounded-xl object-cover border border-slate-200 flex-shrink-0" />
+                    <div className="flex flex-col gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-medium"
+                      >
+                        <Upload className="h-3.5 w-3.5" /> Change Photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearImage}
+                        className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 font-medium"
+                      >
+                        <X className="h-3.5 w-3.5" /> Remove Photo
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-6 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-2 text-slate-400 hover:border-amber-300 hover:text-amber-500 transition-colors"
+                  >
+                    <Image className="h-8 w-8" />
+                    <span className="text-sm font-medium">Upload Photo</span>
+                    <span className="text-xs">JPG, PNG, WEBP up to 10MB</span>
+                  </button>
                 )}
               </div>
 

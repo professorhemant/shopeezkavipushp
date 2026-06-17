@@ -268,11 +268,13 @@ export const toolsAPI = {
   generateQR: (data) => api.get('/tools/qr', { params: data }),
 }
 
+const multipartConfig = { headers: { 'Content-Type': undefined } }
+
 export const promotionAPI = {
-  getAll:       (params) => api.get('/promotions', { params }),
-  getOne:       (id)     => api.get(`/promotions/${id}`),
-  create:       (data)   => api.post('/promotions', data),
-  update:       (id, data) => api.put(`/promotions/${id}`, data),
-  markReturned: (id)     => api.put(`/promotions/${id}/return`),
-  remove:       (id)     => api.delete(`/promotions/${id}`),
+  getAll:       (params)    => api.get('/promotions', { params }),
+  getOne:       (id)        => api.get(`/promotions/${id}`),
+  create:       (data)      => api.post('/promotions', data, data instanceof FormData ? multipartConfig : {}),
+  update:       (id, data)  => api.put(`/promotions/${id}`, data, data instanceof FormData ? multipartConfig : {}),
+  markReturned: (id)        => api.put(`/promotions/${id}/return`),
+  remove:       (id)        => api.delete(`/promotions/${id}`),
 }

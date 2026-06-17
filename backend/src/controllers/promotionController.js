@@ -46,7 +46,9 @@ const getOne = async (req, res, next) => {
 const create = async (req, res, next) => {
   try {
     const promo_number = await genPromoNumber(req.firmId);
-    const promo = await Promotion.create({ ...req.body, firm_id: req.firmId, promo_number });
+    const payload = { ...req.body, firm_id: req.firmId, promo_number };
+    if (req.file) payload.image_url = `/uploads/promotions/${req.file.filename}`;
+    const promo = await Promotion.create(payload);
     return res.status(201).json({ success: true, data: promo });
   } catch (err) { next(err); }
 };
@@ -55,7 +57,9 @@ const update = async (req, res, next) => {
   try {
     const promo = await Promotion.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
     if (!promo) return res.status(404).json({ success: false, message: 'Not found' });
-    await promo.update(req.body);
+    const updates = { ...req.body };
+    if (req.file) updates.image_url = `/uploads/promotions/${req.file.filename}`;
+    await promo.update(updates);
     return res.json({ success: true, data: promo });
   } catch (err) { next(err); }
 };
