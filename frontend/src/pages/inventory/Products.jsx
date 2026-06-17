@@ -956,8 +956,8 @@ function PrintBarcodesModal({ products, selectedIds, onClose }) {
   const selectedProducts = products
     .filter((p) => selectedIds.includes(p.id))
     .sort((a, b) => {
-      const [boxA, prodA] = parseBC((a.barcode || a.sku || '').toUpperCase())
-      const [boxB, prodB] = parseBC((b.barcode || b.sku || '').toUpperCase())
+      const [boxA, prodA] = parseBC((a.sku || a.barcode || '').toUpperCase())
+      const [boxB, prodB] = parseBC((b.sku || b.barcode || '').toUpperCase())
       return boxA !== boxB ? boxA - boxB : prodA - prodB
     })
   const [copies, setCopies] = useState(1)
@@ -1646,15 +1646,15 @@ export default function Products() {
       }
       const filtered = all
         .filter(p => {
-          const bc = (p.barcode || p.sku || '').toUpperCase()
+          const bc = (p.sku || p.barcode || '').toUpperCase()
           if (!bc) return false
           if (from && to) return bc >= from && bc <= to
           if (from) return bc >= from
           return bc <= to
         })
         .sort((a, b) => {
-          const [boxA, prodA] = parseBC((a.barcode || a.sku || '').toUpperCase())
-          const [boxB, prodB] = parseBC((b.barcode || b.sku || '').toUpperCase())
+          const [boxA, prodA] = parseBC((a.sku || a.barcode || '').toUpperCase())
+          const [boxB, prodB] = parseBC((b.sku || b.barcode || '').toUpperCase())
           return boxA !== boxB ? boxA - boxB : prodA - prodB
         })
       if (!filtered.length) return toast.error('No products found in this barcode range')
