@@ -21,8 +21,8 @@ const fmtDate = (d) => {
   return `${day}/${m}/${y}`
 }
 
-const EMPTY_SPLIT = { slip_no: '', cash: '', card: '', online: '', function_date: '', booking_date: today(), pickup_date: '', return_date: '' }
-const EMPTY_EDIT  = { slip_no: '', amount: '', payment_mode: 'cash', function_date: '', booking_date: '', pickup_date: '', return_date: '' }
+const EMPTY_SPLIT = { slip_no: '', cash: '', card: '', online: '', function_date: '', booking_date: today(), pickup_date: '', return_date: '', booking_amount: '' }
+const EMPTY_EDIT  = { slip_no: '', amount: '', payment_mode: 'cash', function_date: '', booking_date: '', pickup_date: '', return_date: '', booking_amount: '' }
 
 export default function BridalBookings() {
   const { user } = useAuthStore()
@@ -106,10 +106,11 @@ export default function BridalBookings() {
           amount: editForm.amount,
           payment_mode: editForm.payment_mode,
           date,
-          function_date: editForm.function_date || null,
-          booking_date:  editForm.booking_date  || null,
-          pickup_date:   editForm.pickup_date   || null,
-          return_date:   editForm.return_date   || null,
+          function_date:  editForm.function_date  || null,
+          booking_date:   editForm.booking_date   || null,
+          pickup_date:    editForm.pickup_date    || null,
+          return_date:    editForm.return_date    || null,
+          booking_amount: editForm.booking_amount || null,
         })
         toast.success('Updated')
       } else {
@@ -125,10 +126,11 @@ export default function BridalBookings() {
             amount: entry.amount,
             payment_mode: entry.mode,
             date,
-            function_date: splitForm.function_date || null,
-            booking_date:  splitForm.booking_date  || null,
-            pickup_date:   splitForm.pickup_date   || null,
-            return_date:   splitForm.return_date   || null,
+            function_date:  splitForm.function_date  || null,
+            booking_date:   splitForm.booking_date   || null,
+            pickup_date:    splitForm.pickup_date    || null,
+            return_date:    splitForm.return_date    || null,
+            booking_amount: splitForm.booking_amount || null,
           })
         }
         toast.success(`${entries.length} entry/entries added`)
@@ -141,13 +143,14 @@ export default function BridalBookings() {
   const startEditGroup = (entries) => {
     const first = entries[0]
     setEditForm({
-      slip_no:       first.slip_no       || '',
-      amount:        first.amount,
-      payment_mode:  first.payment_mode,
-      function_date: first.function_date || '',
-      booking_date:  first.booking_date  || '',
-      pickup_date:   first.pickup_date   || '',
-      return_date:   first.return_date   || '',
+      slip_no:        first.slip_no        || '',
+      amount:         first.amount,
+      payment_mode:   first.payment_mode,
+      function_date:  first.function_date  || '',
+      booking_date:   first.booking_date   || '',
+      pickup_date:    first.pickup_date    || '',
+      return_date:    first.return_date    || '',
+      booking_amount: first.booking_amount || '',
     })
     setEditId(first.id); setShowForm(true); setAvailability([])
   }
@@ -258,6 +261,14 @@ export default function BridalBookings() {
                   onChange={(e) => setField('slip_no', e.target.value)}
                   placeholder="Set code"
                   className={`${inp} w-36`} />
+              </div>
+              <div>
+                <label className={lbl}>Booking Amount (₹)</label>
+                <input type="number" step="0.01" min="0"
+                  value={curForm.booking_amount}
+                  onChange={(e) => setField('booking_amount', e.target.value)}
+                  placeholder="Total booking value"
+                  className={`${inp} w-40`} />
               </div>
 
               {editId ? (
@@ -397,11 +408,12 @@ export default function BridalBookings() {
           const groups = Object.values(rows.reduce((acc, r) => {
             const key = r.slip_no || `__nosliip__${r.id}`
             if (!acc[key]) acc[key] = {
-              slip_no: r.slip_no,
-              entries: [],
-              function_date: r.function_date,
-              pickup_date:   r.pickup_date,
-              return_date:   r.return_date,
+              slip_no:        r.slip_no,
+              entries:        [],
+              function_date:  r.function_date,
+              pickup_date:    r.pickup_date,
+              return_date:    r.return_date,
+              booking_amount: r.booking_amount,
             }
             acc[key].entries.push(r)
             return acc
@@ -415,20 +427,25 @@ export default function BridalBookings() {
                     <th className="px-4 py-3 text-left">#</th>
                     <th className="px-4 py-3 text-left">Set Code</th>
                     <th className="px-4 py-3 text-left">Function Date</th>
+                    <th className="px-4 py-3 text-right text-amber-300">Booking Amt</th>
                     <th className="px-4 py-3 text-right text-green-300">Cash</th>
                     <th className="px-4 py-3 text-right text-blue-300">Card</th>
                     <th className="px-4 py-3 text-right text-violet-300">Online</th>
+                    <th className="px-4 py-3 text-right text-orange-300">Balance</th>
                     <th className="px-4 py-3 text-right">Total</th>
                     <th className="px-4 py-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {groups.length === 0 ? (
-                    <tr><td colSpan={8} className="text-center py-12 text-slate-400">No entries for this date</td></tr>
+                    <tr><td colSpan={10} className="text-center py-12 text-slate-400">No entries for this date</td></tr>
                   ) : groups.map((g, i) => {
-                    const cash   = g.entries.filter(e => e.payment_mode === 'cash').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
-                    const card   = g.entries.filter(e => e.payment_mode === 'card').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
-                    const online = g.entries.filter(e => e.payment_mode === 'online').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+                    const cash          = g.entries.filter(e => e.payment_mode === 'cash').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+                    const card          = g.entries.filter(e => e.payment_mode === 'card').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+                    const online        = g.entries.filter(e => e.payment_mode === 'online').reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+                    const totalPaid     = cash + card + online
+                    const bookingAmt    = parseFloat(g.booking_amount || 0)
+                    const balance       = bookingAmt > 0 ? bookingAmt - totalPaid : null
                     return (
                       <tr key={g.slip_no || i} className="border-b hover:bg-slate-50">
                         <td className="px-4 py-3 text-slate-500">{i + 1}</td>
@@ -445,10 +462,16 @@ export default function BridalBookings() {
                             </div>
                           ) : <span className="text-slate-300">—</span>}
                         </td>
+                        <td className="px-4 py-3 text-right text-amber-700 font-medium">{bookingAmt > 0 ? formatCurrency(bookingAmt) : <span className="text-slate-300">—</span>}</td>
                         <td className="px-4 py-3 text-right text-green-700 font-medium">{cash > 0 ? formatCurrency(cash) : <span className="text-slate-300">—</span>}</td>
                         <td className="px-4 py-3 text-right text-blue-700 font-medium">{card > 0 ? formatCurrency(card) : <span className="text-slate-300">—</span>}</td>
                         <td className="px-4 py-3 text-right text-violet-700 font-medium">{online > 0 ? formatCurrency(online) : <span className="text-slate-300">—</span>}</td>
-                        <td className="px-4 py-3 text-right font-bold text-slate-800">{formatCurrency(cash + card + online)}</td>
+                        <td className="px-4 py-3 text-right font-semibold">
+                          {balance === null ? <span className="text-slate-300">—</span>
+                            : balance <= 0 ? <span className="text-green-600">{formatCurrency(balance)}</span>
+                            : <span className="text-red-600">{formatCurrency(balance)}</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-slate-800">{formatCurrency(totalPaid)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-1.5">
                             <button onClick={() => startEditGroup(g.entries)} className="p-1.5 rounded hover:bg-amber-50 text-slate-400 hover:text-amber-600" title="Edit"><Edit2 className="h-4 w-4" /></button>
@@ -462,10 +485,11 @@ export default function BridalBookings() {
                 {groups.length > 0 && (
                   <tfoot className="bg-slate-50 text-sm font-semibold border-t-2 border-slate-200">
                     <tr>
-                      <td colSpan={3} className="px-4 py-3 text-slate-600">Total ({groups.length} sets)</td>
+                      <td colSpan={4} className="px-4 py-3 text-slate-600">Total ({groups.length} sets)</td>
                       <td className="px-4 py-3 text-right text-green-700">{cashTotal > 0 ? formatCurrency(cashTotal) : '—'}</td>
                       <td className="px-4 py-3 text-right text-blue-700">{cardTotal > 0 ? formatCurrency(cardTotal) : '—'}</td>
                       <td className="px-4 py-3 text-right text-violet-700">{onlineTotal > 0 ? formatCurrency(onlineTotal) : '—'}</td>
+                      <td />
                       <td className="px-4 py-3 text-right text-slate-800">{formatCurrency(cashTotal + cardTotal + onlineTotal)}</td>
                       <td />
                     </tr>
