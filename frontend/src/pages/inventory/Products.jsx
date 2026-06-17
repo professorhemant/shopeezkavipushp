@@ -948,7 +948,18 @@ function LabelDesignerModal({ onClose, product, onSaved }) {
 
 
 function PrintBarcodesModal({ products, selectedIds, onClose }) {
-  const selectedProducts = products.filter((p) => selectedIds.includes(p.id))
+  const parseBC = (bc) => {
+    const boxM  = bc.match(/^[A-Za-z](\d+)/i)
+    const prodM = bc.match(/(\d+)$/)
+    return [boxM ? parseInt(boxM[1], 10) : 0, prodM ? parseInt(prodM[1], 10) : 0]
+  }
+  const selectedProducts = products
+    .filter((p) => selectedIds.includes(p.id))
+    .sort((a, b) => {
+      const [boxA, prodA] = parseBC((a.barcode || a.sku || '').toUpperCase())
+      const [boxB, prodB] = parseBC((b.barcode || b.sku || '').toUpperCase())
+      return boxA !== boxB ? boxA - boxB : prodA - prodB
+    })
   const [copies, setCopies] = useState(1)
   const [labelsPerRow, setLabelsPerRow] = useState(4)
   const [showName, setShowName] = useState(true)
