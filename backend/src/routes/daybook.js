@@ -11,6 +11,11 @@ router.put('/config', c.updateConfig);
 // Summary
 router.get('/summary', c.getSummary);
 
+// Snapshots (Save Day Book)
+router.get('/snapshots', c.listSnapshots);
+router.get('/snapshot', c.getSnapshot);
+router.post('/snapshot', c.saveSnapshot);
+
 // Sales
 router.get('/sales', c.getSales);
 router.post('/sales', c.createSale);

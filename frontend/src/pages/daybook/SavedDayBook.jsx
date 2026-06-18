@@ -21,7 +21,9 @@ export default function SavedDayBook() {
   // Viewer state
   const [date, setDate] = useState(today())
   const [data, setData] = useState(null)
+  const [meta, setMeta] = useState(null) // { saved_by, saved_at } when the day was saved
   const [loading, setLoading] = useState(false)
+  const [snapshots, setSnapshots] = useState([])
 
   const handleUnlock = async (e) => {
     e.preventDefault()
@@ -54,12 +56,29 @@ export default function SavedDayBook() {
 
   const load = async () => {
     setLoading(true)
-    try { const res = await dayBookAPI.getSummary(date); setData(res.data.data) }
-    catch { toast.error('Failed to load summary') }
+    try {
+      // Prefer the saved snapshot; fall back to a live recompute if not saved.
+      try {
+        const res = await dayBookAPI.getSnapshot(date)
+        setData(res.data.data.data)
+        setMeta({ saved_by: res.data.data.saved_by, saved_at: res.data.data.updatedAt })
+      } catch (err) {
+        if (err.response?.status !== 404) throw err
+        const res = await dayBookAPI.getSummary(date)
+        setData(res.data.data)
+        setMeta(null)
+      }
+    } catch { toast.error('Failed to load summary') }
     finally { setLoading(false) }
   }
 
+  const loadList = async () => {
+    try { const res = await dayBookAPI.listSnapshots(); setSnapshots(res.data.data || []) }
+    catch { /* non-critical */ }
+  }
+
   useEffect(() => { if (unlocked) load() }, [unlocked, date])
+  useEffect(() => { if (unlocked) loadList() }, [unlocked])
 
   if (!unlocked) {
     return (
@@ -110,10 +129,29 @@ export default function SavedDayBook() {
         </div>
       </div>
 
+      {snapshots.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-slate-400 uppercase">Saved days:</span>
+          {snapshots.map((s) => (
+            <button key={s.date} onClick={() => setDate(s.date)}
+              className={`text-xs px-2.5 py-1 rounded-full border ${s.date === date ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-white border-slate-200 text-slate-600 hover:border-amber-300'}`}>
+              {s.date}
+            </button>
+          ))}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-24"><LoadingSpinner size="lg" /></div>
       ) : (
-        <DayBookSummaryView data={data} />
+        <>
+          {meta ? (
+            <p className="text-xs text-green-600">✓ Saved snapshot{meta.saved_by ? ` by ${meta.saved_by}` : ''}{meta.saved_at ? ` on ${new Date(meta.saved_at).toLocaleString()}` : ''}</p>
+          ) : (
+            <p className="text-xs text-slate-400">Live figures — this day was not explicitly saved.</p>
+          )}
+          <DayBookSummaryView data={data} />
+        </>
       )}
     </div>
   )

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Save } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { dayBookAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
@@ -10,6 +11,7 @@ export default function TotalReceived() {
   const [date] = useState(today())
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -20,6 +22,15 @@ export default function TotalReceived() {
 
   useEffect(() => { load() }, [date])
 
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await dayBookAPI.saveSnapshot(date)
+      toast.success("Today's Day Book saved")
+    } catch { toast.error('Failed to save Day Book') }
+    finally { setSaving(false) }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -27,9 +38,15 @@ export default function TotalReceived() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Day Book — Total Received</h1>
           <p className="text-sm text-slate-500 mt-0.5">Today's summary — for previous days open <span className="font-medium">Saved Day Book</span></p>
         </div>
-        <input type="date" value={date} disabled
-          title="Previous days are available in Saved Day Book"
-          className="border rounded-lg px-3 py-2 text-sm border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed" />
+        <div className="flex items-center gap-2">
+          <button onClick={handleSave} disabled={saving || loading}
+            className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-sm font-semibold">
+            <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save Day Book'}
+          </button>
+          <input type="date" value={date} disabled
+            title="Previous days are available in Saved Day Book"
+            className="border rounded-lg px-3 py-2 text-sm border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed" />
+        </div>
       </div>
 
       {loading ? (

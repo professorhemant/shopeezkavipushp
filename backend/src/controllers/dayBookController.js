@@ -1,6 +1,6 @@
 'use strict';
 
-const { DayBookSale, DayBookBridalBooking, DayBookBridalDispatch, DayBookExpense, DayBookSecurityRefund, DayBookConfig, Payment } = require('../models');
+const { DayBookSale, DayBookBridalBooking, DayBookBridalDispatch, DayBookExpense, DayBookSecurityRefund, DayBookConfig, DayBookSnapshot, Payment } = require('../models');
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -145,10 +145,8 @@ const updateConfig = async (req, res, next) => {
 };
 
 // ─── Summary (Total Received) ─────────────────────────────────────
-const getSummary = async (req, res, next) => {
-  try {
-    const date = req.query.date || today();
-
+// Compute the full day-book summary for a date from live data.
+const computeSummary = async (date) => {
     const [salePayments, bookings, dispatches, refunds, expenses, config] = await Promise.all([
       // Use actual Payment records for sales (payment_date = date, reference_type = 'sale')
       Payment.findAll({ where: { payment_date: date, reference_type: 'sale' } }),
@@ -192,20 +190,62 @@ const getSummary = async (req, res, next) => {
     const totalCardReceived = received.sales.card + received.bookings.card + received.dispatch.card;
     const totalOnlineReceived = received.sales.online + received.bookings.online + received.dispatch.online;
 
-    res.json({
-      success: true,
-      data: {
-        date,
-        opening_balance: openingBalance,
-        received,
-        expenses: expenseSummary,
-        total_cash_received: totalCashReceived,
-        total_card_received: totalCardReceived,
-        total_online_received: totalOnlineReceived,
-        net_cash: openingBalance + totalCashReceived - expenseSummary.total.cash,
-        net_bank: totalCardReceived + totalOnlineReceived - expenseSummary.total.online,
-      },
-    });
+    return {
+      date,
+      opening_balance: openingBalance,
+      received,
+      expenses: expenseSummary,
+      total_cash_received: totalCashReceived,
+      total_card_received: totalCardReceived,
+      total_online_received: totalOnlineReceived,
+      net_cash: openingBalance + totalCashReceived - expenseSummary.total.cash,
+      net_bank: totalCardReceived + totalOnlineReceived - expenseSummary.total.online,
+    };
+};
+
+const getSummary = async (req, res, next) => {
+  try {
+    const date = req.query.date || today();
+    const data = await computeSummary(date);
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+};
+
+// ─── Snapshots (Save Day Book) ────────────────────────────────────
+// Freeze the computed summary for a date so it can be reviewed later.
+const saveSnapshot = async (req, res, next) => {
+  try {
+    const date = req.body.date || today();
+    const data = await computeSummary(date);
+    const savedBy = req.user?.name || req.user?.email || null;
+    const [snapshot] = await DayBookSnapshot.findOrCreate({ where: { date }, defaults: { date } });
+    await snapshot.update({ data, saved_by: savedBy });
+    res.status(201).json({ success: true, data: snapshot });
+  } catch (err) { next(err); }
+};
+
+// One saved snapshot for a date (404 if not saved yet).
+const getSnapshot = async (req, res, next) => {
+  try {
+    const date = req.query.date || today();
+    const snapshot = await DayBookSnapshot.findOne({ where: { date } });
+    if (!snapshot) return res.status(404).json({ success: false, message: 'No saved day book for this date' });
+    res.json({ success: true, data: snapshot });
+  } catch (err) { next(err); }
+};
+
+// List of saved days (most recent first) for the history picker.
+const listSnapshots = async (req, res, next) => {
+  try {
+    const rows = await DayBookSnapshot.findAll({ order: [['date', 'DESC']] });
+    const data = rows.map((r) => ({
+      date: r.date,
+      saved_by: r.saved_by,
+      saved_at: r.updatedAt,
+      net_cash: r.data?.net_cash ?? 0,
+      net_bank: r.data?.net_bank ?? 0,
+    }));
+    res.json({ success: true, data });
   } catch (err) { next(err); }
 };
 
@@ -237,4 +277,6 @@ module.exports = {
   getConfig, updateConfig,
   // Summary
   getSummary,
+  // Snapshots
+  saveSnapshot, getSnapshot, listSnapshots,
 };

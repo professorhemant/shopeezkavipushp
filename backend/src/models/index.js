@@ -34,6 +34,7 @@ const DayBookBridalDispatch = require('./DayBookBridalDispatch');
 const DayBookExpense = require('./DayBookExpense');
 const DayBookSecurityRefund = require('./DayBookSecurityRefund');
 const DayBookConfig = require('./DayBookConfig');
+const DayBookSnapshot = require('./DayBookSnapshot');
 const Promotion = require('./Promotion');
 
 // ─── Associations ────────────────────────────────────────────────
@@ -131,5 +132,6 @@ module.exports = {
   DayBookExpense,
   DayBookSecurityRefund,
   DayBookConfig,
+  DayBookSnapshot,
   Promotion,
 };
