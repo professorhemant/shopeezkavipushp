@@ -19,8 +19,6 @@ const MENU = [
     id: 'daybook', label: 'Day Book', icon: BookOpen,
     children: [
       { label: 'Sales',             path: '/daybook/sales',             icon: TrendingUp },
-      { label: 'Bridal Bookings',   path: '/daybook/bridal-bookings',   icon: Calendar },
-      { label: 'Bridal Dispatch',   path: '/daybook/bridal-dispatch',   icon: Truck },
       { label: 'Expenses',          path: '/daybook/expenses',          icon: Wallet },
       { label: 'Total Received',    path: '/daybook/total-received',    icon: DollarSign },
       { label: 'Saved Day Book',    path: '/daybook/saved',             icon: Bookmark },
@@ -70,6 +68,8 @@ const MENU = [
   {
     id: 'rental', label: 'Rental Module', icon: Store,
     children: [
+      { label: 'Bridal Bookings',     path: '/daybook/bridal-bookings', icon: Calendar },
+      { label: 'Bridal Dispatch',     path: '/daybook/bridal-dispatch', icon: Truck },
       { label: 'Appointments',        path: '/appointments',       icon: Calendar },
       { label: 'Sent for Promotions', path: '/promotions',         icon: Megaphone },
       { label: 'WhatsApp',            path: '/whatsapp/campaigns', icon: MessageSquare },
