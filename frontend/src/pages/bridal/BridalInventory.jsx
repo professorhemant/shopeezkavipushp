@@ -202,30 +202,50 @@ function ImportModal({ onClose, onSuccess }) {
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState(null)
   const [fileName, setFileName] = useState('')
+  const [pasteText, setPasteText] = useState('')
+
+  const PAPA_OPTS = {
+    header: true, skipEmptyLines: true,
+    transformHeader: (h) => h.trim().toLowerCase().replace(/\s+/g, '_'),
+  }
+  const mapRows = (data) => (data || [])
+    .map(r => ({
+      code: r.code || '',
+      name: r.name || '',
+      item_type: (r.item_type || r.type || 'set').trim().toLowerCase(),
+      category: r.category || '',
+      rental_price: r.rental_price || r.rent || '',
+      stock: r.stock || '',
+      description: r.description || '',
+    }))
+    .filter(r => r.name && r.name.trim())
 
   const parseFile = (f) => {
     if (!f) return
     setFileName(f.name); setResult(null)
     Papa.parse(f, {
-      header: true, skipEmptyLines: true,
-      transformHeader: (h) => h.trim().toLowerCase().replace(/\s+/g, '_'),
+      ...PAPA_OPTS,
       complete: (res) => {
-        const parsed = (res.data || [])
-          .map(r => ({
-            code: r.code || '',
-            name: r.name || '',
-            item_type: (r.item_type || r.type || 'set').trim().toLowerCase(),
-            category: r.category || '',
-            rental_price: r.rental_price || r.rent || '',
-            stock: r.stock || '',
-            description: r.description || '',
-          }))
-          .filter(r => r.name && r.name.trim())
+        const parsed = mapRows(res.data)
         setRows(parsed)
         if (!parsed.length) toast.error('No valid rows found (every row needs a "name")')
       },
       error: () => toast.error('Could not parse CSV'),
     })
+  }
+
+  const parsePasted = () => {
+    const text = pasteText.trim()
+    if (!text) { toast.error('Paste some CSV text first'); return }
+    setResult(null)
+    try {
+      const res = Papa.parse(text, PAPA_OPTS)
+      const parsed = mapRows(res.data)
+      setRows(parsed)
+      setFileName(parsed.length ? 'pasted text' : '')
+      if (!parsed.length) toast.error('No valid rows found (every row needs a "name")')
+      else toast.success(`${parsed.length} rows read`)
+    } catch { toast.error('Could not parse pasted CSV') }
   }
 
   const doImport = async () => {
@@ -279,6 +299,22 @@ function ImportModal({ onClose, onSuccess }) {
             Choose file
           </label>
           <span className="text-sm text-slate-500 truncate">{fileName || 'No file chosen'}</span>
+        </div>
+
+        {/* Fallback that needs no file dialog: paste CSV text directly */}
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <p className="text-xs font-medium text-slate-600 mb-1">…or paste CSV text (open your CSV in Excel/Numbers/Notes, select all, copy, paste here):</p>
+          <textarea
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            rows={4}
+            placeholder={"code,name,item_type,category,rental_price,stock,description\nB001,Royal Kundan Set,set,Kundan,15000,1,"}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+          />
+          <button type="button" onClick={parsePasted}
+            className="mt-2 bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-1.5 rounded-lg text-sm font-medium">
+            Read pasted rows
+          </button>
         </div>
 
         {fileName && rows.length > 0 && !result && (
