@@ -7,6 +7,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // One-time kill switch: replaces any previously-installed service worker
+      // with one that unregisters itself and clears all caches, so browsers
+      // stop serving stale app code and always load the latest from the network.
+      selfDestroying: true,
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
