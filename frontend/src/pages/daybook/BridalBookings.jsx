@@ -24,7 +24,7 @@ const EMPTY_SPLIT = { slip_no: '', cash: '', card: '', online: '', function_date
 const EMPTY_EDIT  = { slip_no: '', amount: '', payment_mode: 'cash', function_date: '', booking_date: '', pickup_date: '', return_date: '', booking_amount: '', customer_name: '', mobile_no: '' }
 
 export default function BridalBookings() {
-  const canViewHistory = false // live page is today-only; previous days via Saved Day Book
+  const canViewHistory = true // date picker temporarily re-enabled (to find/delete past bookings) until asked to disable
   const [date, setDate] = useState(today())
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
