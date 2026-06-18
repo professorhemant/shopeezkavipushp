@@ -272,6 +272,22 @@ export const dayBookAPI = {
   deleteSecurityRefund: (id) => api.delete(`/daybook/security-refunds/${id}`),
 }
 
+// ─── Bridal (Inventory + Bookings) ──────────────────────────────────
+export const bridalAPI = {
+  // Inventory
+  listInventory: (type) => api.get('/bridal/inventory', { params: type ? { type } : {} }),
+  createInventory: (data) => api.post('/bridal/inventory', data),
+  updateInventory: (id, data) => api.put(`/bridal/inventory/${id}`, data),
+  deleteInventory: (id) => api.delete(`/bridal/inventory/${id}`),
+  bulkImportInventory: (items) => api.post('/bridal/inventory/bulk-import', { items }),
+  // Bookings
+  listBookings: () => api.get('/bridal/bookings'),
+  createBooking: (data) => api.post('/bridal/bookings', data),
+  updateBooking: (id, data) => api.put(`/bridal/bookings/${id}`, data),
+  deleteBooking: (id) => api.delete(`/bridal/bookings/${id}`),
+  checkAvailability: (set_code, function_date) => api.get('/bridal/bookings/availability', { params: { set_code, function_date } }),
+}
+
 // ─── Tools ──────────────────────────────────────────────────────────
 export const toolsAPI = {
   generateBarcode: (data) => api.get('/tools/barcode', { params: data }),

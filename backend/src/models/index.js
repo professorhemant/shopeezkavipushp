@@ -36,6 +36,8 @@ const DayBookSecurityRefund = require('./DayBookSecurityRefund');
 const DayBookConfig = require('./DayBookConfig');
 const DayBookSnapshot = require('./DayBookSnapshot');
 const Promotion = require('./Promotion');
+const BridalInventory = require('./BridalInventory');
+const BridalBooking = require('./BridalBooking');
 
 // ─── Associations ────────────────────────────────────────────────
 // User <-> Role
@@ -134,4 +136,6 @@ module.exports = {
   DayBookConfig,
   DayBookSnapshot,
   Promotion,
+  BridalInventory,
+  BridalBooking,
 };

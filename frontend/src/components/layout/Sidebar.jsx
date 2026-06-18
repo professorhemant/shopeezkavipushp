@@ -69,7 +69,9 @@ const MENU = [
     id: 'rental', label: 'Bridal Module', icon: Store,
     children: [
       { label: 'Bridal Bookings',     path: '/daybook/bridal-bookings', icon: Calendar },
+      { label: 'Saved Booking',       path: '/bridal/saved',            icon: Bookmark },
       { label: 'Bridal Dispatch',     path: '/daybook/bridal-dispatch', icon: Truck },
+      { label: 'Bridal Inventory',    path: '/bridal/inventory',        icon: Boxes },
       { label: 'Appointments',        path: '/appointments',       icon: Calendar },
       { label: 'Sent for Promotions', path: '/promotions',         icon: Megaphone },
       { label: 'WhatsApp',            path: '/whatsapp/campaigns', icon: MessageSquare },

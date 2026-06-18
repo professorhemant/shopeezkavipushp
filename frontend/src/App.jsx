@@ -72,6 +72,8 @@ const DayBookExpenses = lazy(() => import('./pages/daybook/DayBookExpenses'))
 const SecurityRefund = lazy(() => import('./pages/daybook/SecurityRefund'))
 const TotalReceived = lazy(() => import('./pages/daybook/TotalReceived'))
 const SavedDayBook = lazy(() => import('./pages/daybook/SavedDayBook'))
+const BridalInventory = lazy(() => import('./pages/bridal/BridalInventory'))
+const SavedBookings = lazy(() => import('./pages/bridal/SavedBookings'))
 
 const Firms = lazy(() => import('./pages/firms/Firms'))
 const Settings = lazy(() => import('./pages/settings/Settings'))
@@ -201,6 +203,8 @@ function App() {
           <Route path="daybook/security-refund" element={<SecurityRefund />} />
           <Route path="daybook/total-received" element={<TotalReceived />} />
           <Route path="daybook/saved" element={<SavedDayBook />} />
+          <Route path="bridal/inventory" element={<BridalInventory />} />
+          <Route path="bridal/saved" element={<SavedBookings />} />
 
           {/* Firms & Settings */}
           <Route path="firms" element={<Firms />} />
