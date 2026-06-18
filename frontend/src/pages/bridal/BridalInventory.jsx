@@ -269,13 +269,15 @@ function ImportModal({ onClose, onSuccess }) {
           <Download className="h-3.5 w-3.5" /> Download sample CSV
         </button>
 
-        <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
+        {/* Native <label htmlFor> opens the picker without JS — works in Safari
+            even with a hidden input (programmatic .click() is blocked there). */}
+        <input ref={fileRef} id="bridal-csv-input" type="file" accept=".csv,text/csv" className="hidden"
           onChange={(e) => parseFile(e.target.files?.[0])} />
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => fileRef.current?.click()}
-            className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm font-medium">
+          <label htmlFor="bridal-csv-input"
+            className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer inline-block select-none">
             Choose file
-          </button>
+          </label>
           <span className="text-sm text-slate-500 truncate">{fileName || 'No file chosen'}</span>
         </div>
 
