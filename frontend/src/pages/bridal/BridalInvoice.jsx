@@ -49,7 +49,7 @@ const TYPES = [
 const TYPE_META = {
   booking: { title: 'BOOKING INVOICE', prefix: 'BK' },
   pickup:  { title: 'PICKUP INVOICE',  prefix: 'PK' },
-  final:   { title: 'FINAL INVOICE',   prefix: 'FIN' },
+  final:   { title: 'FINAL INVOICE',   prefix: 'FN' },
 }
 
 export default function BridalInvoice() {
@@ -59,6 +59,8 @@ export default function BridalInvoice() {
   const [selectedId, setSelectedId] = useState('')
   const [type, setType] = useState('booking')
   const [security, setSecurity] = useState('')
+  const [damage, setDamage] = useState('')
+  const [reasons, setReasons] = useState('')
   const [setImage, setSetImage] = useState(null)
   const fileRef = useRef(null)
   const printRef = useRef(null)
@@ -81,6 +83,10 @@ export default function BridalInvoice() {
   const remaining = rent - bookingAmt
   const securityNum = parseFloat(security) || 0
   const totalOnPickup = remaining + securityNum
+  // Final invoice
+  const damageNum = parseFloat(damage) || 0
+  const totalReceivedOnPickup = remaining + securityNum
+  const securityRefund = securityNum - damageNum
 
   const handlePrint = useReactToPrint({ content: () => printRef.current, documentTitle: invNo || 'invoice' })
 
@@ -152,7 +158,7 @@ export default function BridalInvoice() {
               })}
             </div>
           </div>
-          {type === 'pickup' && (
+          {(type === 'pickup' || type === 'final') && (
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Security Amount (₹)</label>
               <input type="number" min="0" value={security} onChange={e => setSecurity(e.target.value)} placeholder="0"
@@ -160,6 +166,22 @@ export default function BridalInvoice() {
             </div>
           )}
         </div>
+
+        {type === 'final' && (
+          <div className="flex flex-wrap items-start gap-6">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">Damage or Late Charges or Security Hold (₹)</label>
+              <input type="number" min="0" value={damage} onChange={e => setDamage(e.target.value)} placeholder="0"
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+            </div>
+            <div className="flex-1 min-w-[280px]">
+              <label className="block text-xs font-medium text-slate-700 mb-1">Reasons for Security Hold</label>
+              <textarea value={reasons} onChange={e => setReasons(e.target.value)} rows={2}
+                placeholder="Enter reasons for security hold, damage or late charges (if any)…"
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Preview */}
@@ -168,10 +190,6 @@ export default function BridalInvoice() {
       ) : !booking ? (
         <div className="bg-white rounded-xl p-10 shadow-sm border border-slate-200 text-center text-slate-400">
           Select a customer and invoice type above to preview and generate the invoice.
-        </div>
-      ) : type === 'final' ? (
-        <div className="bg-white rounded-xl p-10 shadow-sm border border-slate-200 text-center text-slate-500">
-          The <strong>Final Invoice</strong> layout will be added once you share its screenshot.
         </div>
       ) : (
         <>
@@ -234,7 +252,7 @@ export default function BridalInvoice() {
                     <td className="px-3 py-2 text-right">- {formatCurrency(bookingAmt)}</td>
                   </tr>
                   <tr className="border-b-2 border-amber-600 font-bold">
-                    <td className="px-3 py-2" colSpan={3}>Remaining Balance</td>
+                    <td className="px-3 py-2" colSpan={3}>{type === 'final' ? 'Remaining Rent Received on Pickup' : 'Remaining Balance'}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(remaining)}</td>
                   </tr>
                 </tbody>
@@ -267,7 +285,7 @@ export default function BridalInvoice() {
                     <span>Total to be Paid by Customer on Pickup</span><span>{formatCurrency(totalOnPickup)}</span>
                   </div>
                 </div>
-              ) : (
+              ) : type === 'pickup' ? (
                 <div className="mt-4 text-sm">
                   <div className="flex justify-between bg-slate-50 px-3 py-2 font-semibold">
                     <span>Remaining Bridal Rent</span><span>{formatCurrency(remaining)}</span>
@@ -278,6 +296,20 @@ export default function BridalInvoice() {
                   <div className="flex justify-between px-3 py-2 text-green-700 font-bold border-t-2 border-amber-600">
                     <span>Total to be Paid by Customer on Pickup</span><span>{formatCurrency(totalOnPickup)}</span>
                   </div>
+                </div>
+              ) : (
+                <div className="mt-4 text-sm">
+                  <div className="flex justify-between px-3 py-2 text-green-700 font-bold">
+                    <span>Total Received on Pickup</span><span>{formatCurrency(totalReceivedOnPickup)}</span>
+                  </div>
+                  <div className="flex justify-between px-3 py-2 text-green-700 font-semibold">
+                    <span>Security Refund after Damage or Late Charges or Security Hold</span><span>{formatCurrency(securityRefund)}</span>
+                  </div>
+                  {reasons.trim() && (
+                    <div className="px-3 py-2 text-xs text-slate-600 border-t border-slate-200">
+                      <span className="font-semibold">Reason for Security Hold:</span> {reasons}
+                    </div>
+                  )}
                 </div>
               )}
 
