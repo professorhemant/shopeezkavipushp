@@ -49,10 +49,17 @@ export default function BridalBookings() {
   const [saving, setSaving] = useState(false)
   const [setSearch, setSetSearch] = useState('')
 
-  // availability
+  // in-form availability (for the set being booked)
   const [availability, setAvailability] = useState([])
   const [checkingAvail, setCheckingAvail] = useState(false)
   const availRef = useRef(null)
+
+  // standalone "Check Set Availability" box
+  const [checkerCode, setCheckerCode] = useState('')
+  const [checkerDate, setCheckerDate] = useState('')
+  const [checkerResult, setCheckerResult] = useState(null) // null = not checked, [] = available, [...] = conflicts
+  const [checkerLoading, setCheckerLoading] = useState(false)
+  const checkerRef = useRef(null)
 
   useEffect(() => {
     (async () => {
@@ -101,6 +108,20 @@ export default function BridalBookings() {
     return () => clearTimeout(availRef.current)
   }, [form.set_code, form.function_date])
 
+  // standalone checker: fires as soon as a set code + function date are entered
+  useEffect(() => {
+    if (checkerRef.current) clearTimeout(checkerRef.current)
+    const code = checkerCode.trim()
+    if (!code || !checkerDate) { setCheckerResult(null); return }
+    checkerRef.current = setTimeout(async () => {
+      setCheckerLoading(true)
+      try { const res = await bridalAPI.checkAvailability(code, checkerDate); setCheckerResult(res.data.data || []) }
+      catch { setCheckerResult([]) }
+      finally { setCheckerLoading(false) }
+    }, 500)
+    return () => clearTimeout(checkerRef.current)
+  }, [checkerCode, checkerDate])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.bridal_set_id && !form.customized_set.trim()) {
@@ -140,6 +161,48 @@ export default function BridalBookings() {
         </div>
       )}
 
+      {/* Standalone availability checker */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Check Set Availability</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className={lbl}>Set Code</label>
+            <input value={checkerCode} onChange={e => setCheckerCode(e.target.value)} placeholder="e.g. B001"
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+          </div>
+          <div>
+            <label className={lbl}>Function Date</label>
+            <input type="date" value={checkerDate} onChange={e => setCheckerDate(e.target.value)}
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+          </div>
+          <div className="pb-0.5 flex-1 min-w-[200px]">
+            {(!checkerCode.trim() || !checkerDate) && (
+              <p className="text-xs text-slate-400 italic">Enter a set code + function date to check.</p>
+            )}
+            {checkerLoading && <p className="text-xs text-slate-400 italic">Checking…</p>}
+            {!checkerLoading && checkerResult !== null && checkerCode.trim() && checkerDate && (
+              checkerResult.length === 0 ? (
+                <span className="flex items-center gap-1.5 text-green-600 text-sm font-semibold">
+                  <CheckCircle className="h-4 w-4" /> &ldquo;{checkerCode}&rdquo; is available for {fmtDate(checkerDate)}
+                </span>
+              ) : (
+                <div className="space-y-1">
+                  <span className="flex items-center gap-1.5 text-red-600 text-sm font-semibold">
+                    <AlertCircle className="h-4 w-4 shrink-0" /> &ldquo;{checkerCode}&rdquo; not available for {fmtDate(checkerDate)}:
+                  </span>
+                  {checkerResult.map((r, i) => (
+                    <p key={i} className="text-xs bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-1.5 inline-block">
+                      Already booked from <strong>{fmtDate(r.pickup_date)}</strong> to <strong>{fmtDate(r.return_date)}</strong>
+                      {r.function_date ? <span className="text-red-400"> (Function: {fmtDate(r.function_date)})</span> : ''}
+                    </p>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-5">
 
         {/* Dates */}
@@ -149,28 +212,6 @@ export default function BridalBookings() {
           <div><label className={lbl}>Pickup <span className="text-slate-400 font-normal">(−1)</span></label><input type="date" value={form.pickup_date} onChange={e => setField('pickup_date', e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Return <span className="text-slate-400 font-normal">(+1)</span></label><input type="date" value={form.return_date} onChange={e => setField('return_date', e.target.value)} className={inp} /></div>
         </div>
-
-        {/* Availability */}
-        {(checkingAvail || availability.length > 0 || (form.set_code && form.function_date)) && (
-          <div className="min-h-[20px]">
-            {checkingAvail && <p className="text-xs text-slate-400 italic">Checking availability…</p>}
-            {!checkingAvail && availability.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 space-y-1">
-                <div className="flex items-center gap-1.5 text-red-700 font-semibold text-xs">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" /> &ldquo;{form.set_code}&rdquo; not available for {fmtDate(form.function_date)}:
-                </div>
-                {availability.map((a, i) => (
-                  <p key={i} className="text-xs text-red-600 pl-5">
-                    Already booked {fmtDate(a.pickup_date)} → {fmtDate(a.return_date)}{a.function_date ? ` (Function: ${fmtDate(a.function_date)})` : ''}
-                  </p>
-                ))}
-              </div>
-            )}
-            {!checkingAvail && form.set_code && form.function_date && availability.length === 0 && (
-              <p className="text-xs text-green-600 flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /> &ldquo;{form.set_code}&rdquo; available for {fmtDate(form.function_date)}</p>
-            )}
-          </div>
-        )}
 
         {/* Bridal Set */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
@@ -187,6 +228,28 @@ export default function BridalBookings() {
             <input value={form.category} onChange={e => setField('category', e.target.value)} placeholder="Auto-filled from selected set" className={`${inp} bg-slate-50`} />
           </div>
         </div>
+
+        {/* Availability of the selected set for the chosen function date */}
+        {(checkingAvail || (form.set_code && form.function_date)) && (
+          <div className="min-h-[20px]">
+            {checkingAvail && <p className="text-xs text-slate-400 italic">Checking availability…</p>}
+            {!checkingAvail && availability.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 space-y-1">
+                <div className="flex items-center gap-1.5 text-red-700 font-semibold text-xs">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" /> &ldquo;{form.set_code}&rdquo; not available for {fmtDate(form.function_date)}:
+                </div>
+                {availability.map((a, i) => (
+                  <p key={i} className="text-xs text-red-600 pl-5">
+                    Already booked from {fmtDate(a.pickup_date)} to {fmtDate(a.return_date)}{a.function_date ? ` (Function: ${fmtDate(a.function_date)})` : ''}
+                  </p>
+                ))}
+              </div>
+            )}
+            {!checkingAvail && form.set_code && form.function_date && availability.length === 0 && (
+              <p className="text-xs text-green-600 flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /> &ldquo;{form.set_code}&rdquo; is available for {fmtDate(form.function_date)}</p>
+            )}
+          </div>
+        )}
 
         <div>
           <label className={lbl}>Customized Bridal Set</label>
