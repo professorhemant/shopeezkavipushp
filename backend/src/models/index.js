@@ -38,6 +38,7 @@ const DayBookSnapshot = require('./DayBookSnapshot');
 const Promotion = require('./Promotion');
 const BridalInventory = require('./BridalInventory');
 const BridalBooking = require('./BridalBooking');
+const BridalInvoice = require('./BridalInvoice');
 
 // ─── Associations ────────────────────────────────────────────────
 // User <-> Role
@@ -138,4 +139,5 @@ module.exports = {
   Promotion,
   BridalInventory,
   BridalBooking,
+  BridalInvoice,
 };

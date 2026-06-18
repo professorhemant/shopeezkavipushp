@@ -75,6 +75,7 @@ const SavedDayBook = lazy(() => import('./pages/daybook/SavedDayBook'))
 const BridalInventory = lazy(() => import('./pages/bridal/BridalInventory'))
 const SavedBookings = lazy(() => import('./pages/bridal/SavedBookings'))
 const BridalInvoice = lazy(() => import('./pages/bridal/BridalInvoice'))
+const BridalInvoicesList = lazy(() => import('./pages/bridal/BridalInvoicesList'))
 
 const Firms = lazy(() => import('./pages/firms/Firms'))
 const Settings = lazy(() => import('./pages/settings/Settings'))
@@ -207,6 +208,7 @@ function App() {
           <Route path="bridal/inventory" element={<BridalInventory />} />
           <Route path="bridal/saved" element={<SavedBookings />} />
           <Route path="bridal/invoice" element={<BridalInvoice />} />
+          <Route path="bridal/invoices" element={<BridalInvoicesList />} />
 
           {/* Firms & Settings */}
           <Route path="firms" element={<Firms />} />

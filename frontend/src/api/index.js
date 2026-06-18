@@ -286,6 +286,10 @@ export const bridalAPI = {
   updateBooking: (id, data) => api.put(`/bridal/bookings/${id}`, data),
   deleteBooking: (id) => api.delete(`/bridal/bookings/${id}`),
   checkAvailability: (set_code, function_date) => api.get('/bridal/bookings/availability', { params: { set_code, function_date } }),
+  // Saved invoices
+  listInvoices: () => api.get('/bridal/invoices'),
+  createInvoice: (data) => api.post('/bridal/invoices', data),
+  deleteInvoice: (id) => api.delete(`/bridal/invoices/${id}`),
 }
 
 // ─── Tools ──────────────────────────────────────────────────────────

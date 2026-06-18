@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Calendar, Truck, CheckCircle2, Printer, FileDown } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Calendar, Truck, CheckCircle2, Printer, FileDown, Save, List } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -62,6 +63,8 @@ export default function BridalInvoice() {
   const [damage, setDamage] = useState('')
   const [reasons, setReasons] = useState('')
   const [setImage, setSetImage] = useState(null)
+  const [savedNo, setSavedNo] = useState('')
+  const [savingInv, setSavingInv] = useState(false)
   const fileRef = useRef(null)
   const printRef = useRef(null)
 
@@ -77,6 +80,10 @@ export default function BridalInvoice() {
 
   const meta = TYPE_META[type]
   const invNo = booking ? invoiceNo(meta.prefix, booking) : ''
+  const displayNo = savedNo || invNo
+
+  // Reset the "saved" state whenever the customer or invoice type changes
+  useEffect(() => { setSavedNo('') }, [selectedId, type])
 
   const rent = parseFloat(booking?.bridal_set_rent) || 0
   const bookingAmt = parseFloat(booking?.booking_amount) || 0
@@ -88,7 +95,7 @@ export default function BridalInvoice() {
   const totalReceivedOnPickup = remaining + securityNum
   const securityRefund = securityNum - damageNum
 
-  const handlePrint = useReactToPrint({ content: () => printRef.current, documentTitle: invNo || 'invoice' })
+  const handlePrint = useReactToPrint({ content: () => printRef.current, documentTitle: displayNo || 'invoice' })
 
   const handlePdf = async () => {
     if (!printRef.current) return
@@ -97,8 +104,36 @@ export default function BridalInvoice() {
       const img = canvas.toDataURL('image/png')
       const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [canvas.width, canvas.height] })
       pdf.addImage(img, 'PNG', 0, 0, canvas.width, canvas.height)
-      pdf.save(`${invNo}.pdf`)
+      pdf.save(`${displayNo}.pdf`)
     } catch { toast.error('Could not create PDF') }
+  }
+
+  const saveInvoice = async () => {
+    if (!booking) return
+    setSavingInv(true)
+    try {
+      const { data } = await bridalAPI.createInvoice({
+        type,
+        booking_id: booking.id,
+        customer_name: booking.customer_name,
+        mobile_no: booking.mobile_no,
+        set_name: booking.set_name,
+        set_code: booking.set_code,
+        category: booking.category,
+        function_date: booking.function_date || null,
+        pickup_date: booking.pickup_date || null,
+        return_date: booking.return_date || null,
+        rent,
+        booking_amount: bookingAmt,
+        security: securityNum,
+        damage: damageNum,
+        total: type === 'final' ? totalReceivedOnPickup : totalOnPickup,
+        reasons: reasons || null,
+      })
+      setSavedNo(data?.data?.invoice_no || '')
+      toast.success(`Invoice saved${data?.data?.invoice_no ? ' as ' + data.data.invoice_no : ''}`)
+    } catch { toast.error('Failed to save invoice') }
+    finally { setSavingInv(false) }
   }
 
   const onPickImage = (f) => {
@@ -112,9 +147,14 @@ export default function BridalInvoice() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Bridal Invoice Management</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Generate Booking / Pickup / Final invoices for bridal rentals</p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Bridal Invoice Management</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Generate Booking / Pickup / Final invoices for bridal rentals</p>
+        </div>
+        <Link to="/bridal/invoices" className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+          <List className="h-4 w-4" /> Saved Invoices
+        </Link>
       </div>
 
       {/* Generate controls */}
@@ -207,7 +247,7 @@ export default function BridalInvoice() {
 
               <div className="text-center mt-4">
                 <h3 className="font-bold tracking-wide">{meta.title}</h3>
-                <p className="text-xs text-slate-500 mt-1">Invoice #: {invNo} | Date: {fmtDate(new Date().toISOString())}</p>
+                <p className="text-xs text-slate-500 mt-1">Invoice #: {displayNo} | Date: {fmtDate(new Date().toISOString())}</p>
               </div>
 
               {/* Bill To + Rental period */}
@@ -330,6 +370,10 @@ export default function BridalInvoice() {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
+            <button onClick={saveInvoice} disabled={savingInv || !!savedNo}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <Save className="h-4 w-4" /> {savedNo ? `Saved ✓ (${savedNo})` : savingInv ? 'Saving…' : 'Save Invoice'}
+            </button>
             <button onClick={handlePrint} className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
               <Printer className="h-4 w-4" /> Print Invoice
             </button>

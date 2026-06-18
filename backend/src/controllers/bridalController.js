@@ -1,7 +1,9 @@
 'use strict';
 
 const { Op } = require('sequelize');
-const { BridalInventory, BridalBooking } = require('../models');
+const { BridalInventory, BridalBooking, BridalInvoice } = require('../models');
+
+const INVOICE_PREFIX = { booking: 'BK', pickup: 'PK', final: 'FN' };
 
 const shiftDate = (dateStr, days) => {
   const d = new Date(dateStr);
@@ -151,7 +153,50 @@ const checkAvailability = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ─── Bridal Invoices (saved) ─────────────────────────────────────────
+
+const listInvoices = async (req, res, next) => {
+  try {
+    const rows = await BridalInvoice.findAll({
+      where: { firm_id: req.firmId },
+      order: [['createdAt', 'DESC']],
+    });
+    res.json({ success: true, data: rows });
+  } catch (err) { next(err); }
+};
+
+const createInvoice = async (req, res, next) => {
+  try {
+    const type = ['booking', 'pickup', 'final'].includes(req.body.type) ? req.body.type : 'booking';
+    const prefix = INVOICE_PREFIX[type];
+    // Sequential per firm + type
+    const count = await BridalInvoice.count({ where: { firm_id: req.firmId, type } });
+    const invoice_no = `${prefix}-${String(count + 1).padStart(5, '0')}`;
+    const row = await BridalInvoice.create({
+      ...req.body,
+      type,
+      invoice_no,
+      firm_id: req.firmId,
+      booking_id: req.body.booking_id || null,
+      invoice_date: req.body.invoice_date || new Date().toISOString().split('T')[0],
+    });
+    res.status(201).json({ success: true, data: row });
+  } catch (err) { next(err); }
+};
+
+const deleteInvoice = async (req, res, next) => {
+  try {
+    const row = await BridalInvoice.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
+    if (!row) return res.status(404).json({ success: false, message: 'Not found' });
+    await row.destroy();
+    res.json({ success: true });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
+  listInvoices,
+  createInvoice,
+  deleteInvoice,
   listInventory,
   createInventory,
   updateInventory,

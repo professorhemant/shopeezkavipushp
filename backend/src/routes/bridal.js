@@ -11,6 +11,11 @@ router.post('/inventory/bulk-import', c.bulkImportInventory);
 router.put('/inventory/:id', c.updateInventory);
 router.delete('/inventory/:id', c.deleteInventory);
 
+// Bridal Invoices (saved)
+router.get('/invoices', c.listInvoices);
+router.post('/invoices', c.createInvoice);
+router.delete('/invoices/:id', c.deleteInvoice);
+
 // Bridal Bookings
 router.get('/bookings/availability', c.checkAvailability);
 router.get('/bookings', c.listBookings);

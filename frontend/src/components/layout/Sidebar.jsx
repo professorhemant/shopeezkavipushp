@@ -70,7 +70,7 @@ const MENU = [
     children: [
       { label: 'Bridal Bookings',     path: '/daybook/bridal-bookings', icon: Calendar },
       { label: 'Saved Booking',       path: '/bridal/saved',            icon: Bookmark },
-      { label: 'Bridal Invoices',     path: '/bridal/invoice',          icon: Receipt },
+      { label: 'Bridal Invoices',     path: '/bridal/invoices',         icon: Receipt },
       { label: 'Bridal Dispatch',     path: '/daybook/bridal-dispatch', icon: Truck },
       { label: 'Bridal Inventory',    path: '/bridal/inventory',        icon: Boxes },
       { label: 'Appointments',        path: '/appointments',       icon: Calendar },
