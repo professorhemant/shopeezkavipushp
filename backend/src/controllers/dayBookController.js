@@ -213,13 +213,19 @@ const getSummary = async (req, res, next) => {
 
 // ─── Snapshots (Save Day Book) ────────────────────────────────────
 // Freeze the computed summary for a date so it can be reviewed later.
+// Reusable by the HTTP handler and the end-of-day auto-save job.
+const createSnapshot = async (date, savedBy) => {
+  const data = await computeSummary(date);
+  const [snapshot] = await DayBookSnapshot.findOrCreate({ where: { date }, defaults: { date } });
+  await snapshot.update({ data, saved_by: savedBy });
+  return snapshot;
+};
+
 const saveSnapshot = async (req, res, next) => {
   try {
     const date = req.body.date || today();
-    const data = await computeSummary(date);
     const savedBy = req.user?.name || req.user?.email || null;
-    const [snapshot] = await DayBookSnapshot.findOrCreate({ where: { date }, defaults: { date } });
-    await snapshot.update({ data, saved_by: savedBy });
+    const snapshot = await createSnapshot(date, savedBy);
     res.status(201).json({ success: true, data: snapshot });
   } catch (err) { next(err); }
 };
@@ -278,5 +284,5 @@ module.exports = {
   // Summary
   getSummary,
   // Snapshots
-  saveSnapshot, getSnapshot, listSnapshots,
+  saveSnapshot, getSnapshot, listSnapshots, createSnapshot,
 };

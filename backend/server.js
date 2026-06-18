@@ -2,6 +2,7 @@ require('dotenv').config();
 const app = require('./src/app');
 const { sequelize, Firm, Role, Product } = require('./src/models');
 const { seedFirmAndAdmin, seedRoles } = require('./src/database/seeds/seed');
+const { startAutoSaveDayBook } = require('./src/jobs/autoSaveDayBook');
 
 const PORT = process.env.PORT || 5000;
 
@@ -71,6 +72,9 @@ async function startServer() {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV}`);
     });
+
+    // End-of-day Day Book auto-save (guarded so it can never crash boot)
+    try { startAutoSaveDayBook(); } catch (e) { console.warn('⚠️ Day Book auto-save not started:', e.message); }
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
