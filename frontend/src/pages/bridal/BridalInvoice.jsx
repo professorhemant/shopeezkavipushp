@@ -46,6 +46,12 @@ const TYPES = [
   { key: 'final',   label: 'Final Invoice',   icon: CheckCircle2 },
 ]
 
+const TYPE_META = {
+  booking: { title: 'BOOKING INVOICE', prefix: 'BK' },
+  pickup:  { title: 'PICKUP INVOICE',  prefix: 'PK' },
+  final:   { title: 'FINAL INVOICE',   prefix: 'FIN' },
+}
+
 export default function BridalInvoice() {
   const { firm } = useAuthStore()
   const [bookings, setBookings] = useState([])
@@ -67,13 +73,16 @@ export default function BridalInvoice() {
 
   const booking = useMemo(() => bookings.find(b => b.id === selectedId), [bookings, selectedId])
 
+  const meta = TYPE_META[type]
+  const invNo = booking ? invoiceNo(meta.prefix, booking) : ''
+
   const rent = parseFloat(booking?.bridal_set_rent) || 0
   const bookingAmt = parseFloat(booking?.booking_amount) || 0
   const remaining = rent - bookingAmt
   const securityNum = parseFloat(security) || 0
   const totalOnPickup = remaining + securityNum
 
-  const handlePrint = useReactToPrint({ content: () => printRef.current, documentTitle: booking ? invoiceNo('BK', booking) : 'invoice' })
+  const handlePrint = useReactToPrint({ content: () => printRef.current, documentTitle: invNo || 'invoice' })
 
   const handlePdf = async () => {
     if (!printRef.current) return
@@ -82,7 +91,7 @@ export default function BridalInvoice() {
       const img = canvas.toDataURL('image/png')
       const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [canvas.width, canvas.height] })
       pdf.addImage(img, 'PNG', 0, 0, canvas.width, canvas.height)
-      pdf.save(`${invoiceNo('BK', booking)}.pdf`)
+      pdf.save(`${invNo}.pdf`)
     } catch { toast.error('Could not create PDF') }
   }
 
@@ -128,19 +137,28 @@ export default function BridalInvoice() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">Invoice Type</label>
-          <div className="flex flex-wrap gap-2">
-            {TYPES.map(t => {
-              const Icon = t.icon
-              return (
-                <button key={t.key} onClick={() => setType(t.key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border ${type === t.key ? 'bg-amber-600 border-amber-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                  <Icon className="h-4 w-4" /> {t.label}
-                </button>
-              )
-            })}
+        <div className="flex flex-wrap items-end gap-6">
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">Invoice Type</label>
+            <div className="flex flex-wrap gap-2">
+              {TYPES.map(t => {
+                const Icon = t.icon
+                return (
+                  <button key={t.key} onClick={() => setType(t.key)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border ${type === t.key ? 'bg-amber-600 border-amber-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    <Icon className="h-4 w-4" /> {t.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
+          {type === 'pickup' && (
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">Security Amount (₹)</label>
+              <input type="number" min="0" value={security} onChange={e => setSecurity(e.target.value)} placeholder="0"
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -151,9 +169,9 @@ export default function BridalInvoice() {
         <div className="bg-white rounded-xl p-10 shadow-sm border border-slate-200 text-center text-slate-400">
           Select a customer and invoice type above to preview and generate the invoice.
         </div>
-      ) : type !== 'booking' ? (
+      ) : type === 'final' ? (
         <div className="bg-white rounded-xl p-10 shadow-sm border border-slate-200 text-center text-slate-500">
-          The <strong>{type === 'pickup' ? 'Pickup' : 'Final'} Invoice</strong> layout will be added once you share its screenshot.
+          The <strong>Final Invoice</strong> layout will be added once you share its screenshot.
         </div>
       ) : (
         <>
@@ -170,8 +188,8 @@ export default function BridalInvoice() {
               </div>
 
               <div className="text-center mt-4">
-                <h3 className="font-bold tracking-wide">BOOKING INVOICE</h3>
-                <p className="text-xs text-slate-500 mt-1">Invoice #: {invoiceNo('BK', booking)} | Date: {fmtDate(new Date().toISOString())}</p>
+                <h3 className="font-bold tracking-wide">{meta.title}</h3>
+                <p className="text-xs text-slate-500 mt-1">Invoice #: {invNo} | Date: {fmtDate(new Date().toISOString())}</p>
               </div>
 
               {/* Bill To + Rental period */}
@@ -229,23 +247,39 @@ export default function BridalInvoice() {
                 </div>
               )}
 
-              {/* Important to note */}
-              <div className="mt-4 border-2 border-red-300 rounded-lg p-3">
-                <p className="text-red-600 font-semibold text-sm border-b border-red-200 pb-2">Important to Note Customers</p>
-                <div className="flex justify-between text-sm mt-2">
-                  <span>Remaining Bridal Rent</span><span className="font-medium">{formatCurrency(remaining)}</span>
+              {/* Payment summary — booking shows a red "Important to Note" box with an
+                  inline editable security; pickup shows plain styled rows (security comes
+                  from the Security Amount field at the top). */}
+              {type === 'booking' ? (
+                <div className="mt-4 border-2 border-red-300 rounded-lg p-3">
+                  <p className="text-red-600 font-semibold text-sm border-b border-red-200 pb-2">Important to Note Customers</p>
+                  <div className="flex justify-between text-sm mt-2">
+                    <span>Remaining Bridal Rent</span><span className="font-medium">{formatCurrency(remaining)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm mt-2">
+                    <span>Security to be Paid on Pickup</span>
+                    <span className="flex items-center gap-1">₹
+                      <input type="number" min="0" value={security} onChange={e => setSecurity(e.target.value)} placeholder="0"
+                        className="border border-red-200 rounded px-2 py-1 text-sm w-24 text-right focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-2 pt-2 border-t border-red-200 text-red-600 font-bold">
+                    <span>Total to be Paid by Customer on Pickup</span><span>{formatCurrency(totalOnPickup)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-sm mt-2">
-                  <span>Security to be Paid on Pickup</span>
-                  <span className="flex items-center gap-1">₹
-                    <input type="number" min="0" value={security} onChange={e => setSecurity(e.target.value)} placeholder="0"
-                      className="border border-red-200 rounded px-2 py-1 text-sm w-24 text-right focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
-                  </span>
+              ) : (
+                <div className="mt-4 text-sm">
+                  <div className="flex justify-between bg-slate-50 px-3 py-2 font-semibold">
+                    <span>Remaining Bridal Rent</span><span>{formatCurrency(remaining)}</span>
+                  </div>
+                  <div className="flex justify-between bg-slate-50 px-3 py-2 text-blue-700">
+                    <span>Security to be Paid on Pickup</span><span>{formatCurrency(securityNum)}</span>
+                  </div>
+                  <div className="flex justify-between px-3 py-2 text-green-700 font-bold border-t-2 border-amber-600">
+                    <span>Total to be Paid by Customer on Pickup</span><span>{formatCurrency(totalOnPickup)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm mt-2 pt-2 border-t border-red-200 text-red-600 font-bold">
-                  <span>Total to be Paid by Customer on Pickup</span><span>{formatCurrency(totalOnPickup)}</span>
-                </div>
-              </div>
+              )}
 
               {/* Terms */}
               <div className="mt-5 border border-slate-200 rounded-lg p-3">
