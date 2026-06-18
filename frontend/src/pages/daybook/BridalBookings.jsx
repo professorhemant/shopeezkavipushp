@@ -108,7 +108,26 @@ export default function BridalBookings() {
     return () => clearTimeout(availRef.current)
   }, [form.set_code, form.function_date])
 
-  // standalone checker: fires as soon as a set code + function date are entered
+  // The inventory set whose code matches what's typed in the checker (exact, case-insensitive)
+  const checkerMatch = checkerCode.trim()
+    ? sets.find(s => (s.code || '').trim().toLowerCase() === checkerCode.trim().toLowerCase())
+    : null
+
+  // Auto-fill the booking form's set the moment a typed code matches an inventory set
+  // (independent of date/availability, so it fills as soon as you finish the code).
+  useEffect(() => {
+    if (!checkerMatch) return
+    setForm(f => ({
+      ...f,
+      bridal_set_id: checkerMatch.id,
+      set_code: checkerMatch.code || '',
+      set_name: checkerMatch.name || '',
+      category: checkerMatch.category || '',
+      bridal_set_rent: f.customized_set ? f.bridal_set_rent : (checkerMatch.rental_price ?? ''),
+    }))
+  }, [checkerMatch?.id])
+
+  // Standalone availability check (needs set code + function date)
   useEffect(() => {
     if (checkerRef.current) clearTimeout(checkerRef.current)
     const code = checkerCode.trim()
@@ -117,30 +136,16 @@ export default function BridalBookings() {
       setCheckerLoading(true)
       try {
         const res = await bridalAPI.checkAvailability(code, checkerDate)
-        const ranges = res.data.data || []
-        setCheckerResult(ranges)
-        // If available AND the code matches an inventory set, auto-fill the booking form
-        if (ranges.length === 0) {
-          const match = sets.find(s => (s.code || '').trim().toLowerCase() === code.toLowerCase())
-          if (match) {
-            setForm(f => ({
-              ...f,
-              bridal_set_id: match.id,
-              set_code: match.code || '',
-              set_name: match.name || '',
-              category: match.category || '',
-              bridal_set_rent: f.customized_set ? f.bridal_set_rent : (match.rental_price ?? ''),
-              function_date: checkerDate,
-              pickup_date: addDays(checkerDate, -1),
-              return_date: addDays(checkerDate, +1),
-            }))
-          }
-        }
+        setCheckerResult(res.data.data || [])
+        // carry the checked function date into the form when this set is the one selected
+        setForm(f => (f.set_code && f.set_code.trim().toLowerCase() === code.toLowerCase())
+          ? { ...f, function_date: checkerDate, pickup_date: addDays(checkerDate, -1), return_date: addDays(checkerDate, +1) }
+          : f)
       } catch { setCheckerResult([]) }
       finally { setCheckerLoading(false) }
     }, 500)
     return () => clearTimeout(checkerRef.current)
-  }, [checkerCode, checkerDate, inv])
+  }, [checkerCode, checkerDate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -199,6 +204,11 @@ export default function BridalBookings() {
             <label className={lbl}>Set Code</label>
             <input value={checkerCode} onChange={e => setCheckerCode(e.target.value)} placeholder="e.g. B001"
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+            {checkerCode.trim() && (
+              checkerMatch
+                ? <p className="text-xs text-green-600 mt-1 truncate w-44">✓ {checkerMatch.name} — filled below</p>
+                : <p className="text-xs text-amber-600 mt-1 truncate w-44">Not found in Bridal Inventory</p>
+            )}
           </div>
           <div>
             <label className={lbl}>Function Date</label>
