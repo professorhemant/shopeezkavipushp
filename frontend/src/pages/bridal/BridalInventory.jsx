@@ -269,8 +269,15 @@ function ImportModal({ onClose, onSuccess }) {
           <Download className="h-3.5 w-3.5" /> Download sample CSV
         </button>
 
-        <input ref={fileRef} type="file" accept=".csv" onChange={(e) => parseFile(e.target.files?.[0])}
-          className="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
+        <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
+          onChange={(e) => parseFile(e.target.files?.[0])} />
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => fileRef.current?.click()}
+            className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm font-medium">
+            Choose file
+          </button>
+          <span className="text-sm text-slate-500 truncate">{fileName || 'No file chosen'}</span>
+        </div>
 
         {fileName && rows.length > 0 && !result && (
           <p className="text-sm text-slate-600 mt-3">{rows.length} valid rows ready from <strong>{fileName}</strong>.</p>
