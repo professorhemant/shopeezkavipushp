@@ -66,7 +66,7 @@ const MENU = [
     ],
   },
   {
-    id: 'rental', label: 'Rental Module', icon: Store,
+    id: 'rental', label: 'Bridal Module', icon: Store,
     children: [
       { label: 'Bridal Bookings',     path: '/daybook/bridal-bookings', icon: Calendar },
       { label: 'Bridal Dispatch',     path: '/daybook/bridal-dispatch', icon: Truck },
