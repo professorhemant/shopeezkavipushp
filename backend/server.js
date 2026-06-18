@@ -48,6 +48,7 @@ async function startServer() {
       "ALTER TABLE promotions ADD COLUMN image_url VARCHAR(500) NULL",
       "ALTER TABLE promotions ADD COLUMN images_json TEXT NULL",
       "ALTER TABLE sales ADD COLUMN images_json TEXT NULL",
+      "ALTER TABLE bridal_bookings ADD COLUMN aadhaar_no VARCHAR(20) NULL",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }

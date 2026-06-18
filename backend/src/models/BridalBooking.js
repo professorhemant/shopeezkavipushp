@@ -30,6 +30,7 @@ const BridalBooking = sequelize.define('BridalBooking', {
 
   customer_name: { type: DataTypes.STRING(100) },
   mobile_no:     { type: DataTypes.STRING(20) },
+  aadhaar_no:    { type: DataTypes.STRING(20) },
 
   function_date: { type: DataTypes.DATEONLY },
   booking_date:  { type: DataTypes.DATEONLY },

@@ -34,7 +34,7 @@ const EMPTY = {
   bridal_set_id: '', set_code: '', set_name: '', category: '', customized_set: '',
   nath: '', maang_teeka: '', ring: '', matha_patti: '', sheesh_patti: '', hath_phool: '', pasa: '',
   any_other_item: '', bridal_set_rent: '', booking_amount: '', customization: '', stylist: '',
-  customer_name: '', mobile_no: '',
+  customer_name: '', mobile_no: '', aadhaar_no: '',
   function_date: '', booking_date: today(), pickup_date: '', return_date: '',
 }
 
@@ -115,12 +115,32 @@ export default function BridalBookings() {
     if (!code || !checkerDate) { setCheckerResult(null); return }
     checkerRef.current = setTimeout(async () => {
       setCheckerLoading(true)
-      try { const res = await bridalAPI.checkAvailability(code, checkerDate); setCheckerResult(res.data.data || []) }
-      catch { setCheckerResult([]) }
+      try {
+        const res = await bridalAPI.checkAvailability(code, checkerDate)
+        const ranges = res.data.data || []
+        setCheckerResult(ranges)
+        // If available AND the code matches an inventory set, auto-fill the booking form
+        if (ranges.length === 0) {
+          const match = sets.find(s => (s.code || '').trim().toLowerCase() === code.toLowerCase())
+          if (match) {
+            setForm(f => ({
+              ...f,
+              bridal_set_id: match.id,
+              set_code: match.code || '',
+              set_name: match.name || '',
+              category: match.category || '',
+              bridal_set_rent: f.customized_set ? f.bridal_set_rent : (match.rental_price ?? ''),
+              function_date: checkerDate,
+              pickup_date: addDays(checkerDate, -1),
+              return_date: addDays(checkerDate, +1),
+            }))
+          }
+        }
+      } catch { setCheckerResult([]) }
       finally { setCheckerLoading(false) }
     }, 500)
     return () => clearTimeout(checkerRef.current)
-  }, [checkerCode, checkerDate])
+  }, [checkerCode, checkerDate, inv])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -160,6 +180,16 @@ export default function BridalBookings() {
           No bridal sets in inventory yet. Add them under <strong>Bridal Inventory</strong> so they appear in the dropdown below.
         </div>
       )}
+
+      {/* Customer details */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Customer Details</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div><label className={lbl}>Customer Name</label><input value={form.customer_name} onChange={e => setField('customer_name', e.target.value)} placeholder="Customer name" className={inp} /></div>
+          <div><label className={lbl}>Mobile Number</label><input value={form.mobile_no} onChange={e => setField('mobile_no', e.target.value)} placeholder="Mobile number" className={inp} /></div>
+          <div><label className={lbl}>Aadhaar Number</label><input value={form.aadhaar_no} onChange={e => setField('aadhaar_no', e.target.value)} placeholder="Aadhaar number" className={inp} /></div>
+        </div>
+      </div>
 
       {/* Standalone availability checker */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
@@ -281,8 +311,6 @@ export default function BridalBookings() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
           <div><label className={lbl}>Bridal Set Rent (₹)</label><input type="number" step="0.01" min="0" value={form.bridal_set_rent} onChange={e => setField('bridal_set_rent', e.target.value)} placeholder="Auto-filled / manual" className={inp} /></div>
           <div><label className={lbl}>Booking Amount (₹)</label><input type="number" step="0.01" min="0" value={form.booking_amount} onChange={e => setField('booking_amount', e.target.value)} placeholder="Advance paid by customer" className={inp} /></div>
-          <div><label className={lbl}>Customer Name</label><input value={form.customer_name} onChange={e => setField('customer_name', e.target.value)} placeholder="Customer name" className={inp} /></div>
-          <div><label className={lbl}>Mobile No.</label><input value={form.mobile_no} onChange={e => setField('mobile_no', e.target.value)} placeholder="Mobile number" className={inp} /></div>
           <div><label className={lbl}>Stylist Who Attended</label><input value={form.stylist} onChange={e => setField('stylist', e.target.value)} placeholder="Enter stylist name" className={inp} /></div>
         </div>
 

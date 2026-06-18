@@ -111,7 +111,7 @@ export default function SavedBookings() {
 
 function DetailModal({ booking, onClose, onSaved, onDelete }) {
   const [form, setForm] = useState({
-    customer_name: booking.customer_name || '', mobile_no: booking.mobile_no || '',
+    customer_name: booking.customer_name || '', mobile_no: booking.mobile_no || '', aadhaar_no: booking.aadhaar_no || '',
     bridal_set_rent: booking.bridal_set_rent ?? '', booking_amount: booking.booking_amount ?? '',
     stylist: booking.stylist || '', customization: booking.customization || '',
     function_date: booking.function_date ? String(booking.function_date).split('T')[0] : '',
@@ -157,6 +157,7 @@ function DetailModal({ booking, onClose, onSaved, onDelete }) {
         <div className="grid grid-cols-2 gap-3">
           <div><label className={lbl}>Customer Name</label><input value={form.customer_name} onChange={e => set('customer_name', e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Mobile No.</label><input value={form.mobile_no} onChange={e => set('mobile_no', e.target.value)} className={inp} /></div>
+          <div><label className={lbl}>Aadhaar No.</label><input value={form.aadhaar_no} onChange={e => set('aadhaar_no', e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Function Date</label><input type="date" value={form.function_date} onChange={e => set('function_date', e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Stylist</label><input value={form.stylist} onChange={e => set('stylist', e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Pickup</label><input type="date" value={form.pickup_date} onChange={e => set('pickup_date', e.target.value)} className={inp} /></div>
