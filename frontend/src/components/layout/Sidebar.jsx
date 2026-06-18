@@ -23,6 +23,7 @@ const MENU = [
       { label: 'Bridal Dispatch',   path: '/daybook/bridal-dispatch',   icon: Truck },
       { label: 'Expenses',          path: '/daybook/expenses',          icon: Wallet },
       { label: 'Total Received',    path: '/daybook/total-received',    icon: DollarSign },
+      { label: 'Saved Day Book',    path: '/daybook/saved',             icon: Bookmark },
     ],
   },
   { id: 'customers', label: 'Customers',          icon: Users,           path: '/customers' },

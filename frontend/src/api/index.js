@@ -48,6 +48,12 @@ export const authAPI = {
   verifyEditOtp: (data) => api.post('/auth/verify-edit-otp', data),
 }
 
+// Verify email+password WITHOUT touching the current session.
+// Uses a bare axios call so the global 401 interceptor (which logs out and
+// redirects to /login) does not fire on a wrong password. Used by the
+// Saved Day Book unlock gate.
+export const verifyCredentials = (data) => axios.post(`${API_BASE}/auth/login`, data)
+
 // ─── Dashboard ──────────────────────────────────────────────────────
 export const dashboardAPI = {
   getStats: () => api.get('/dashboard/stats'),

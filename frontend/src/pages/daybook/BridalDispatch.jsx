@@ -4,15 +4,13 @@ import toast from 'react-hot-toast'
 import { dayBookAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
-import useAuthStore from '../../store/authStore'
 
 const today = () => new Date().toISOString().split('T')[0]
 const EMPTY_SPLIT = { slip_no: '', cash: '', card: '', online: '' }
 const EMPTY_EDIT  = { slip_no: '', amount: '', payment_mode: 'cash' }
 
 export default function BridalDispatch() {
-  const { user } = useAuthStore()
-  const canViewHistory = ['admin', 'super_admin'].includes(user?.role_name)
+  const canViewHistory = false // live page is today-only; previous days via Saved Day Book
   const [date, setDate] = useState(today())
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -80,7 +78,7 @@ export default function BridalDispatch() {
         <div className="flex flex-wrap items-center gap-2">
           <input type="date" value={date} onChange={(e) => canViewHistory && setDate(e.target.value)}
             disabled={!canViewHistory}
-            title={!canViewHistory ? 'Only admin Swechha can view previous dates' : ''}
+            title={!canViewHistory ? 'Previous days are available in Saved Day Book' : ''}
             className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 ${!canViewHistory ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-slate-200'}`} />
           <button onClick={() => { setSplitForm(EMPTY_SPLIT); setEditForm(EMPTY_EDIT); setEditId(null); setShowForm(true) }}
             className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
