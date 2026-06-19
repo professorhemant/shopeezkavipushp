@@ -12,6 +12,7 @@ router.post('/upload', (req, res, next) => { req.uploadFolder = 'bridal'; next()
 router.get('/inventory', c.listInventory);
 router.post('/inventory', c.createInventory);
 router.post('/inventory/bulk-import', c.bulkImportInventory);
+router.delete('/inventory', c.deleteAllInventory);
 router.put('/inventory/:id', c.updateInventory);
 router.delete('/inventory/:id', c.deleteInventory);
 

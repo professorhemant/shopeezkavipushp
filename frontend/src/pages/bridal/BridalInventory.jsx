@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Plus, Edit2, Trash2, Upload, Download, X } from 'lucide-react'
+import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle } from 'lucide-react'
 import Papa from 'papaparse'
 import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
@@ -78,6 +78,19 @@ export default function BridalInventory() {
 
   const visible = filter === 'all' ? rows : rows.filter(r => r.item_type === filter)
 
+  const removeAll = async () => {
+    const n = visible.length
+    if (n === 0) return
+    const scope = filter === 'all' ? 'items' : `${typeLabel(filter)} items`
+    if (!window.confirm(`Delete ${n} ${scope}? This permanently removes them and cannot be undone.`)) return
+    if (filter === 'all' && !window.confirm('This erases your ENTIRE bridal inventory. Are you absolutely sure?')) return
+    try {
+      const { data } = await bridalAPI.deleteAllInventory(filter)
+      toast.success(`Deleted ${data?.deleted ?? n} items`)
+      load()
+    } catch { toast.error('Failed to delete all') }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -86,6 +99,12 @@ export default function BridalInventory() {
           <p className="text-sm text-slate-500 mt-0.5">{rows.length} items · feeds the Bridal Bookings dropdowns</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {visible.length > 0 && (
+            <button onClick={removeAll}
+              className="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" /> {filter === 'all' ? 'Delete All' : `Delete All ${typeLabel(filter)}`}
+            </button>
+          )}
           <button onClick={() => setShowImport(true)}
             className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <Upload className="h-4 w-4" /> Import CSV

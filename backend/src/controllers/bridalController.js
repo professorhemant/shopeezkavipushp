@@ -69,6 +69,18 @@ const normalizeItemType = (raw) => {
   return VALID_TYPES.includes(k) ? k : null;
 };
 
+// DELETE /bridal/inventory[?type=...] — delete every inventory row for the firm,
+// or just one category when ?type= is a valid item_type.
+const deleteAllInventory = async (req, res, next) => {
+  try {
+    const where = { firm_id: req.firmId };
+    const type = normalizeItemType(req.query.type);
+    if (type) where.item_type = type;
+    const deleted = await BridalInventory.destroy({ where });
+    res.json({ success: true, deleted });
+  } catch (err) { next(err); }
+};
+
 const bulkImportInventory = async (req, res, next) => {
   try {
     const items = req.body.items;
@@ -263,6 +275,7 @@ module.exports = {
   listInventory,
   createInventory,
   updateInventory,
+  deleteAllInventory,
   deleteInventory,
   bulkImportInventory,
   listBookings,
