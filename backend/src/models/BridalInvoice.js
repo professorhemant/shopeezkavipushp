@@ -12,9 +12,11 @@ const BridalInvoice = sequelize.define('BridalInvoice', {
 
   customer_name: { type: DataTypes.STRING(100) },
   mobile_no: { type: DataTypes.STRING(20) },
+  aadhaar_no: { type: DataTypes.STRING(20) },
   set_name: { type: DataTypes.STRING(255) },
   set_code: { type: DataTypes.STRING(50) },
   category: { type: DataTypes.STRING(150) },
+  stylist: { type: DataTypes.STRING(100) },
 
   function_date: { type: DataTypes.DATEONLY },
   pickup_date: { type: DataTypes.DATEONLY },
@@ -27,6 +29,8 @@ const BridalInvoice = sequelize.define('BridalInvoice', {
   total: { type: DataTypes.DECIMAL(12, 2) },
   // No DB defaultValue — MySQL forbids DEFAULT on TEXT
   reasons: { type: DataTypes.TEXT },
+  // Bridal set photo, stored as a data URL so reopened invoices keep the image
+  set_image: { type: DataTypes.TEXT('long') },
   invoice_date: { type: DataTypes.DATEONLY },
 }, { tableName: 'bridal_invoices' });
 

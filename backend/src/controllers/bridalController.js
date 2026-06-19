@@ -159,9 +159,20 @@ const listInvoices = async (req, res, next) => {
   try {
     const rows = await BridalInvoice.findAll({
       where: { firm_id: req.firmId },
+      // Exclude the (potentially large) image so the list stays light;
+      // it's fetched on demand by getInvoice when reopening a single invoice.
+      attributes: { exclude: ['set_image'] },
       order: [['createdAt', 'DESC']],
     });
     res.json({ success: true, data: rows });
+  } catch (err) { next(err); }
+};
+
+const getInvoice = async (req, res, next) => {
+  try {
+    const row = await BridalInvoice.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
+    if (!row) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, data: row });
   } catch (err) { next(err); }
 };
 
@@ -169,6 +180,19 @@ const createInvoice = async (req, res, next) => {
   try {
     const type = ['booking', 'pickup', 'final'].includes(req.body.type) ? req.body.type : 'booking';
     const prefix = INVOICE_PREFIX[type];
+    const booking_id = req.body.booking_id || null;
+    const invoice_date = req.body.invoice_date || new Date().toISOString().split('T')[0];
+
+    // One invoice per booking + type: if it already exists, update it in place
+    // (keeping its number) instead of silently issuing a duplicate number.
+    if (booking_id) {
+      const existing = await BridalInvoice.findOne({ where: { firm_id: req.firmId, booking_id, type } });
+      if (existing) {
+        await existing.update({ ...req.body, type, booking_id, invoice_date });
+        return res.json({ success: true, data: existing, updated: true });
+      }
+    }
+
     // Sequential per firm + type
     const count = await BridalInvoice.count({ where: { firm_id: req.firmId, type } });
     const invoice_no = `${prefix}-${String(count + 1).padStart(5, '0')}`;
@@ -177,8 +201,8 @@ const createInvoice = async (req, res, next) => {
       type,
       invoice_no,
       firm_id: req.firmId,
-      booking_id: req.body.booking_id || null,
-      invoice_date: req.body.invoice_date || new Date().toISOString().split('T')[0],
+      booking_id,
+      invoice_date,
     });
     res.status(201).json({ success: true, data: row });
   } catch (err) { next(err); }
@@ -195,6 +219,7 @@ const deleteInvoice = async (req, res, next) => {
 
 module.exports = {
   listInvoices,
+  getInvoice,
   createInvoice,
   deleteInvoice,
   listInventory,

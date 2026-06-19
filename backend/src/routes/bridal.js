@@ -13,6 +13,7 @@ router.delete('/inventory/:id', c.deleteInventory);
 
 // Bridal Invoices (saved)
 router.get('/invoices', c.listInvoices);
+router.get('/invoices/:id', c.getInvoice);
 router.post('/invoices', c.createInvoice);
 router.delete('/invoices/:id', c.deleteInvoice);
 

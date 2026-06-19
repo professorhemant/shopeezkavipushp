@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Trash2 } from 'lucide-react'
+import { Plus, Search, Trash2, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -94,7 +94,8 @@ export default function BridalInvoicesList() {
                       <td className="px-4 py-3 text-right font-medium text-slate-800">{formatCurrency(parseFloat(r.total) || 0)}</td>
                       <td className="px-4 py-3 text-slate-600">{fmtDate(r.invoice_date)}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Link to={`/bridal/invoice/view/${r.id}`} className="p-1.5 rounded hover:bg-amber-50 text-slate-400 hover:text-amber-600" title="View / Print"><Eye className="h-4 w-4" /></Link>
                           <button onClick={() => remove(r)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600" title="Delete"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </td>
