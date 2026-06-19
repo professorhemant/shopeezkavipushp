@@ -225,16 +225,13 @@ N001,Gold Nath,nath,Gold,1200,3,
 R001,Polki Ring,ring,Polki,800,5,
 `
 
-function ImportModal({ onClose, onSuccess, defaultType = 'set' }) {
+function ImportModal({ onClose, onSuccess }) {
   const fileRef = useRef()
   const [rows, setRows] = useState([])
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState(null)
   const [fileName, setFileName] = useState('')
   const [pasteText, setPasteText] = useState('')
-  // Type assigned to rows whose CSV doesn't specify a recognized item_type.
-  // Defaults to the category tab the import was opened from.
-  const [importType, setImportType] = useState(defaultType)
 
   const PAPA_OPTS = {
     header: true, skipEmptyLines: true,
@@ -289,7 +286,7 @@ function ImportModal({ onClose, onSuccess, defaultType = 'set' }) {
       let imported = 0
       for (let i = 0; i < rows.length; i += 50) {
         const batch = rows.slice(i, i + 50)
-        const { data } = await bridalAPI.bulkImportInventory(batch, importType)
+        const { data } = await bridalAPI.bulkImportInventory(batch)
         imported += data?.data?.imported || 0
       }
       setResult({ imported, total: rows.length })
@@ -322,15 +319,6 @@ function ImportModal({ onClose, onSuccess, defaultType = 'set' }) {
         <button onClick={downloadSample} className="text-amber-600 hover:text-amber-700 text-xs font-medium flex items-center gap-1 mb-3">
           <Download className="h-3.5 w-3.5" /> Download sample CSV
         </button>
-
-        <div className="mb-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-          <label className="block text-xs font-medium text-slate-700 mb-1">Import all rows as</label>
-          <select value={importType} onChange={(e) => setImportType(e.target.value)}
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
-            {ITEM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-          <p className="text-[11px] text-slate-500 mt-1">Used for rows whose CSV has no valid <code className="bg-white px-1 rounded">item_type</code>. A row that does specify a valid type keeps it.</p>
-        </div>
 
         {/* Trigger the hidden input via a real click handler. Safari won't open
             the picker from a <label htmlFor> when the input is display:none, but

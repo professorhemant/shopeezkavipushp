@@ -63,10 +63,27 @@ const deleteInventory = async (req, res, next) => {
 
 const VALID_TYPES = ['set', 'nath', 'maang_teeka', 'ring', 'matha_patti', 'sheesh_patti', 'hath_phool', 'pasa', 'borla'];
 
-// "Maang Teeka" / "maang-teeka" / "MAANG TEEKA" → "maang_teeka"; null if unknown.
+// Display-name aliases → stored value (handles CSV column values like "Bridal Set", "Maang Teeka", etc.)
+const TYPE_ALIASES = {
+  bridal_set: 'set',
+  bridal: 'set',
+  maang_teeka: 'maang_teeka',
+  maang_tikka: 'maang_teeka',
+  mangtika: 'maang_teeka',
+  matha_patti: 'matha_patti',
+  mathapatti: 'matha_patti',
+  sheesh_patti: 'sheesh_patti',
+  sheeshpatti: 'sheesh_patti',
+  hath_phool: 'hath_phool',
+  hathphool: 'hath_phool',
+};
+
+// Accepts display names ("Bridal Set", "Maang Teeka") or snake_case; returns stored key or null.
 const normalizeItemType = (raw) => {
   const k = String(raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-  return VALID_TYPES.includes(k) ? k : null;
+  if (VALID_TYPES.includes(k)) return k;
+  if (TYPE_ALIASES[k]) return TYPE_ALIASES[k];
+  return null;
 };
 
 // DELETE /bridal/inventory[?type=...] — delete every inventory row for the firm,
