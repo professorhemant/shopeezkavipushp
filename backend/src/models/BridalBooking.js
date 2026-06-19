@@ -22,6 +22,7 @@ const BridalBooking = sequelize.define('BridalBooking', {
   sheesh_patti: { type: DataTypes.STRING(255) },
   hath_phool:   { type: DataTypes.STRING(255) },
   pasa:         { type: DataTypes.STRING(255) },
+  borla:        { type: DataTypes.STRING(255) },
   any_other_item: { type: DataTypes.STRING(255) },
 
   bridal_set_rent: { type: DataTypes.DECIMAL(12, 2) },

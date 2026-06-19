@@ -9,7 +9,7 @@ const BridalInventory = sequelize.define('BridalInventory', {
   code: { type: DataTypes.STRING(50) },
   name: { type: DataTypes.STRING(255), allowNull: false },
   item_type: {
-    type: DataTypes.ENUM('set', 'nath', 'maang_teeka', 'ring', 'matha_patti', 'sheesh_patti', 'hath_phool', 'pasa'),
+    type: DataTypes.ENUM('set', 'nath', 'maang_teeka', 'ring', 'matha_patti', 'sheesh_patti', 'hath_phool', 'pasa', 'borla'),
     defaultValue: 'set',
   },
   category: { type: DataTypes.STRING(150) },

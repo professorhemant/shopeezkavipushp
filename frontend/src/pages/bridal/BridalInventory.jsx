@@ -16,6 +16,7 @@ export const ITEM_TYPES = [
   { value: 'sheesh_patti', label: 'Sheesh Patti' },
   { value: 'hath_phool',   label: 'Hath Phool' },
   { value: 'pasa',         label: 'Pasa' },
+  { value: 'borla',        label: 'Borla' },
 ]
 const typeLabel = (v) => ITEM_TYPES.find(t => t.value === v)?.label || v
 
@@ -296,7 +297,7 @@ function ImportModal({ onClose, onSuccess, defaultType = 'set' }) {
 
         <p className="text-xs text-slate-500 mb-3">
           Columns: <code className="bg-slate-100 px-1 rounded">code, name, item_type, category, rental_price, stock, description</code>.
-          <br /><code className="bg-slate-100 px-1 rounded">item_type</code> = set, nath, maang_teeka, ring, matha_patti, sheesh_patti, hath_phool, pasa.
+          <br /><code className="bg-slate-100 px-1 rounded">item_type</code> = set, nath, maang_teeka, ring, matha_patti, sheesh_patti, hath_phool, pasa, borla.
         </p>
 
         <button onClick={downloadSample} className="text-amber-600 hover:text-amber-700 text-xs font-medium flex items-center gap-1 mb-3">

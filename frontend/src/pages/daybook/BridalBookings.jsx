@@ -29,11 +29,12 @@ const ACCESSORIES = [
   { key: 'sheesh_patti', label: 'Sheesh Patti', type: 'sheesh_patti' },
   { key: 'hath_phool',   label: 'Hath Phool',   type: 'hath_phool' },
   { key: 'pasa',         label: 'Pasa',         type: 'pasa' },
+  { key: 'borla',        label: 'Borla',        type: 'borla' },
 ]
 
 const EMPTY = {
   bridal_set_id: '', set_code: '', set_name: '', category: '', customized_set: '', set_image: '',
-  nath: '', maang_teeka: '', ring: '', matha_patti: '', sheesh_patti: '', hath_phool: '', pasa: '',
+  nath: '', maang_teeka: '', ring: '', matha_patti: '', sheesh_patti: '', hath_phool: '', pasa: '', borla: '',
   any_other_item: '', bridal_set_rent: '', booking_amount: '', customization: '', stylist: '',
   customer_name: '', mobile_no: '', aadhaar_no: '',
   function_date: '', booking_date: today(), pickup_date: '', return_date: '',

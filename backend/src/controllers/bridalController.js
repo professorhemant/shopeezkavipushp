@@ -61,7 +61,7 @@ const deleteInventory = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-const VALID_TYPES = ['set', 'nath', 'maang_teeka', 'ring', 'matha_patti', 'sheesh_patti', 'hath_phool', 'pasa'];
+const VALID_TYPES = ['set', 'nath', 'maang_teeka', 'ring', 'matha_patti', 'sheesh_patti', 'hath_phool', 'pasa', 'borla'];
 
 // "Maang Teeka" / "maang-teeka" / "MAANG TEEKA" → "maang_teeka"; null if unknown.
 const normalizeItemType = (raw) => {

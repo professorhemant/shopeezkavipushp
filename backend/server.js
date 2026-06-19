@@ -54,6 +54,10 @@ async function startServer() {
       "ALTER TABLE bridal_invoices ADD COLUMN set_image LONGTEXT NULL",
       "ALTER TABLE bridal_inventory ADD COLUMN image VARCHAR(500) NULL",
       "ALTER TABLE bridal_bookings ADD COLUMN set_image VARCHAR(500) NULL",
+      // Ensure the inventory type column accepts every category (a missing enum
+      // value makes MySQL store '' so the rows vanish from their tab) + add Borla.
+      "ALTER TABLE bridal_inventory MODIFY COLUMN item_type ENUM('set','nath','maang_teeka','ring','matha_patti','sheesh_patti','hath_phool','pasa','borla') DEFAULT 'set'",
+      "ALTER TABLE bridal_bookings ADD COLUMN borla VARCHAR(255) NULL",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
