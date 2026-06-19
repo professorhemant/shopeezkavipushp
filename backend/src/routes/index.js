@@ -86,14 +86,27 @@ router.get('/_diag/bridal', async (req, res) => {
       byFirm[key] = byFirm[key] || {};
       byFirm[key][r.item_type === '' || r.item_type == null ? '(blank)' : r.item_type] = Number(r.count);
     }
-    // 15 most recent rows across all firms (to see the latest import)
-    const recent = await BridalInventory.findAll({
-      attributes: ['code', 'name', 'item_type', 'createdAt'],
-      order: [['createdAt', 'DESC']],
-      limit: 15,
-      raw: true,
-    });
-    res.json({ success: true, counts: byFirm, recent });
+    // Classify every row by a keyword in its NAME, vs its stored item_type,
+    // to see how many accessories are mislabeled (e.g. named "MAANG TEEKA"
+    // but stored as set). Also detect duplicate codes.
+    const all = await BridalInventory.findAll({ attributes: ['code', 'name', 'item_type'], raw: true });
+    const KW = [
+      ['maang_teeka', /MAANG\s*TEEKA/i], ['matha_patti', /MATHA\s*PATTI/i],
+      ['sheesh_patti', /SHEESH\s*PATTI/i], ['hath_phool', /HATH\s*PHOOL/i],
+      ['nath', /\bNATH\b/i], ['ring', /\bRING\b/i], ['pasa', /\bPASA\b/i],
+      ['borla', /\bBORLA\b/i],
+    ];
+    const nameType = (name) => { for (const [t, re] of KW) if (re.test(name || '')) return t; return 'set/other'; };
+    const mismatch = {}; // nameCategory -> { storedType: count }
+    const codeSeen = {};
+    let dupCodes = 0;
+    for (const r of all) {
+      const nt = nameType(r.name);
+      mismatch[nt] = mismatch[nt] || {};
+      mismatch[nt][r.item_type || '(blank)'] = (mismatch[nt][r.item_type || '(blank)'] || 0) + 1;
+      if (r.code) { codeSeen[r.code] = (codeSeen[r.code] || 0) + 1; if (codeSeen[r.code] === 2) dupCodes++; }
+    }
+    res.json({ success: true, counts: byFirm, byNameKeyword: mismatch, totalRows: all.length, duplicateCodes: dupCodes });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
