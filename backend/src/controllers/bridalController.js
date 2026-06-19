@@ -129,7 +129,7 @@ const bulkImportInventory = async (req, res, next) => {
         // Upsert by code so re-importing corrects existing rows (e.g. a wrong
         // type) instead of creating duplicates. Rows without a code are created.
         if (it.code) {
-          const existing = await BridalInventory.findOne({ where: { firm_id: req.firmId, code: it.code } });
+          const existing = await BridalInventory.findOne({ where: { firm_id: req.firmId, code: it.code, item_type: it.item_type } });
           if (existing) { await existing.update(it); updated++; continue; }
         }
         await BridalInventory.create(it);
