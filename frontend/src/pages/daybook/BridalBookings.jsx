@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import BridalImageUpload from '../../components/bridal/BridalImageUpload'
 
 const today = () => new Date().toISOString().split('T')[0]
 const addDays = (dateStr, days) => {
@@ -31,7 +32,7 @@ const ACCESSORIES = [
 ]
 
 const EMPTY = {
-  bridal_set_id: '', set_code: '', set_name: '', category: '', customized_set: '',
+  bridal_set_id: '', set_code: '', set_name: '', category: '', customized_set: '', set_image: '',
   nath: '', maang_teeka: '', ring: '', matha_patti: '', sheesh_patti: '', hath_phool: '', pasa: '',
   any_other_item: '', bridal_set_rent: '', booking_amount: '', customization: '', stylist: '',
   customer_name: '', mobile_no: '', aadhaar_no: '',
@@ -86,6 +87,7 @@ export default function BridalBookings() {
       set_code: s.code || '',
       set_name: s.name || '',
       category: s.category || '',
+      set_image: s.image || f.set_image,
       bridal_set_rent: f.customized_set ? f.bridal_set_rent : (s.rental_price ?? ''),
     }))
   }
@@ -123,6 +125,7 @@ export default function BridalBookings() {
       set_code: checkerMatch.code || '',
       set_name: checkerMatch.name || '',
       category: checkerMatch.category || '',
+      set_image: checkerMatch.image || f.set_image,
       bridal_set_rent: f.customized_set ? f.bridal_set_rent : (checkerMatch.rental_price ?? ''),
     }))
   }, [checkerMatch?.id])
@@ -295,6 +298,11 @@ export default function BridalBookings() {
           <label className={lbl}>Customized Bridal Set</label>
           <input value={form.customized_set} onChange={e => setField('customized_set', e.target.value)} placeholder="Enter customized set details (if applicable)…" className={inp} />
           <p className="text-xs text-slate-400 mt-1">If filled, you can enter Bridal Set Rent manually below.</p>
+        </div>
+
+        <div className="pt-2 border-t border-slate-100">
+          <BridalImageUpload label="Bridal Set Image (auto-filled from inventory; flows into the invoice)"
+            value={form.set_image} onChange={(url) => setField('set_image', url || '')} />
         </div>
 
         {/* Accessories */}

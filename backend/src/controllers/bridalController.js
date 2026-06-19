@@ -5,6 +5,20 @@ const { BridalInventory, BridalBooking, BridalInvoice } = require('../models');
 
 const INVOICE_PREFIX = { booking: 'BK', pickup: 'PK', final: 'FN' };
 
+// Absolute URL for an uploaded file. Prefers an explicit/Railway public host so
+// the URL is https and reachable from the separate frontend origin.
+const uploadUrl = (req, folder, filename) => {
+  const base = process.env.BACKEND_URL
+    || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `${req.protocol}://${req.get('host')}`);
+  return `${base}/uploads/${folder}/${filename}`;
+};
+
+// POST /bridal/upload — single bridal set image (multipart field "image")
+const uploadImage = (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+  res.json({ success: true, url: uploadUrl(req, 'bridal', req.file.filename) });
+};
+
 const shiftDate = (dateStr, days) => {
   const d = new Date(dateStr);
   d.setUTCDate(d.getUTCDate() + days);
@@ -218,6 +232,7 @@ const deleteInvoice = async (req, res, next) => {
 };
 
 module.exports = {
+  uploadImage,
   listInvoices,
   getInvoice,
   createInvoice,

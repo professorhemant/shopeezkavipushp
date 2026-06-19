@@ -2,9 +2,13 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Root for all uploads. Override with UPLOAD_DIR to point at a persistent
+// volume (Railway's container disk is ephemeral and wiped on every redeploy).
+const UPLOAD_ROOT = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../../uploads', req.uploadFolder || 'misc');
+    const dir = path.join(UPLOAD_ROOT, req.uploadFolder || 'misc');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -29,3 +33,4 @@ const upload = multer({
 });
 
 module.exports = upload;
+module.exports.UPLOAD_ROOT = UPLOAD_ROOT;

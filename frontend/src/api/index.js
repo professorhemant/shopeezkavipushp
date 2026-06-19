@@ -291,6 +291,8 @@ export const bridalAPI = {
   getInvoice: (id) => api.get(`/bridal/invoices/${id}`),
   createInvoice: (data) => api.post('/bridal/invoices', data),
   deleteInvoice: (id) => api.delete(`/bridal/invoices/${id}`),
+  // Image upload — expects a FormData with field "image", returns { url }
+  uploadImage: (formData) => api.post('/bridal/upload', formData, multipartConfig),
 }
 
 // ─── Tools ──────────────────────────────────────────────────────────

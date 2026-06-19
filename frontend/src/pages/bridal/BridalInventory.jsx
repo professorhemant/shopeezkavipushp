@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import BridalImageUpload from '../../components/bridal/BridalImageUpload'
 
 export const ITEM_TYPES = [
   { value: 'set',          label: 'Bridal Set' },
@@ -18,7 +19,7 @@ export const ITEM_TYPES = [
 ]
 const typeLabel = (v) => ITEM_TYPES.find(t => t.value === v)?.label || v
 
-const EMPTY = { code: '', name: '', item_type: 'set', category: '', rental_price: '', stock: '', description: '' }
+const EMPTY = { code: '', name: '', item_type: 'set', category: '', rental_price: '', stock: '', description: '', image: '' }
 
 const inp = "border border-slate-200 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
 const lbl = "block text-xs font-medium text-slate-700 mb-1"
@@ -46,7 +47,7 @@ export default function BridalInventory() {
     setForm({
       code: r.code || '', name: r.name || '', item_type: r.item_type || 'set',
       category: r.category || '', rental_price: r.rental_price ?? '', stock: r.stock ?? '',
-      description: r.description || '',
+      description: r.description || '', image: r.image || '',
     })
     setEditId(r.id); setShowForm(true)
   }
@@ -136,7 +137,14 @@ export default function BridalInventory() {
                 ) : visible.map(r => (
                   <tr key={r.id} className="border-b hover:bg-slate-50">
                     <td className="px-4 py-3 font-semibold text-amber-600">{r.code || '—'}</td>
-                    <td className="px-4 py-3 text-slate-700">{r.name}</td>
+                    <td className="px-4 py-3 text-slate-700">
+                      <div className="flex items-center gap-2">
+                        {r.image
+                          ? <img src={r.image} alt="" className="h-8 w-8 rounded object-cover border border-slate-200 shrink-0" />
+                          : <span className="h-8 w-8 rounded bg-slate-100 border border-slate-200 shrink-0" />}
+                        {r.name}
+                      </div>
+                    </td>
                     <td className="px-4 py-3"><span className="text-xs bg-slate-100 text-slate-600 rounded px-2 py-0.5">{typeLabel(r.item_type)}</span></td>
                     <td className="px-4 py-3 text-slate-600">{r.category || '—'}</td>
                     <td className="px-4 py-3 text-right text-slate-700">{parseFloat(r.rental_price) > 0 ? formatCurrency(r.rental_price) : '—'}</td>
@@ -175,6 +183,7 @@ export default function BridalInventory() {
               <div><label className={lbl}>Rental Price (₹)</label><input type="number" step="0.01" min="0" value={form.rental_price} onChange={e => setForm(f => ({...f, rental_price: e.target.value}))} className={inp} placeholder="0.00" /></div>
               <div><label className={lbl}>Stock</label><input type="number" min="0" value={form.stock} onChange={e => setForm(f => ({...f, stock: e.target.value}))} className={inp} placeholder="1" /></div>
               <div className="col-span-2"><label className={lbl}>Description</label><textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} className={inp} rows={2} /></div>
+              <div className="col-span-2"><BridalImageUpload label="Item Image" value={form.image} onChange={(url) => setForm(f => ({...f, image: url || ''}))} /></div>
               <div className="col-span-2 flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm">Cancel</button>
                 <button type="submit" disabled={saving} className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-semibold">{saving ? 'Saving…' : 'Save'}</button>

@@ -12,6 +12,8 @@ const BridalBooking = sequelize.define('BridalBooking', {
   set_name: { type: DataTypes.STRING(255) },
   category: { type: DataTypes.STRING(150) },
   customized_set: { type: DataTypes.STRING(255) },
+  // URL of the bridal set photo (auto-filled from inventory or uploaded)
+  set_image: { type: DataTypes.STRING(500) },
 
   nath:         { type: DataTypes.STRING(255) },
   maang_teeka:  { type: DataTypes.STRING(255) },

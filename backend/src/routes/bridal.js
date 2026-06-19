@@ -3,6 +3,10 @@
 const express = require('express');
 const router = express.Router();
 const c = require('../controllers/bridalController');
+const upload = require('../middleware/upload');
+
+// Image upload (bridal set photo) → { url }
+router.post('/upload', (req, res, next) => { req.uploadFolder = 'bridal'; next(); }, upload.single('image'), c.uploadImage);
 
 // Bridal Inventory
 router.get('/inventory', c.listInventory);

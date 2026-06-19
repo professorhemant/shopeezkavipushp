@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
 import useAuthStore from '../../store/authStore'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import BridalImageUpload from '../../components/bridal/BridalImageUpload'
 import BridalInvoiceDocument, { TYPE_META, fmtDate } from './BridalInvoiceDocument'
 
 const TYPES = [
@@ -28,7 +29,6 @@ export default function BridalInvoice() {
   const [setImage, setSetImage] = useState(null)
   const [savedNo, setSavedNo] = useState('')
   const [savingInv, setSavingInv] = useState(false)
-  const fileRef = useRef(null)
   const printRef = useRef(null)
 
   useEffect(() => {
@@ -48,6 +48,12 @@ export default function BridalInvoice() {
 
   // Reset the "saved" state whenever the customer or invoice type changes
   useEffect(() => { setSavedNo('') }, [selectedId, type])
+
+  // Default the image from the selected booking's set photo (until the user
+  // picks/removes their own), so the booking's image flows into the invoice.
+  useEffect(() => {
+    setSetImage(booking?.set_image || null)
+  }, [selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const rent = parseFloat(booking?.bridal_set_rent) || 0
   const bookingAmt = parseFloat(booking?.booking_amount) || 0
@@ -124,13 +130,6 @@ export default function BridalInvoice() {
     finally { setSavingInv(false) }
   }
 
-  const onPickImage = (f) => {
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = (e) => setSetImage(e.target.result)
-    reader.readAsDataURL(f)
-  }
-
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-2">
@@ -158,15 +157,7 @@ export default function BridalInvoice() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Bridal Set Image</label>
-            <input ref={fileRef} id="bridal-invoice-img" type="file" accept="image/*" className="hidden"
-              onChange={e => onPickImage(e.target.files?.[0])} />
-            <div className="flex items-center gap-3">
-              <label htmlFor="bridal-invoice-img" className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer inline-block select-none">Choose file</label>
-              <span className="text-sm text-slate-500 truncate max-w-[160px]">{setImage ? 'Image attached' : 'No file chosen'}</span>
-            </div>
-          </div>
+          <BridalImageUpload value={setImage} onChange={setSetImage} />
         </div>
 
         <div className="flex flex-wrap items-end gap-6">
