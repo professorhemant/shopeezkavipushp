@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ImagePlus, X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
@@ -15,7 +15,7 @@ const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
  * @param {string} [label]
  */
 export default function BridalImageUpload({ value, onChange, label = 'Bridal Set Image' }) {
-  const inputId = useId()
+  const inputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
 
   const pick = async (file) => {
@@ -36,17 +36,19 @@ export default function BridalImageUpload({ value, onChange, label = 'Bridal Set
   return (
     <div>
       {label && <label className="block text-xs font-medium text-slate-700 mb-1">{label}</label>}
-      {/* Native <label htmlFor> opens the picker even in Safari with a hidden input */}
-      <input id={inputId} type="file" accept="image/*" className="hidden"
+      {/* Trigger the hidden input with a programmatic click inside this user
+          gesture — works in Safari, where a <label htmlFor> won't open the
+          picker for a display:none input. */}
+      <input ref={inputRef} type="file" accept="image/*" className="hidden"
         onChange={e => pick(e.target.files?.[0])} />
       {value ? (
         <div className="flex items-center gap-3">
           <img src={value} alt="Bridal set" className="h-16 w-16 rounded-lg border border-slate-200 object-cover" />
           <div className="flex flex-col gap-1">
-            <label htmlFor={inputId}
+            <button type="button" onClick={() => inputRef.current?.click()}
               className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer inline-block select-none text-center">
               {uploading ? 'Uploading…' : 'Replace'}
-            </label>
+            </button>
             <button type="button" onClick={() => onChange(null)}
               className="text-slate-500 hover:text-red-600 text-xs flex items-center gap-1 justify-center">
               <X className="h-3.5 w-3.5" /> Remove
@@ -55,11 +57,11 @@ export default function BridalImageUpload({ value, onChange, label = 'Bridal Set
         </div>
       ) : (
         <div className="flex items-center gap-3">
-          <label htmlFor={inputId}
+          <button type="button" onClick={() => inputRef.current?.click()}
             className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer inline-flex items-center gap-2 select-none">
             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
             {uploading ? 'Uploading…' : 'Choose image'}
-          </label>
+          </button>
           <span className="text-sm text-slate-500">No image</span>
         </div>
       )}

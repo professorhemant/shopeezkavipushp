@@ -298,15 +298,16 @@ function ImportModal({ onClose, onSuccess }) {
           <Download className="h-3.5 w-3.5" /> Download sample CSV
         </button>
 
-        {/* Native <label htmlFor> opens the picker without JS — works in Safari
-            even with a hidden input (programmatic .click() is blocked there). */}
-        <input ref={fileRef} id="bridal-csv-input" type="file" accept=".csv,text/csv" className="hidden"
+        {/* Trigger the hidden input via a real click handler. Safari won't open
+            the picker from a <label htmlFor> when the input is display:none, but
+            a programmatic .click() inside this user gesture works everywhere. */}
+        <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
           onChange={(e) => parseFile(e.target.files?.[0])} />
         <div className="flex items-center gap-3">
-          <label htmlFor="bridal-csv-input"
+          <button type="button" onClick={() => fileRef.current?.click()}
             className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer inline-block select-none">
             Choose file
-          </label>
+          </button>
           <span className="text-sm text-slate-500 truncate">{fileName || 'No file chosen'}</span>
         </div>
 
