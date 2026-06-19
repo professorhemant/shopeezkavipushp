@@ -67,6 +67,36 @@ router.post('/upload', authenticate, (req, res, next) => {
   res.status(200).json({ success: true, url });
 });
 
+// TEMPORARY read-only diagnostic — key-gated. Remove after use.
+router.get('/_diag/bridal', async (req, res) => {
+  if (req.query.key !== 'kp-diag-9f3a7c') return res.status(404).json({ success: false });
+  try {
+    const { BridalInventory, Firm } = require('../models');
+    const sequelize = require('../config/database');
+    const counts = await BridalInventory.findAll({
+      attributes: ['firm_id', 'item_type', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      group: ['firm_id', 'item_type'],
+      raw: true,
+    });
+    const firms = await Firm.findAll({ attributes: ['id', 'name'], raw: true });
+    const firmName = Object.fromEntries(firms.map((f) => [f.id, f.name]));
+    const byFirm = {};
+    for (const r of counts) {
+      const key = firmName[r.firm_id] || r.firm_id;
+      byFirm[key] = byFirm[key] || {};
+      byFirm[key][r.item_type === '' || r.item_type == null ? '(blank)' : r.item_type] = Number(r.count);
+    }
+    // 15 most recent rows across all firms (to see the latest import)
+    const recent = await BridalInventory.findAll({
+      attributes: ['code', 'name', 'item_type', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+      limit: 15,
+      raw: true,
+    });
+    res.json({ success: true, counts: byFirm, recent });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 // Health check
 router.get('/health', (req, res) => {
   res.status(200).json({ success: true, message: 'API is running.', timestamp: new Date().toISOString() });
