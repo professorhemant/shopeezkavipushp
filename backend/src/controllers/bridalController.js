@@ -63,33 +63,56 @@ const deleteInventory = async (req, res, next) => {
 
 const VALID_TYPES = ['set', 'nath', 'maang_teeka', 'ring', 'matha_patti', 'sheesh_patti', 'hath_phool', 'pasa'];
 
+// "Maang Teeka" / "maang-teeka" / "MAANG TEEKA" → "maang_teeka"; null if unknown.
+const normalizeItemType = (raw) => {
+  const k = String(raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return VALID_TYPES.includes(k) ? k : null;
+};
+
 const bulkImportInventory = async (req, res, next) => {
   try {
     const items = req.body.items;
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: 'items array is required.' });
     }
-    const toCreate = items
+    // Type applied to rows whose CSV doesn't specify a recognized item_type
+    // (e.g. the category tab the user imported from).
+    const defaultType = normalizeItemType(req.body.default_type) || 'set';
+
+    const toUpsert = items
       .filter((it) => it.name && String(it.name).trim())
       .map((it) => ({
         firm_id: req.firmId,
-        code: it.code || null,
+        code: it.code ? String(it.code).trim() : null,
         name: String(it.name).trim(),
-        item_type: VALID_TYPES.includes((it.item_type || '').trim()) ? it.item_type.trim() : 'set',
+        item_type: normalizeItemType(it.item_type) || defaultType,
         category: it.category || null,
         rental_price: parseFloat(it.rental_price) || 0,
         stock: it.stock != null && it.stock !== '' ? parseInt(it.stock, 10) : 1,
         description: it.description || null,
       }));
-    if (!toCreate.length) {
+    if (!toUpsert.length) {
       return res.status(400).json({ success: false, message: 'No valid rows. "name" is required for every row.' });
     }
-    let created = 0;
-    for (const it of toCreate) {
-      try { await BridalInventory.create(it); created++; }
-      catch (err) { console.error('[bridal bulkImport] create error:', err.message); }
+    let created = 0, updated = 0;
+    for (const it of toUpsert) {
+      try {
+        // Upsert by code so re-importing corrects existing rows (e.g. a wrong
+        // type) instead of creating duplicates. Rows without a code are created.
+        if (it.code) {
+          const existing = await BridalInventory.findOne({ where: { firm_id: req.firmId, code: it.code } });
+          if (existing) { await existing.update(it); updated++; continue; }
+        }
+        await BridalInventory.create(it);
+        created++;
+      } catch (err) { console.error('[bridal bulkImport] upsert error:', err.message); }
     }
-    res.status(201).json({ success: true, message: `${created} items imported.`, data: { imported: created, total: items.length } });
+    const total = created + updated;
+    res.status(201).json({
+      success: true,
+      message: `${total} items imported (${created} new, ${updated} updated).`,
+      data: { imported: total, created, updated, total: items.length },
+    });
   } catch (err) { next(err); }
 };
 

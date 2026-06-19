@@ -279,7 +279,7 @@ export const bridalAPI = {
   createInventory: (data) => api.post('/bridal/inventory', data),
   updateInventory: (id, data) => api.put(`/bridal/inventory/${id}`, data),
   deleteInventory: (id) => api.delete(`/bridal/inventory/${id}`),
-  bulkImportInventory: (items) => api.post('/bridal/inventory/bulk-import', { items }),
+  bulkImportInventory: (items, defaultType) => api.post('/bridal/inventory/bulk-import', { items, default_type: defaultType }),
   // Bookings
   listBookings: () => api.get('/bridal/bookings'),
   createBooking: (data) => api.post('/bridal/bookings', data),
