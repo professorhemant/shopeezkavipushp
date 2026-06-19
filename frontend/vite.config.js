@@ -1,46 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
+// No service worker. A PWA service worker previously cached the app shell and
+// kept pinning browsers to stale builds (and the self-destroying SW re-registered
+// on every load, causing reload cycles). We now ship NO service worker: the
+// static public/sw.js self-destructs to clean up any legacy registration, an
+// inline script in index.html unregisters leftovers, and serve.json marks
+// index.html/sw.js no-cache so a new deploy is always picked up on next load.
 export default defineConfig({
-  plugins: [
-    react(),
-    VitePWA({
-      // One-time kill switch: replaces any previously-installed service worker
-      // with one that unregisters itself and clears all caches, so browsers
-      // stop serving stale app code and always load the latest from the network.
-      selfDestroying: true,
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png'],
-      manifest: {
-        name: 'Kavipushp Billing Software',
-        short_name: 'Kavipushp',
-        description: 'Complete billing, inventory, and business management software for MSMEs',
-        theme_color: '#b45309',
-        background_color: '#ffffff',
-        display: 'standalone',
-        start_url: '/',
-        icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ],
-      },
-      workbox: {
-        skipWaiting: true,
-        clientsClaim: true,
-        globPatterns: ['**/*.{ico,png,svg}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/backend-production-59b25\.up\.railway\.app\/api\/.*/i,
-            handler: 'NetworkOnly',
-          },
-        ],
-      },
-    }),
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

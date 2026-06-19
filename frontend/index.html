@@ -13,6 +13,26 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>Kavipushp Billing Software</title>
     <meta name="description" content="Complete billing, inventory, and business management software for MSMEs" />
+    <script>
+      // Purge any legacy service worker + caches so the app can never be pinned
+      // to a stale build. Runs once (guarded against reload loops); no SW is
+      // registered anymore, so after one cleanup this is a no-op.
+      (function () {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          if (!regs.length) return;
+          Promise.all(regs.map(function (r) { return r.unregister(); })).then(function () {
+            if (window.caches && caches.keys) {
+              caches.keys().then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); });
+            }
+            if (!sessionStorage.getItem('sw-purged')) {
+              sessionStorage.setItem('sw-purged', '1');
+              location.reload();
+            }
+          });
+        }).catch(function () {});
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
