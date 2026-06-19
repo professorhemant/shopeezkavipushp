@@ -110,6 +110,46 @@ router.get('/_diag/bridal', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
+// TEMPORARY one-time corrective — key-gated. Re-types accessory rows by their
+// NAME and removes duplicate copies. Idempotent. Remove after use.
+router.post('/_diag/fix-bridal', async (req, res) => {
+  if (req.query.key !== 'kp-diag-9f3a7c') return res.status(404).json({ success: false });
+  try {
+    const { BridalInventory } = require('../models');
+    const sequelize = require('../config/database');
+    const KW = [
+      ['maang_teeka', /MAANG\s*TEEKA/i], ['matha_patti', /MATHA\s*PATTI/i],
+      ['sheesh_patti', /SHEESH\s*PATTI/i], ['hath_phool', /HATH\s*PHOOL/i],
+      ['nath', /\bNATH\b/i], ['ring', /\bRING\b/i], ['pasa', /\bPASA\b/i],
+      ['borla', /\bBORLA\b/i],
+    ];
+    const nameType = (name) => { for (const [t, re] of KW) if (re.test(name || '')) return t; return null; };
+
+    const rows = await BridalInventory.findAll();
+    // Group by firm + code so we can detect duplicates.
+    const byKey = {};
+    for (const r of rows) {
+      const k = `${r.firm_id}|${(r.code || '').trim()}`;
+      (byKey[k] = byKey[k] || []).push(r);
+    }
+    let retyped = 0, deleted = 0;
+    for (const r of rows) {
+      const want = nameType(r.name);
+      if (!want || r.item_type === want) continue; // genuine set, or already correct
+      const hasCode = r.code && r.code.trim();
+      const group = hasCode ? byKey[`${r.firm_id}|${r.code.trim()}`] : [r];
+      const twin = group.find((x) => x.id !== r.id && x.item_type === want);
+      if (twin) { await r.destroy(); deleted++; }      // duplicate of a correct row → remove
+      else { r.item_type = want; await r.save(); retyped++; } // re-type in place
+    }
+    const after = await BridalInventory.findAll({
+      attributes: ['firm_id', 'item_type', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      group: ['firm_id', 'item_type'], raw: true,
+    });
+    res.json({ success: true, retyped, deleted, after });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 // Health check
 router.get('/health', (req, res) => {
   res.status(200).json({ success: true, message: 'API is running.', timestamp: new Date().toISOString() });
