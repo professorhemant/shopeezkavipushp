@@ -75,10 +75,10 @@ const generatePDF = (sale, firm, items) => {
       const divY = hy + 3;
       doc.moveTo(ML, divY).lineTo(PW - MR, divY).lineWidth(1.2).strokeColor(GOLD).stroke();
 
-      // ── "Tax Invoice" TITLE ────────────────────────────────────────
+      // ── "Sales Invoice" TITLE ──────────────────────────────────────
       const titleY = divY + 8;
       doc.fillColor('#1e293b').fontSize(13).font('Helvetica-Bold')
-         .text('Tax Invoice', ML, titleY, { width: CW, align: 'center' });
+         .text('Sales Invoice', ML, titleY, { width: CW, align: 'center' });
 
       // ── BILL TO / SHIP TO / INVOICE INFO ──────────────────────────
       const infoY   = titleY + 20;
@@ -94,13 +94,6 @@ const generatePDF = (sale, firm, items) => {
          .text(sale.customer_name || sale.customer?.name || 'Walk-in', ML, infoY + 11);
       doc.fillColor('#333').fontSize(8).font('Helvetica')
          .text(`Mobile: ${sale.customer_phone || sale.customer?.mobile || sale.mobile || ''}`, ML, infoY + 23);
-
-      // Ship To
-      doc.fillColor('#555').fontSize(8).font('Helvetica-Bold').text('Ship To:', col2X, infoY);
-      if (sale.shipping_address) {
-        doc.fillColor('#333').fontSize(8).font('Helvetica')
-           .text(sale.shipping_address, col2X, infoY + 11, { width: col2W });
-      }
 
       // Invoice No + Date
       doc.fillColor('#333').fontSize(8).font('Helvetica-Bold')
