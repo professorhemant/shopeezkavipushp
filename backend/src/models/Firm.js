@@ -7,7 +7,7 @@ const Firm = sequelize.define('Firm', {
   legal_name: { type: DataTypes.STRING(200) },
   gstin: { type: DataTypes.STRING(20) },
   pan: { type: DataTypes.STRING(15) },
-  phone: { type: DataTypes.STRING(20) },
+  phone: { type: DataTypes.STRING(50) },
   email: { type: DataTypes.STRING(150) },
   address: { type: DataTypes.TEXT },
   city: { type: DataTypes.STRING(100) },

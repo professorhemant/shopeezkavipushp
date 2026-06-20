@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Plus, Trash2, Download, FileText } from 'lucide-react'
 import { formatCurrency } from '../../utils/formatters'
+import useAuthStore from '../../store/authStore'
+import InvoiceLetterhead from '../../components/InvoiceLetterhead'
 
 const EMPTY_ITEM = { description: '', qty: 1, unit_price: 0, gst_rate: 18 }
 const EMPTY_FORM = {
@@ -18,6 +20,7 @@ const EMPTY_FORM = {
 }
 
 export default function InvoiceGenerator() {
+  const { firm } = useAuthStore()
   const [form, setForm] = useState(EMPTY_FORM)
   const [items, setItems] = useState([{ ...EMPTY_ITEM }])
 
@@ -57,31 +60,25 @@ export default function InvoiceGenerator() {
 
       {/* Invoice Preview / Editor */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between mb-8">
-          <div className="flex-1 pr-6">
-            <input value={form.firm_name} onChange={(e) => setForm({ ...form, firm_name: e.target.value })} placeholder="Your Business Name" className="text-2xl font-bold text-slate-800 border-0 border-b border-dashed border-slate-200 focus:outline-none focus:border-amber-400 w-full mb-1" />
-            <textarea value={form.firm_address} onChange={(e) => setForm({ ...form, firm_address: e.target.value })} placeholder="Business Address" rows={2} className="text-sm text-slate-600 border-0 border-b border-dashed border-slate-200 focus:outline-none focus:border-amber-400 w-full resize-none" />
-            <input value={form.firm_gstin} onChange={(e) => setForm({ ...form, firm_gstin: e.target.value })} placeholder="GSTIN" className="text-xs font-mono text-slate-500 border-0 border-b border-dashed border-slate-200 focus:outline-none focus:border-amber-400 w-full mt-1" />
+        {/* Header — shared letterhead from Firm Settings, then centered title/meta */}
+        <InvoiceLetterhead firm={firm} />
+        <div className="text-center mt-4 mb-8">
+          <div className="flex items-center gap-2 text-amber-600 justify-center mb-2">
+            <FileText className="h-5 w-5" />
+            <span className="text-xl font-bold tracking-wide">TAX INVOICE</span>
           </div>
-          <div className="text-right flex-shrink-0">
-            <div className="flex items-center gap-2 text-amber-600 justify-end mb-2">
-              <FileText className="h-6 w-6" />
-              <span className="text-2xl font-bold">TAX INVOICE</span>
+          <div className="flex items-center justify-center gap-4 text-sm text-slate-600 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">Invoice #:</span>
+              <input value={form.invoice_no} onChange={(e) => setForm({ ...form, invoice_no: e.target.value })} className="font-mono text-slate-800 font-medium border-0 border-b border-dashed border-slate-200 focus:outline-none focus:border-amber-400 text-center w-32" />
             </div>
-            <div className="space-y-1 text-sm text-slate-600">
-              <div className="flex items-center gap-2 justify-end">
-                <span className="text-slate-400">Invoice #:</span>
-                <input value={form.invoice_no} onChange={(e) => setForm({ ...form, invoice_no: e.target.value })} className="font-mono text-slate-800 font-medium border-0 border-b border-dashed border-slate-200 focus:outline-none focus:border-amber-400 text-right w-32" />
-              </div>
-              <div className="flex items-center gap-2 justify-end">
-                <span className="text-slate-400">Date:</span>
-                <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="border-0 border-b border-dashed border-slate-200 focus:outline-none focus:border-amber-400 text-right" />
-              </div>
-              <div className="flex items-center gap-2 justify-end">
-                <span className="text-slate-400">Due Date:</span>
-                <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} className="border-0 border-b border-dashed border-slate-200 focus:outline-none focus:border-amber-400 text-right" />
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">Date:</span>
+              <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="border-0 border-b border-dashed border-slate-200 focus:outline-none focus:border-amber-400 text-center" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">Due Date:</span>
+              <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} className="border-0 border-b border-dashed border-slate-200 focus:outline-none focus:border-amber-400 text-center" />
             </div>
           </div>
         </div>

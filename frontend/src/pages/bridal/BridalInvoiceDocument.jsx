@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import { formatCurrency } from '../../utils/formatters'
+import InvoiceLetterhead from '../../components/InvoiceLetterhead'
 
 export const fmtDate = (d) => {
   if (!d) return '—'
@@ -54,19 +55,12 @@ const BridalInvoiceDocument = forwardRef(function BridalInvoiceDocument(
 
   const displayNo = inv?.invoice_no || '—'
   const dateStr = fmtDate(inv?.invoice_date || new Date().toISOString())
-  const addr = [firm?.address, firm?.city, firm?.state].filter(Boolean).join(', ')
   const reasons = inv?.reasons || ''
 
   return (
     <div ref={ref} className="bg-white p-6 sm:p-8 text-slate-800" style={{ maxWidth: 800, margin: '0 auto' }}>
       {/* Header */}
-      <div className="text-center border-b-2 border-amber-600 pb-3">
-        <h2 className="text-xl font-bold text-slate-900">{firm?.name || 'Kavipushp Jewels'}</h2>
-        {addr && <p className="text-xs text-slate-500 mt-1">{addr}</p>}
-        <p className="text-xs text-slate-500">
-          {firm?.phone ? `Phone: ${firm.phone}` : ''}{firm?.phone && firm?.email ? '  |  ' : ''}{firm?.email || ''}
-        </p>
-      </div>
+      <InvoiceLetterhead firm={firm} />
 
       <div className="text-center mt-4">
         <h3 className="font-bold tracking-wide">{meta.title}</h3>

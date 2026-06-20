@@ -52,47 +52,32 @@ const generatePDF = (sale, firm, items) => {
       const CW    = PW - ML - MR;     // ~525
       const TEAL  = '#00ACC1';
 
-      // ── Business details (hardcoded from screenshot) ───────────────
-      const firmName  = 'KAVIPUSHP JEWELS';
-      const firmAddr  = '3 FLOOR, KAVIPUSHP IA TOWER, CITY CENTER, MAIN, PATEL NAGAR, GWALIOR, MADHYA PRADESH 474011';
-      const firmPhone = '8770555924';
-      const firmEmail = 'kavipushpjewels@gmail.com';
-      const firmState = '23-Madhya Pradesh';
+      // ── Firm details from Firm Settings (bank fields used lower down) ─
+      const firmName  = firm?.name || 'Kavipushp Jewels';
+      const firmAddr  = [firm?.address, firm?.city, firm?.state].filter(Boolean).join(', ');
+      const firmPhone = firm?.phone || '';
+      const firmEmail = firm?.email || '';
       const bankName  = firm?.bank_name  || 'ABC BANK';
       const accNo     = firm?.account_no || '1234567890';
       const ifsc      = firm?.ifsc       || 'IFSC25634125';
+      const GOLD      = '#D97706';
 
-      // ── LOGO IMAGE (top-right) ─────────────────────────────────────
-      const logoSize = 75;
-      const logoX    = PW - MR - logoSize;
-      const logoY    = ML;
-      try {
-        doc.image(LOGO_PATH, logoX, logoY, { width: logoSize, height: logoSize });
-      } catch {
-        // fallback: draw black box if image missing
-        doc.rect(logoX, logoY, logoSize, logoSize).fill('#000000');
-        doc.fillColor('white').fontSize(28).font('Helvetica-Bold')
-           .text('K', logoX, logoY + 8, { width: logoSize, align: 'center' });
-        doc.fontSize(8).font('Helvetica')
-           .text('kavipushp', logoX, logoY + 46, { width: logoSize, align: 'center' });
-      }
+      // ── CENTERED LETTERHEAD (matches the on-screen invoice header) ──
+      doc.fillColor('#1e293b').fontSize(16).font('Helvetica-Bold')
+         .text(firmName, ML, ML, { width: CW, align: 'center' });
+      let hy = doc.y + 3;
+      doc.fillColor('#64748b').fontSize(8.5).font('Helvetica');
+      if (firmAddr) { doc.text(firmAddr, ML, hy, { width: CW, align: 'center' }); hy = doc.y + 2; }
+      const contact = [firmPhone ? `Phone: ${firmPhone}` : '', firmEmail].filter(Boolean).join('    |    ');
+      if (contact)  { doc.text(contact, ML, hy, { width: CW, align: 'center' }); hy = doc.y + 2; }
 
-      // ── FIRM HEADER (top-left) ─────────────────────────────────────
-      const headerTextW = CW - logoSize - 15;
-      doc.fillColor(TEAL).fontSize(13).font('Helvetica-Bold')
-         .text(firmName, ML, ML, { width: headerTextW });
-      doc.fillColor('#222').fontSize(8).font('Helvetica')
-         .text(firmAddr, ML, ML + 18, { width: headerTextW });
-      doc.text(`Mobile: ${firmPhone}  |  Email: ${firmEmail}`, ML, ML + 40, { width: headerTextW });
-      doc.text(`State: ${firmState}`, ML, ML + 52, { width: headerTextW });
-
-      // ── HORIZONTAL DIVIDER ─────────────────────────────────────────
-      const divY = logoY + logoSize + 10;
-      doc.moveTo(ML, divY).lineTo(PW - MR, divY).lineWidth(0.8).strokeColor('#CCCCCC').stroke();
+      // ── GOLD DIVIDER ───────────────────────────────────────────────
+      const divY = hy + 3;
+      doc.moveTo(ML, divY).lineTo(PW - MR, divY).lineWidth(1.2).strokeColor(GOLD).stroke();
 
       // ── "Tax Invoice" TITLE ────────────────────────────────────────
-      const titleY = divY + 6;
-      doc.fillColor(TEAL).fontSize(13).font('Helvetica-Bold')
+      const titleY = divY + 8;
+      doc.fillColor('#1e293b').fontSize(13).font('Helvetica-Bold')
          .text('Tax Invoice', ML, titleY, { width: CW, align: 'center' });
 
       // ── BILL TO / SHIP TO / INVOICE INFO ──────────────────────────
