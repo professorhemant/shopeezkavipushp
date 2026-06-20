@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle } from 'lucide-react'
+import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2 } from 'lucide-react'
 import Papa from 'papaparse'
 import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
@@ -34,6 +34,7 @@ export default function BridalInventory() {
   const [editId, setEditId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [showImgBulk, setShowImgBulk] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -108,6 +109,10 @@ export default function BridalInventory() {
           <button onClick={() => setShowImport(true)}
             className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <Upload className="h-4 w-4" /> Import CSV
+          </button>
+          <button onClick={() => setShowImgBulk(true)}
+            className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <ImagePlus className="h-4 w-4" /> Upload Images
           </button>
           <button onClick={openAdd}
             className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
@@ -214,6 +219,12 @@ export default function BridalInventory() {
       )}
 
       {showImport && <ImportModal defaultType={filter === 'all' ? 'set' : filter} onClose={() => setShowImport(false)} onSuccess={() => { setShowImport(false); load() }} />}
+
+      {showImgBulk && <BulkImageModal
+        items={visible}
+        scopeLabel={filter === 'all' ? 'all items' : `${typeLabel(filter)} items`}
+        onClose={() => setShowImgBulk(false)}
+        onDone={() => { setShowImgBulk(false); load() }} />}
     </div>
   )
 }
@@ -362,6 +373,130 @@ function ImportModal({ onClose, onSuccess }) {
             <button onClick={doImport} disabled={!rows.length || importing}
               className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-semibold">
               {importing ? 'Importing…' : `Import ${rows.length || ''}`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Bulk Image Upload by Code ───────────────────────────────────────
+// Attaches images to EXISTING inventory rows by matching each file's name
+// (minus extension) to an item `code`, e.g. B01.jpg → the item coded B01.
+// Reuses the existing upload + update endpoints and never creates or deletes
+// rows, so previously imported data is never disturbed.
+function BulkImageModal({ items, scopeLabel, onClose, onDone }) {
+  const fileRef = useRef()
+  const [plan, setPlan] = useState(null)      // { matched, unmatched, ambiguous, oversize }
+  const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [result, setResult] = useState(null)  // { updated, failed }
+
+  const MAX_BYTES = 5 * 1024 * 1024
+  const norm = (s) => String(s || '').trim().toUpperCase()
+  const codeOf = (filename) => norm(filename.replace(/\.[^.]+$/, ''))
+
+  const onPick = (fileList) => {
+    const files = Array.from(fileList || [])
+    if (!files.length) return
+    setResult(null)
+    // Map code → item within the current scope; flag repeated codes as ambiguous
+    // so an image is never attached to the wrong item.
+    const byCode = new Map(); const dupes = new Set()
+    items.forEach((it) => {
+      const c = norm(it.code)
+      if (!c) return
+      if (byCode.has(c)) dupes.add(c); else byCode.set(c, it)
+    })
+    const matched = [], unmatched = [], ambiguous = [], oversize = []
+    files.forEach((f) => {
+      if (!f.type.startsWith('image/')) { unmatched.push(`${f.name} (not an image)`); return }
+      if (f.size > MAX_BYTES) { oversize.push(f.name); return }
+      const c = codeOf(f.name)
+      if (dupes.has(c)) { ambiguous.push(f.name); return }
+      const it = byCode.get(c)
+      if (it) matched.push({ file: f, item: it }); else unmatched.push(f.name)
+    })
+    setPlan({ matched, unmatched, ambiguous, oversize })
+  }
+
+  const run = async () => {
+    if (!plan?.matched.length) return
+    setBusy(true); setProgress(0)
+    let updated = 0, failed = 0
+    for (const { file, item } of plan.matched) {
+      try {
+        const fd = new FormData(); fd.append('image', file)
+        const { data } = await bridalAPI.uploadImage(fd)
+        if (data?.url) { await bridalAPI.updateInventory(item.id, { image: data.url }); updated++ }
+        else failed++
+      } catch { failed++ }
+      setProgress((p) => p + 1)
+    }
+    setResult({ updated, failed }); setBusy(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={busy ? undefined : onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-slate-800">Upload Images by Code</h2>
+          <button onClick={onClose} disabled={busy} className="text-slate-400 hover:text-slate-700 disabled:opacity-40"><X className="h-5 w-5" /></button>
+        </div>
+
+        <p className="text-xs text-slate-500 mb-3">
+          Name each image file after the item&apos;s <strong>code</strong> (e.g. <code className="bg-slate-100 px-1 rounded">B01.jpg</code>, <code className="bg-slate-100 px-1 rounded">SN1.png</code>).
+          Each image attaches to the matching item in <strong>{scopeLabel}</strong>. Existing rows are only updated — nothing is added or removed.
+        </p>
+
+        <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
+          onChange={(e) => onPick(e.target.files)} />
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}
+          className="bg-amber-50 hover:bg-amber-100 disabled:opacity-50 text-amber-700 px-4 py-2 rounded-lg text-sm font-medium select-none">
+          Choose images
+        </button>
+
+        {plan && !result && (
+          <div className="mt-4 text-sm space-y-1">
+            <p className="text-green-700 font-medium">{plan.matched.length} image{plan.matched.length === 1 ? '' : 's'} matched to items.</p>
+            {plan.unmatched.length > 0 && (
+              <details className="text-amber-700">
+                <summary className="cursor-pointer">{plan.unmatched.length} no matching code (skipped)</summary>
+                <div className="text-xs text-slate-500 mt-1 max-h-24 overflow-auto">{plan.unmatched.join(', ')}</div>
+              </details>
+            )}
+            {plan.ambiguous.length > 0 && (
+              <details className="text-amber-700">
+                <summary className="cursor-pointer">{plan.ambiguous.length} code used by more than one item (skipped)</summary>
+                <div className="text-xs text-slate-500 mt-1 max-h-24 overflow-auto">{plan.ambiguous.join(', ')}</div>
+              </details>
+            )}
+            {plan.oversize.length > 0 && (
+              <p className="text-red-600 text-xs">{plan.oversize.length} over 5&nbsp;MB (skipped): {plan.oversize.join(', ')}</p>
+            )}
+          </div>
+        )}
+
+        {busy && (
+          <p className="mt-3 text-sm text-slate-600 flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" /> Uploading {progress} / {plan?.matched.length}…
+          </p>
+        )}
+
+        {result && (
+          <p className="mt-3 text-sm text-green-700">✓ Attached {result.updated} image{result.updated === 1 ? '' : 's'}.{result.failed ? ` ${result.failed} failed.` : ''}</p>
+        )}
+
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={result ? onDone : onClose} disabled={busy}
+            className="border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 px-4 py-2 rounded-lg text-sm">
+            {result ? 'Close' : 'Cancel'}
+          </button>
+          {!result && (
+            <button onClick={run} disabled={busy || !plan?.matched.length}
+              className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-semibold">
+              {busy ? 'Uploading…' : `Attach ${plan?.matched.length || ''}`}
             </button>
           )}
         </div>
