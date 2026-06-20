@@ -84,7 +84,7 @@ const BridalInvoiceDocument = forwardRef(function BridalInvoiceDocument(
       </div>
 
       {inv?.set_image && (
-        <div className="mt-4"><img src={inv.set_image} alt="Bridal set" className="max-h-40 rounded-lg border border-slate-200" /></div>
+        <div className="mt-4 flex justify-center"><img src={inv.set_image} alt="Bridal set" className="max-h-40 rounded-lg border border-slate-200" /></div>
       )}
 
       {/* Items */}
