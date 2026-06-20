@@ -67,13 +67,19 @@ const BridalInvoiceDocument = forwardRef(function BridalInvoiceDocument(
         <p className="text-xs text-slate-500 mt-1">Invoice #: {displayNo} | Date: {dateStr}</p>
       </div>
 
-      {/* Bill To + Rental period */}
-      <div className="grid grid-cols-2 gap-4 mt-5 text-sm">
+      {/* Bill To + set image + Rental period (image sits between the two columns,
+          top-aligned so it lines up with the text rows) */}
+      <div className="grid grid-cols-3 gap-4 mt-5 text-sm items-start">
         <div>
           <p className="text-amber-700 font-semibold mb-1">Bill To</p>
           <p className="font-semibold">{inv?.customer_name || '—'}</p>
           <p>{inv?.mobile_no || '—'}</p>
           <p>{inv?.aadhaar_no || 'N/A'}</p>
+        </div>
+        <div className="flex justify-center">
+          {inv?.set_image && (
+            <img src={inv.set_image} alt="Bridal set" className="max-h-40 rounded-lg border border-slate-200" />
+          )}
         </div>
         <div>
           <p className="text-amber-700 font-semibold mb-1">Rental Period</p>
@@ -82,10 +88,6 @@ const BridalInvoiceDocument = forwardRef(function BridalInvoiceDocument(
           <p><span className="font-medium">Return:</span> {fmtDate(inv?.return_date)}</p>
         </div>
       </div>
-
-      {inv?.set_image && (
-        <div className="mt-4 flex justify-center"><img src={inv.set_image} alt="Bridal set" className="max-h-40 rounded-lg border border-slate-200" /></div>
-      )}
 
       {/* Items */}
       <table className="w-full text-sm mt-5">
