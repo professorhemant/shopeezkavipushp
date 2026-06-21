@@ -60,6 +60,8 @@ async function startServer() {
       "ALTER TABLE bridal_bookings ADD COLUMN borla VARCHAR(255) NULL",
       // Widen firm phone so multiple contact numbers fit (used on invoice headers).
       "ALTER TABLE firms MODIFY COLUMN phone VARCHAR(50) NULL",
+      // Customer name on security refund entries (Day Book → Expenses).
+      "ALTER TABLE daybook_security_refunds ADD COLUMN customer_name VARCHAR(150) NULL",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }

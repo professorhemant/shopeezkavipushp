@@ -69,7 +69,7 @@ export default function DayBookExpenses() {
 
   const emptyForm = (type) => {
     if (type === 'routine') return { expense_type: 'routine', category: 'Milk', description: '', amount: '', payment_mode: 'cash' }
-    if (type === 'refund')  return { slip_no: '', amount: '', payment_mode: 'cash' }
+    if (type === 'refund')  return { slip_no: '', customer_name: '', amount: '', payment_mode: 'cash' }
     if (['salary', 'advance_salary'].includes(type)) return { expense_type: type, category: '', description: '', amount: '', payment_mode: 'cash', paid_by: '' }
     return { expense_type: type, category: '', description: '', amount: '', payment_mode: 'cash' }
   }
@@ -79,7 +79,7 @@ export default function DayBookExpenses() {
 
   const startEdit = (type, row) => {
     if (type === 'refund') {
-      setForm({ slip_no: row.slip_no || '', amount: row.amount, payment_mode: row.payment_mode })
+      setForm({ slip_no: row.slip_no || '', customer_name: row.customer_name || '', amount: row.amount, payment_mode: row.payment_mode })
     } else if (['salary', 'advance_salary'].includes(type)) {
       setForm({ expense_type: row.expense_type, category: row.category || '', description: row.description || '', amount: row.amount, payment_mode: row.payment_mode, paid_by: row.paid_by || '' })
     } else {
@@ -178,12 +178,20 @@ export default function DayBookExpenses() {
               </div>
             )}
             {activeCard === 'refund' && (
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Slip No.</label>
-                <input value={form.slip_no || ''} onChange={(e) => setForm({ ...form, slip_no: e.target.value })}
-                  placeholder="Slip number"
-                  className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${COLOR[activeCardDef.color].ring}`} />
-              </div>
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Slip No.</label>
+                  <input value={form.slip_no || ''} onChange={(e) => setForm({ ...form, slip_no: e.target.value })}
+                    placeholder="Slip number"
+                    className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${COLOR[activeCardDef.color].ring}`} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Customer Name</label>
+                  <input value={form.customer_name || ''} onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
+                    placeholder="Customer name"
+                    className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${COLOR[activeCardDef.color].ring}`} />
+                </div>
+              </>
             )}
             {!['routine', 'refund'].includes(activeCard) && (
               <div>
@@ -249,6 +257,7 @@ export default function DayBookExpenses() {
                         <th className="px-4 py-2 text-left">S.No.</th>
                         {type === 'routine' && <th className="px-4 py-2 text-left">Category</th>}
                         {type === 'refund'  && <th className="px-4 py-2 text-left">Slip No.</th>}
+                        {type === 'refund'  && <th className="px-4 py-2 text-left">Customer</th>}
                         {!['routine','refund'].includes(type) && <th className="px-4 py-2 text-left">Employee / Description</th>}
                         {['salary','advance_salary'].includes(type) && <th className="px-4 py-2 text-left">Who Paid</th>}
                         <th className="px-4 py-2 text-right">Amount</th>
@@ -268,6 +277,7 @@ export default function DayBookExpenses() {
                             </td>
                           )}
                           {type === 'refund'  && <td className="px-4 py-2 text-amber-600 font-medium">{r.slip_no || '-'}</td>}
+                          {type === 'refund'  && <td className="px-4 py-2 text-slate-700">{r.customer_name || '-'}</td>}
                           {!['routine','refund'].includes(type) && <td className="px-4 py-2 text-slate-700">{r.description || '-'}</td>}
                           {['salary','advance_salary'].includes(type) && <td className="px-4 py-2 text-slate-600">{r.paid_by || '-'}</td>}
                           <td className="px-4 py-2 text-right font-semibold text-slate-800">{formatCurrency(r.amount)}</td>
