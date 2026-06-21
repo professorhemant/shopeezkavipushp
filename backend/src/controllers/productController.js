@@ -44,12 +44,15 @@ const getAll = async (req, res, next) => {
     // Gallery mode: include images but skip JOINs so MySQL can use primary key index
     // without building a large temporary table (avoids sort_buffer OOM on Railway)
     const isGallery = with_images === 'true';
+    // Include the images column in the normal (JOIN + SKU-sorted) list too — without
+    // entering gallery mode — so the Products page can render thumbnails.
+    const includeImages = isGallery || req.query.include_images === 'true';
 
     const orderBySku = (sort_by === 'sku' || sort_by === 'category') && !isGallery;
 
     const queryOptions = {
       where,
-      attributes: isGallery ? undefined : { exclude: ['images'] },
+      attributes: includeImages ? undefined : { exclude: ['images'] },
       order: orderBySku
         ? [
             // Primary: box number = first digit sequence in SKU, sorted numerically

@@ -1516,6 +1516,7 @@ export default function Products() {
         page, limit: PER_PAGE,
         is_active: tab === 'active',
         sort_by: 'sku',
+        include_images: true,
       })
       setProducts(data.data || data.products || data.results || [])
       setTotalPages(data.pagination?.pages || 1)
