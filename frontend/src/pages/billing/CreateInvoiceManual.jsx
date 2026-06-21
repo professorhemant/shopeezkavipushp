@@ -5,7 +5,7 @@ import {
   CreditCard, Smartphone, FileText, RefreshCw, Camera
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saleAPI, customerAPI, whatsappAPI, settingsAPI } from '../../api'
+import { saleAPI, customerAPI, whatsappAPI, settingsAPI, productAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 function newRow() {
@@ -113,6 +113,36 @@ export default function CreateInvoiceManual() {
       next[idx] = calcRow({ ...next[idx], [field]: val })
       return next
     })
+  }
+
+  // Autofill a row from a product code (SKU or barcode) on Enter. Looks up the
+  // product and fills name/price/MRP/tax/stock; if nothing matches it leaves the
+  // row untouched so manual entry still works.
+  const lookupByCode = async (idx, rawCode) => {
+    const code = (rawCode || '').trim()
+    if (!code) return
+    try {
+      const { data } = await productAPI.getAll({ search: code, limit: 10 })
+      const list = data.data || data.products || data.results || []
+      const lc = code.toLowerCase()
+      const match = list.find((p) => (p.sku || '').toLowerCase() === lc || (p.barcode || '').toLowerCase() === lc)
+      if (!match) { toast.error(`No product found for code "${code}"`); return }
+      setRows((prev) => {
+        const next = [...prev]
+        next[idx] = calcRow({
+          ...next[idx],
+          item_name:  match.name || next[idx].item_name,
+          item_code:  match.sku || match.barcode || code,
+          unit_price: parseFloat(match.sale_price) || 0,
+          mrp:        parseFloat(match.mrp) || 0,
+          tax_rate:   parseFloat(match.tax_rate) || 0,
+          stock:      parseFloat(match.stock) || 0,
+        })
+        return next
+      })
+    } catch {
+      toast.error('Product lookup failed')
+    }
   }
 
   const removeRow = (idx) => {
@@ -434,6 +464,7 @@ export default function CreateInvoiceManual() {
                         type="text"
                         value={row.item_code}
                         onChange={(e) => updateRow(idx, 'item_code', e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lookupByCode(idx, e.target.value) } }}
                         placeholder="Code/Barcode"
                         className="w-full border-2 border-slate-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white"
                       />
