@@ -657,7 +657,10 @@ function buildTSPL(name, barcodeText, price, qty, tpl) {
   const safeName = String(name).replace(/"/g, "'").substring(0, 22)
   const safeCode = String(barcodeText).replace(/"/g, "'")
   const priceStr = `Rs.${parseFloat(price).toFixed(0)}`
-  const lines = ['SIZE 100 mm,15 mm','GAP 2 mm,0 mm','DIRECTION 1','REFERENCE 0,0','SPEED 2','DENSITY 12','CLS']
+  // SET TEAR ON advances the last printed label to the tear position instead of
+  // leaving it held under the print head — fixes the "prints one less" symptom
+  // on gap-sensing thermal printers. Only affects the raw TSPL print path.
+  const lines = ['SIZE 100 mm,15 mm','GAP 2 mm,0 mm','DIRECTION 1','SET TEAR ON','REFERENCE 0,0','SPEED 2','DENSITY 12','CLS']
   if (tpl.name.show)    lines.push(`TEXT ${tpl.name.x},${tpl.name.y},"${tsplFont(tpl.name.fontSize)}",0,1,1,"${safeName}"`)
   if (tpl.price.show)   lines.push(`TEXT ${tpl.price.x},${tpl.price.y},"${tsplFont(tpl.price.fontSize)}",0,1,1,"${priceStr}"`)
   if (tpl.barcode.show) lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${Math.max(40, tpl.barcode.h)},0,0,2,5,"${safeCode}"`)
