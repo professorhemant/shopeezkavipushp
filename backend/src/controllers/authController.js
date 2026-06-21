@@ -29,7 +29,7 @@ const sendOtpSMS = async (otp, context = '') => {
   }
 };
 
-const JWT_SECRET = process.env.JWT_SECRET || 'shopeezkavi_secret_key';
+const { JWT_SECRET } = require('../config/jwt');
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 // Helper: generate 6-digit OTP

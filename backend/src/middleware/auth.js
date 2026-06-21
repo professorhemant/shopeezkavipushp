@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const { JWT_SECRET } = require('../config/jwt');
 
 const authenticate = async (req, res, next) => {
   try {
@@ -9,7 +10,7 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'shopeezkavi_secret_key');
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     const user = await User.findByPk(decoded.id);
     if (!user || !user.is_active) {

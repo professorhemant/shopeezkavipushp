@@ -5,8 +5,12 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
-// Public routes
-router.post('/register', authController.register);
+// Public registration is disabled — this is a private app, accounts are created
+// internally. Set ALLOW_PUBLIC_REGISTRATION=true to re-enable if ever needed.
+router.post('/register', (req, res, next) => {
+  if (process.env.ALLOW_PUBLIC_REGISTRATION === 'true') return authController.register(req, res, next);
+  return res.status(403).json({ success: false, message: 'Registration is disabled.' });
+});
 router.post('/login', authController.login);
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);

@@ -122,20 +122,6 @@ export default function Login() {
               )}
             </button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-            <p className="text-sm text-slate-500">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-amber-600 hover:underline font-medium">
-                Create one free
-              </Link>
-            </p>
-          </div>
-
-          {/* Demo credentials */}
-          <div className="mt-4 p-3 bg-amber-50 rounded-lg text-xs text-amber-600">
-            <strong>Demo:</strong> admin@demo.com / Admin@123
-          </div>
         </div>
       </div>
     </div>
