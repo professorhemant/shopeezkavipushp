@@ -44,7 +44,7 @@ export default function AddProduct() {
     }
   }, [])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop, accept: { 'image/*': [] }, maxFiles: 1, maxSize: 5 * 1024 * 1024,
   })
 
@@ -109,8 +109,12 @@ export default function AddProduct() {
           reader.readAsDataURL(imageFile)
         })
         payload.images = [base64]
-      } else if (imagePreview && isEdit) {
+      } else if (imagePreview) {
         payload.images = [imagePreview]
+      } else {
+        // No image (removed or never added) — send an empty array so the
+        // backend clears it instead of keeping the previous image.
+        payload.images = []
       }
 
       if (isEdit) {
@@ -323,16 +327,31 @@ export default function AddProduct() {
         {/* Image */}
         <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
           <h2 className="font-semibold text-slate-800 mb-4">Product Image</h2>
+          {/* One hidden file input, always mounted, so the Replace button's open() works */}
+          <input {...getInputProps()} />
           {imagePreview ? (
-            <div className="relative inline-block">
-              <img src={imagePreview} alt="Preview" className="h-40 w-40 rounded-xl object-cover border border-slate-200" />
-              <button
-                type="button"
-                onClick={() => { setImagePreview(null); setImageFile(null) }}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-              >
-                <X className="h-3 w-3" />
-              </button>
+            <div className="flex items-center gap-4">
+              <div className="relative inline-block">
+                <img src={imagePreview} alt="Preview" className="h-40 w-40 rounded-xl object-cover border border-slate-200" />
+                <button
+                  type="button"
+                  onClick={() => { setImagePreview(null); setImageFile(null) }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  title="Remove image"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button type="button" onClick={open}
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-5 py-2 rounded-lg text-sm font-medium">
+                  Replace
+                </button>
+                <button type="button" onClick={() => { setImagePreview(null); setImageFile(null) }}
+                  className="border border-red-200 text-red-600 hover:bg-red-50 px-5 py-2 rounded-lg text-sm font-medium">
+                  Remove
+                </button>
+              </div>
             </div>
           ) : (
             <div
@@ -341,7 +360,6 @@ export default function AddProduct() {
                 isDragActive ? 'border-amber-400 bg-amber-50' : 'border-slate-200 hover:border-amber-300 hover:bg-slate-50'
               }`}
             >
-              <input {...getInputProps()} />
               <ImageIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-slate-500">Drag & drop image here, or click to select</p>
               <p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP up to 5MB</p>
