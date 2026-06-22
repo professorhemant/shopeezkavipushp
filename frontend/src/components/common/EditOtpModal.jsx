@@ -1,35 +1,28 @@
 import { useState } from 'react'
 import { ShieldCheck, X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { authAPI } from '../../api'
+import { verifyCredentials } from '../../api'
+import useAuthStore from '../../store/authStore'
 
+// Re-verify the user's account (email + password) before allowing an edit.
+// Uses verifyCredentials() (bare axios -> /auth/login) so it does NOT disturb
+// the current session. Keeps the same props as before (onVerified/onClose/actionLabel).
 export default function EditOtpModal({ onVerified, onClose, actionLabel = 'Edit' }) {
-  const [otp, setOtp] = useState('')
-  const [sending, setSending] = useState(false)
+  const user = useAuthStore((s) => s.user)
+  const [email, setEmail] = useState(user?.email || '')
+  const [password, setPassword] = useState('')
   const [verifying, setVerifying] = useState(false)
-  const [otpSent, setOtpSent] = useState(false)
-  const requestOtp = async () => {
-    setSending(true)
-    try {
-      await authAPI.requestEditOtp()
-      setOtpSent(true)
-      toast.success('OTP sent to registered mobile')
-    } catch {
-      toast.error('Failed to send OTP')
-    } finally {
-      setSending(false)
-    }
-  }
 
-  const verifyOtp = async () => {
-    if (!otp.trim()) { toast.error('Enter OTP'); return }
+  const verify = async (e) => {
+    e?.preventDefault?.()
+    if (!email.trim() || !password) { toast.error('Enter email and password'); return }
     setVerifying(true)
     try {
-      await authAPI.verifyEditOtp({ otp: otp.trim() })
-      toast.success('OTP verified')
+      await verifyCredentials({ email: email.trim(), password })
+      toast.success('Verified')
       onVerified()
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Invalid or expired OTP')
+      toast.error(err?.response?.data?.message || 'Invalid email or password')
     } finally {
       setVerifying(false)
     }
@@ -47,50 +40,36 @@ export default function EditOtpModal({ onVerified, onClose, actionLabel = 'Edit'
             <ShieldCheck className="h-7 w-7 text-amber-600" />
           </div>
           <h2 className="text-lg font-semibold text-slate-800">Verify to {actionLabel}</h2>
-          <p className="text-sm text-slate-500">
-            {otpSent
-              ? `OTP sent to registered mobile. Enter it below to proceed.`
-              : 'An OTP will be sent to the registered mobile number.'}
-          </p>
+          <p className="text-sm text-slate-500">Confirm your account email &amp; password to continue.</p>
         </div>
 
-        {!otpSent ? (
+        <form onSubmit={verify} className="space-y-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            autoComplete="username"
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            autoComplete="current-password"
+            autoFocus
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+          />
           <button
-            onClick={requestOtp}
-            disabled={sending}
+            type="submit"
+            disabled={verifying || !email.trim() || !password}
             className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl text-sm"
           >
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {sending ? 'Sending OTP…' : 'Send OTP'}
+            {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {verifying ? 'Verifying…' : `Verify & ${actionLabel}`}
           </button>
-        ) : (
-          <div className="space-y-3">
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-              placeholder="Enter 6-digit OTP"
-              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-center text-lg font-semibold tracking-widest focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
-              autoFocus
-            />
-            <button
-              onClick={verifyOtp}
-              disabled={verifying || otp.length !== 6}
-              className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl text-sm"
-            >
-              {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {verifying ? 'Verifying…' : `Verify & ${actionLabel}`}
-            </button>
-            <button
-              onClick={() => { setOtpSent(false); setOtp('') }}
-              className="w-full text-sm text-slate-400 hover:text-slate-600 py-1"
-            >
-              Resend OTP
-            </button>
-          </div>
-        )}
+        </form>
       </div>
     </div>
   )
