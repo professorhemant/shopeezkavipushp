@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Edit2, Trash2, Banknote, CreditCard, Smartphone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { dayBookAPI } from '../../api'
+import useAuthStore from '../../store/authStore'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
@@ -10,7 +11,8 @@ const EMPTY_SPLIT = { slip_no: '', cash: '', card: '', online: '' }
 const EMPTY_EDIT  = { slip_no: '', amount: '', payment_mode: 'cash' }
 
 export default function BridalDispatch() {
-  const canViewHistory = false // live page is today-only; previous days via Saved Day Book
+  const { user } = useAuthStore()
+  const canViewHistory = ['super_admin', 'admin'].includes(user?.role_name) // admins can back-fill past days
   const [date, setDate] = useState(today())
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)

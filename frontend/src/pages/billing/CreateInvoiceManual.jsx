@@ -54,7 +54,7 @@ export default function CreateInvoiceManual() {
 
   // invoice meta
   const [invoiceNo,   setInvoiceNo]   = useState('')
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toLocaleDateString('en-IN'))
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10))
 
   // rows
   const [rows, setRows] = useState([newRow()])
@@ -205,7 +205,7 @@ export default function CreateInvoiceManual() {
         customer_name: selectedCust?.name || custSearch.trim() || 'Walk-in',
         mobile: selectedCust?.phone || selectedCust?.mobile || '',
         invoice_no: invoiceNo,
-        invoice_date: new Date().toISOString().slice(0, 10),
+        invoice_date: invoiceDate || new Date().toISOString().slice(0, 10),
         order_type: orderType,
         items: validRows.map((r) => ({
           product_id: null,
@@ -391,15 +391,14 @@ export default function CreateInvoiceManual() {
         <div className="flex items-center gap-1">
           <span className="text-xs text-amber-700 font-semibold whitespace-nowrap">Invoice Date</span>
           <input
-            type="text"
+            type="date"
             value={invoiceDate}
-            readOnly
-            className="w-28 border-2 border-amber-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none bg-amber-50"
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={(e) => setInvoiceDate(e.target.value)}
+            title="Editable — pick a past date to back-date this invoice"
+            className="w-36 border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
           />
-          <button className="p-1.5 border-2 border-amber-300 rounded-lg text-amber-600 hover:bg-amber-50">
-            <Calendar className="h-3.5 w-3.5" />
-          </button>
-          <button className="p-1.5 border-2 border-amber-300 rounded-lg text-amber-600 hover:bg-amber-50">
+          <button type="button" className="p-1.5 border-2 border-amber-300 rounded-lg text-amber-600 hover:bg-amber-50" title="Back-dating sets the invoice and its payment to this date, so it lands in that day's Day Book.">
             <Info className="h-3.5 w-3.5" />
           </button>
         </div>

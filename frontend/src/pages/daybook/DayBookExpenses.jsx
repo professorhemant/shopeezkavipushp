@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Edit2, Trash2, X, ShoppingCart, UserCheck, TrendingUp, Gift, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { dayBookAPI } from '../../api'
+import useAuthStore from '../../store/authStore'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
@@ -40,7 +41,8 @@ function Modal({ title, color, onClose, children }) {
 }
 
 export default function DayBookExpenses() {
-  const canViewHistory = false // live page is today-only; previous days via Saved Day Book
+  const { user } = useAuthStore()
+  const canViewHistory = ['super_admin', 'admin'].includes(user?.role_name) // admins can back-fill past days
   const [date, setDate] = useState(today())
   const [expenses, setExpenses] = useState([])
   const [refunds, setRefunds] = useState([])
