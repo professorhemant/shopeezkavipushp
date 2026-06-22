@@ -145,8 +145,8 @@ export default function CreateInvoice() {
           })
           setSplitPay(split)
         }
-        setShipping(s.shipping_charges || 0)
-        setDiscountApplied(s.discount_amount || 0)
+        setShipping(parseFloat(s.shipping_charges) || 0)
+        setDiscountApplied(parseFloat(s.discount_amount) || 0)
         setRows(
           items.length
             ? items.map((item) => calcRow({
