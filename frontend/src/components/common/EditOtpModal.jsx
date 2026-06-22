@@ -46,18 +46,22 @@ export default function EditOtpModal({ onVerified, onClose, actionLabel = 'Edit'
         <form onSubmit={verify} className="space-y-3">
           <input
             type="email"
+            name="verify_email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
-            autoComplete="username"
+            autoComplete="off"
             className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
           />
+          {/* hidden dummy fields absorb Chrome's autofill so the real password starts empty */}
+          <input type="text" name="username" autoComplete="username" className="hidden" tabIndex={-1} aria-hidden="true" />
           <input
             type="password"
+            name="verify_password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             autoFocus
             className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
           />
