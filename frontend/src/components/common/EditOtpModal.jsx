@@ -12,6 +12,8 @@ export default function EditOtpModal({ onVerified, onClose, actionLabel = 'Edit'
   const [email, setEmail] = useState(user?.email || '')
   const [password, setPassword] = useState('')
   const [verifying, setVerifying] = useState(false)
+  // read-only until the user focuses it — reliably blocks browser password autofill
+  const [pwReadOnly, setPwReadOnly] = useState(true)
 
   const verify = async (e) => {
     e?.preventDefault?.()
@@ -62,7 +64,8 @@ export default function EditOtpModal({ onVerified, onClose, actionLabel = 'Edit'
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             autoComplete="new-password"
-            autoFocus
+            readOnly={pwReadOnly}
+            onFocus={() => setPwReadOnly(false)}
             className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
           />
           <button
