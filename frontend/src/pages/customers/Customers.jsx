@@ -54,7 +54,7 @@ export default function Customers() {
   useEffect(() => { fetchCustomers() }, [fetchCustomers])
 
   const openAdd = () => { setEditing(null); setEditingOutstanding(0); setEditingCust(null); setForm(EMPTY_FORM); setShowModal(true) }
-  const openEdit = (c) => { setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setEditingCust(c); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: parseFloat(c.outstanding_balance || 0) }); setShowModal(true) }
+  const openEdit = (c) => { setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setEditingCust(c); setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: parseFloat(c.opening_balance || 0) }); setShowModal(true) }
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -67,8 +67,7 @@ export default function Customers() {
         opening_balance: form.opening_balance === '' ? 0 : form.opening_balance,
       }
       if (editing) {
-        const { opening_balance, ...editPayload } = payload
-        await customerAPI.update(editing, editPayload)
+        await customerAPI.update(editing, payload)
         toast.success('Customer updated')
       } else {
         await customerAPI.create(payload)
@@ -301,7 +300,7 @@ export default function Customers() {
                         <button key={c.id} type="button"
                           onClick={() => {
                             setEditing(c.id); setEditingOutstanding(parseFloat(c.outstanding_balance || 0)); setEditingCust(c)
-                            setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: parseFloat(c.outstanding_balance || 0) })
+                            setForm({ name: c.name || '', phone: c.phone || '', email: c.email || '', gstin: c.gstin || '', billing_address: c.billing_address || '', city: c.city || '', state: c.state || '', pincode: c.pincode || '', credit_limit: c.credit_limit || '', opening_balance: parseFloat(c.opening_balance || 0) })
                             setShowNameDrop(false)
                           }}
                           className="w-full text-left px-3 py-2 text-sm hover:bg-amber-50 border-b border-slate-50 last:border-0">
@@ -349,12 +348,9 @@ export default function Customers() {
                     <label className="block text-xs font-medium text-slate-700 mb-1">
                       {editing ? 'Previous Balance (₹)' : 'Opening Balance (₹)'}
                     </label>
-                    {editing ? (
-                      <div className="w-full bg-orange-50 border border-orange-300 rounded-lg px-3 py-2 text-sm font-bold text-orange-600">
-                        ₹{editingOutstanding.toFixed(2)}
-                      </div>
-                    ) : (
-                      <input type="number" value={form.opening_balance} onChange={(e) => setForm({ ...form, opening_balance: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                    <input type="number" value={form.opening_balance} onChange={(e) => setForm({ ...form, opening_balance: e.target.value })} className="w-full bg-orange-50 border border-orange-300 rounded-lg px-3 py-2 text-sm font-semibold text-orange-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+                    {editing && parseFloat(editingOutstanding || 0) !== parseFloat(form.opening_balance || 0) && (
+                      <p className="text-[11px] text-slate-400 mt-1">Total outstanding incl. unpaid invoices: ₹{editingOutstanding.toFixed(2)}</p>
                     )}
                   </div>
               </div>
