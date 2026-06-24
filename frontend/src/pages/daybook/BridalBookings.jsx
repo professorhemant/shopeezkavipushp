@@ -261,7 +261,7 @@ export default function BridalBookings() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
           <div>
             <label className={lbl}>Bridal Set *</label>
-            <input value={setSearch} onChange={e => setSetSearch(e.target.value)} placeholder="Search by Set ID/Code…" className={`${inp} mb-2`} />
+            <input value={setSearch} onChange={e => setSetSearch(e.target.value)} placeholder="Search by Set Name or Code…" className={`${inp} mb-2`} />
             <select value={form.bridal_set_id} onChange={e => handleSetSelect(e.target.value)} className={inp}>
               <option value="">-- Select a Set --</option>
               {filteredSets.map(s => <option key={s.id} value={s.id}>{itemLabel(s)}</option>)}
