@@ -50,6 +50,7 @@ export default function BridalBookings() {
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
   const [setSearch, setSetSearch] = useState('')
+  const [nameSearch, setNameSearch] = useState('')
 
   // in-form availability (for the set being booked)
   const [availability, setAvailability] = useState([])
@@ -76,6 +77,10 @@ export default function BridalBookings() {
   const filteredSets = setSearch.trim()
     ? sets.filter(s => `${s.code || ''} ${s.name}`.toLowerCase().includes(setSearch.trim().toLowerCase()))
     : sets
+
+  const nameResults = nameSearch.trim().length >= 2
+    ? sets.filter(s => s.name.toLowerCase().includes(nameSearch.trim().toLowerCase())).slice(0, 10)
+    : []
 
   const setField = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
@@ -263,6 +268,37 @@ export default function BridalBookings() {
           <div><label className={lbl}>Function Date</label><input type="date" value={form.function_date} onChange={e => handleFunctionDate(e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Pickup <span className="text-slate-400 font-normal">(−1)</span></label><input type="date" value={form.pickup_date} onChange={e => setField('pickup_date', e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Return <span className="text-slate-400 font-normal">(+1)</span></label><input type="date" value={form.return_date} onChange={e => setField('return_date', e.target.value)} className={inp} /></div>
+        </div>
+
+        {/* Name → Code lookup */}
+        <div className="pt-2 border-t border-slate-100">
+          <label className={lbl}>Find Set Code by Name</label>
+          <div className="relative">
+            <input
+              value={nameSearch}
+              onChange={e => setNameSearch(e.target.value)}
+              placeholder="Type set name to find its code…"
+              className={inp}
+            />
+            {nameResults.length > 0 && (
+              <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {nameResults.map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onMouseDown={() => { setSetSearch(s.code || ''); setNameSearch(''); }}
+                    className="w-full text-left px-4 py-2.5 hover:bg-amber-50 border-b border-slate-100 last:border-0 flex items-center justify-between gap-4"
+                  >
+                    <span className="text-sm text-slate-700 truncate">{s.name}</span>
+                    <span className="text-sm font-bold text-amber-700 shrink-0">{s.code}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {nameSearch.trim().length >= 2 && nameResults.length === 0 && (
+              <p className="text-xs text-slate-400 mt-1">No sets found</p>
+            )}
+          </div>
         </div>
 
         {/* Bridal Set */}
