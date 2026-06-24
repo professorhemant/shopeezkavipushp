@@ -93,6 +93,14 @@ export default function BridalBookings() {
     }))
   }
 
+  // Auto-select set when typed code exactly matches an inventory set code
+  useEffect(() => {
+    const q = setSearch.trim().toLowerCase()
+    if (!q) return
+    const exact = sets.find(s => (s.code || '').trim().toLowerCase() === q)
+    if (exact) handleSetSelect(exact.id)
+  }, [setSearch, inv])
+
   const handleFunctionDate = (val) => {
     setForm(f => ({ ...f, function_date: val, pickup_date: addDays(val, -1), return_date: addDays(val, +1) }))
   }
