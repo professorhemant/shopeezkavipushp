@@ -80,7 +80,7 @@ export default function BridalBookings() {
   const setField = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
   const handleSetSelect = (id) => {
-    const s = sets.find(x => x.id === id)
+    const s = sets.find(x => String(x.id) === String(id))
     if (!s) { setForm(f => ({ ...f, bridal_set_id: '', set_code: '', set_name: '', category: '', bridal_set_rent: '' })); return }
     setForm(f => ({
       ...f,
