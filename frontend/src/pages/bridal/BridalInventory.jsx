@@ -35,6 +35,7 @@ export default function BridalInventory() {
   const [saving, setSaving] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [showImgBulk, setShowImgBulk] = useState(false)
+  const [nameSearch, setNameSearch] = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -77,7 +78,10 @@ export default function BridalInventory() {
     catch { toast.error('Failed to delete') }
   }
 
-  const visible = filter === 'all' ? rows : rows.filter(r => r.item_type === filter)
+  const byType = filter === 'all' ? rows : rows.filter(r => r.item_type === filter)
+  const visible = nameSearch.trim()
+    ? byType.filter(r => r.name.toLowerCase().includes(nameSearch.trim().toLowerCase()))
+    : byType
 
   const removeAll = async () => {
     const n = visible.length
@@ -136,6 +140,21 @@ export default function BridalInventory() {
             </button>
           )
         })}
+      </div>
+
+      {/* Name search */}
+      <div className="relative max-w-sm">
+        <input
+          value={nameSearch}
+          onChange={e => setNameSearch(e.target.value)}
+          placeholder="Search by name to find code…"
+          className={inp}
+        />
+        {nameSearch && (
+          <button onClick={() => setNameSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Table */}
