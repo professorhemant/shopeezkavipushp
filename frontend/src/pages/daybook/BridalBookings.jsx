@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertCircle, CheckCircle, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { bridalAPI } from '../../api'
+import { bridalAPI, daybookAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import BridalImageUpload from '../../components/bridal/BridalImageUpload'
 
@@ -35,7 +35,7 @@ const ACCESSORIES = [
 const EMPTY = {
   bridal_set_id: '', set_code: '', set_name: '', category: '', customized_set: '', set_image: '',
   nath: '', maang_teeka: '', ring: '', matha_patti: '', sheesh_patti: '', hath_phool: '', pasa: '', borla: '',
-  any_other_item: '', bridal_set_rent: '', booking_amount: '', customization: '', stylist: '',
+  any_other_item: '', bridal_set_rent: '', booking_amount: '', payment_mode: 'cash', customization: '', stylist: '',
   customer_name: '', mobile_no: '', aadhaar_no: '',
   function_date: '', booking_date: today(), pickup_date: '', return_date: '',
 }
@@ -172,16 +172,32 @@ export default function BridalBookings() {
     }
     setSaving(true)
     try {
+      const bookingAmount = form.booking_amount === '' ? null : parseFloat(form.booking_amount)
       await bridalAPI.createBooking({
         ...form,
         bridal_set_id: form.bridal_set_id || null,
         bridal_set_rent: form.bridal_set_rent === '' ? null : parseFloat(form.bridal_set_rent),
-        booking_amount: form.booking_amount === '' ? null : parseFloat(form.booking_amount),
+        booking_amount: bookingAmount,
         function_date: form.function_date || null,
         booking_date: form.booking_date || null,
         pickup_date: form.pickup_date || null,
         return_date: form.return_date || null,
       })
+      // Also record in Day Book so the daily summary reflects this booking amount
+      if (bookingAmount > 0) {
+        await daybookAPI.createBridalBooking({
+          date: form.booking_date || today(),
+          slip_no: form.set_code || form.customized_set || '',
+          amount: bookingAmount,
+          payment_mode: form.payment_mode || 'cash',
+          function_date: form.function_date || null,
+          booking_date: form.booking_date || null,
+          pickup_date: form.pickup_date || null,
+          return_date: form.return_date || null,
+          customer_name: form.customer_name || '',
+          mobile_no: form.mobile_no || '',
+        })
+      }
       toast.success('Booking saved')
       navigate('/bridal/saved')
     } catch { toast.error('Failed to save booking') }
@@ -374,6 +390,14 @@ export default function BridalBookings() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
           <div><label className={lbl}>Bridal Set Rent (₹)</label><input type="number" step="0.01" min="0" value={form.bridal_set_rent} onChange={e => setField('bridal_set_rent', e.target.value)} placeholder="Auto-filled / manual" className={inp} /></div>
           <div><label className={lbl}>Booking Amount (₹)</label><input type="number" step="0.01" min="0" value={form.booking_amount} onChange={e => setField('booking_amount', e.target.value)} placeholder="Advance paid by customer" className={inp} /></div>
+          <div>
+            <label className={lbl}>Payment Mode</label>
+            <select value={form.payment_mode} onChange={e => setField('payment_mode', e.target.value)} className={inp}>
+              <option value="cash">Cash</option>
+              <option value="online">Online / UPI</option>
+              <option value="card">Card</option>
+            </select>
+          </div>
           <div><label className={lbl}>Stylist Who Attended</label><input value={form.stylist} onChange={e => setField('stylist', e.target.value)} placeholder="Enter stylist name" className={inp} /></div>
         </div>
 
