@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertCircle, CheckCircle, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { bridalAPI, daybookAPI } from '../../api'
+import { bridalAPI, dayBookAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import BridalImageUpload from '../../components/bridal/BridalImageUpload'
 
@@ -185,7 +185,7 @@ export default function BridalBookings() {
       })
       // Also record in Day Book so the daily summary reflects this booking amount
       if (bookingAmount > 0) {
-        await daybookAPI.createBridalBooking({
+        await dayBookAPI.createBridalBooking({
           date: form.booking_date || today(),
           slip_no: form.set_code || form.customized_set || '',
           amount: bookingAmount,
