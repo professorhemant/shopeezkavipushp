@@ -58,6 +58,7 @@ async function startServer() {
       // value makes MySQL store '' so the rows vanish from their tab) + add Borla.
       "ALTER TABLE bridal_inventory MODIFY COLUMN item_type ENUM('set','nath','maang_teeka','ring','matha_patti','sheesh_patti','hath_phool','pasa','borla') DEFAULT 'set'",
       "ALTER TABLE bridal_bookings ADD COLUMN borla VARCHAR(255) NULL",
+      "ALTER TABLE bridal_bookings ADD COLUMN status ENUM('active','returned') NOT NULL DEFAULT 'active'",
       // Widen firm phone so multiple contact numbers fit (used on invoice headers).
       "ALTER TABLE firms MODIFY COLUMN phone VARCHAR(50) NULL",
       // Customer name on security refund entries (Day Book → Expenses).

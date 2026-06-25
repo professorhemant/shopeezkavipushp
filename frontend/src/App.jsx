@@ -77,6 +77,7 @@ const SavedBookings = lazy(() => import('./pages/bridal/SavedBookings'))
 const BridalInvoice = lazy(() => import('./pages/bridal/BridalInvoice'))
 const BridalInvoicesList = lazy(() => import('./pages/bridal/BridalInvoicesList'))
 const BridalInvoiceView = lazy(() => import('./pages/bridal/BridalInvoiceView'))
+const UrgentAlerts = lazy(() => import('./pages/bridal/UrgentAlerts'))
 
 const Firms = lazy(() => import('./pages/firms/Firms'))
 const Settings = lazy(() => import('./pages/settings/Settings'))
@@ -211,6 +212,7 @@ function App() {
           <Route path="bridal/invoice" element={<BridalInvoice />} />
           <Route path="bridal/invoice/view/:id" element={<BridalInvoiceView />} />
           <Route path="bridal/invoices" element={<BridalInvoicesList />} />
+          <Route path="bridal/urgent-alerts" element={<UrgentAlerts />} />
 
           {/* Firms & Settings */}
           <Route path="firms" element={<Firms />} />

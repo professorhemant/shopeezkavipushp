@@ -23,9 +23,11 @@ router.post('/invoices', c.createInvoice);
 router.delete('/invoices/:id', c.deleteInvoice);
 
 // Bridal Bookings
+router.get('/bookings/urgent-alerts', c.getUrgentAlerts);
 router.get('/bookings/availability', c.checkAvailability);
 router.get('/bookings', c.listBookings);
 router.post('/bookings', c.createBooking);
+router.put('/bookings/:id/return', c.markReturned);
 router.put('/bookings/:id', c.updateBooking);
 router.delete('/bookings/:id', c.deleteBooking);
 

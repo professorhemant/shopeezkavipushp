@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Truck,
@@ -9,9 +9,10 @@ import {
   Calculator, FileSpreadsheet, Zap, User, DollarSign,
   Landmark, Wrench, Store, Hammer, Warehouse, BookOpen,
   ClipboardList, Factory, MessageSquare, Calendar,
-  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone
+  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone, Bell
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
+import { bridalAPI } from '../../api'
 
 const MENU = [
   { id: 'dashboard', label: 'Dashboard',         icon: LayoutDashboard, path: '/dashboard' },
@@ -78,6 +79,7 @@ const MENU = [
       { label: 'WhatsApp',            path: '/whatsapp/campaigns', icon: MessageSquare },
     ],
   },
+  { id: 'urgent-alerts', label: 'Urgent Alerts', icon: Bell, path: '/bridal/urgent-alerts', urgent: true },
   {
     id: 'settings', label: 'Settings', icon: Settings,
     children: [
@@ -99,7 +101,7 @@ const MENU = [
   },
 ]
 
-function MenuItem({ item }) {
+function MenuItem({ item, urgentCount = 0 }) {
   const location = useLocation()
 
   const hasActiveChild = item.children?.some((c) =>
@@ -114,19 +116,28 @@ function MenuItem({ item }) {
   }
 
   if (!item.children) {
+    const isUrgent = item.urgent && urgentCount > 0
     return (
       <NavLink
         to={item.path}
         className={({ isActive }) =>
           `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors border-l-2 ${
             isActive
-              ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+              ? 'border-red-500 bg-red-500/10 text-red-400'
+              : isUrgent
+              ? 'border-red-500/60 text-red-400 hover:bg-red-500/10'
               : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200'
           }`
         }
+        style={isUrgent ? { animation: 'kp-urgent-blink 1.3s ease-in-out infinite' } : undefined}
       >
-        <Icon className="h-[17px] w-[17px] shrink-0" />
-        <span className="truncate">{item.label}</span>
+        <Icon className={`h-[17px] w-[17px] shrink-0 ${isUrgent ? 'text-red-400' : ''}`} />
+        <span className="truncate flex-1">{item.label}</span>
+        {item.urgent && urgentCount > 0 && (
+          <span className="ml-auto shrink-0 min-w-[20px] h-5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center px-1.5">
+            {urgentCount}
+          </span>
+        )}
       </NavLink>
     )
   }
@@ -181,6 +192,21 @@ function MenuItem({ item }) {
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const { firm, user } = useAuthStore()
   const navigate = useNavigate()
+  const [urgentCount, setUrgentCount] = useState(0)
+
+  useEffect(() => {
+    const fetchUrgent = async () => {
+      try {
+        const res = await bridalAPI.getUrgentAlerts()
+        if (res.data?.success) {
+          setUrgentCount((res.data.today?.length || 0) + (res.data.overdue?.length || 0))
+        }
+      } catch (_) {}
+    }
+    fetchUrgent()
+    const interval = setInterval(fetchUrgent, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const role = user?.role_name || 'staff'
   const visibleMenu = MENU.filter(item => !item.allowedRoles || item.allowedRoles.includes(role))
@@ -209,8 +235,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
+        <style>{`@keyframes kp-urgent-blink { 0%,100%{background:rgba(239,68,68,0.12)} 50%{background:rgba(239,68,68,0.25)} }`}</style>
         {visibleMenu.map((item) => (
-          <MenuItem key={item.id} item={item} />
+          <MenuItem key={item.id} item={item} urgentCount={item.urgent ? urgentCount : 0} />
         ))}
       </nav>
 

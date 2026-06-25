@@ -188,7 +188,7 @@ const checkAvailability = async (req, res, next) => {
     const { set_code, function_date } = req.query;
     if (!set_code) return res.json({ success: true, data: [] });
 
-    let where = { firm_id: req.firmId, set_code, pickup_date: { [Op.ne]: null } };
+    let where = { firm_id: req.firmId, set_code, pickup_date: { [Op.ne]: null }, status: 'active' };
     if (function_date) {
       const wantPickup = shiftDate(function_date, -1);
       const wantReturn = shiftDate(function_date, +1);
@@ -196,6 +196,7 @@ const checkAvailability = async (req, res, next) => {
       where = {
         firm_id: req.firmId,
         set_code,
+        status: 'active',
         pickup_date: { [Op.ne]: null, [Op.lte]: wantReturn },
         return_date: { [Op.gte]: wantPickup },
       };
@@ -283,6 +284,48 @@ const deleteInvoice = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// PUT /bridal/bookings/:id/return — mark booking as returned, frees the set
+const markReturned = async (req, res, next) => {
+  try {
+    const row = await BridalBooking.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
+    if (!row) return res.status(404).json({ success: false, message: 'Booking not found' });
+    await row.update({ status: 'returned' });
+    res.json({ success: true });
+  } catch (err) { next(err); }
+};
+
+// GET /bridal/bookings/urgent-alerts — sets due back today + overdue
+const getUrgentAlerts = async (req, res, next) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    const baseWhere = { firm_id: req.firmId, status: 'active', pickup_date: { [Op.ne]: null } };
+
+    const [todayRows, overdueRows] = await Promise.all([
+      BridalBooking.findAll({ where: { ...baseWhere, return_date: today }, order: [['return_date', 'ASC']] }),
+      BridalBooking.findAll({ where: { ...baseWhere, return_date: { [Op.lt]: today } }, order: [['return_date', 'ASC']] }),
+    ]);
+
+    const allIds = [...todayRows, ...overdueRows].map(r => r.id);
+    let secMap = {};
+    if (allIds.length) {
+      const invRows = await BridalInvoice.findAll({
+        where: { firm_id: req.firmId, booking_id: { [Op.in]: allIds }, type: { [Op.in]: ['booking', 'pickup'] } },
+        attributes: ['booking_id', 'security', 'type'],
+        order: [['createdAt', 'ASC']],
+      });
+      for (const inv of invRows) {
+        if (!secMap[inv.booking_id] || inv.type === 'pickup') {
+          secMap[inv.booking_id] = parseFloat(inv.security) || 0;
+        }
+      }
+    }
+
+    const attach = (rows) => rows.map(r => ({ ...r.toJSON(), security: secMap[r.id] || 0 }));
+    res.json({ success: true, today: attach(todayRows), overdue: attach(overdueRows) });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   uploadImage,
   listInvoices,
@@ -300,4 +343,6 @@ module.exports = {
   updateBooking,
   deleteBooking,
   checkAvailability,
+  markReturned,
+  getUrgentAlerts,
 };

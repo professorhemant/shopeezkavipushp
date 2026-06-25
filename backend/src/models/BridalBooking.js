@@ -39,6 +39,7 @@ const BridalBooking = sequelize.define('BridalBooking', {
   booking_date:  { type: DataTypes.DATEONLY },
   pickup_date:   { type: DataTypes.DATEONLY },
   return_date:   { type: DataTypes.DATEONLY },
+  status: { type: DataTypes.ENUM('active', 'returned'), defaultValue: 'active' },
 }, { tableName: 'bridal_bookings' });
 
 module.exports = BridalBooking;
