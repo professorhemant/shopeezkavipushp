@@ -55,45 +55,49 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
   reader.readAsDataURL(file)
 })
 
-// Exact CSV column headers (must match file header row)
-const CSV_HEADER = 'type,name,bar_code,hsn_code,sell_price,mrp,cost_price,sku,categories,stock_qty,tax_type,tax_rate,brand,variants,show_on_website,trending,tags'
+// CSV column headers for sample download
+const CSV_HEADER = 'name,bar_code,hsn_code,sell_price,mrp,cost_price,wholesale_price,sku,categories,brand,stock_qty,opening_stock,min_stock,tax_type,tax_rate,discount,description,notes'
 
 const SAMPLE_CSV = [
   CSV_HEADER,
-  'product,B8BPOE01,BPOE01,7117,2800,2800,933.33,,BLK PLSH CZ EARRING,2,inclusive_tax,3,,,,,',
-  'product,B8BPOE02,BPOE02,7117,1200,1200,400,,BLK PLSH CZ EARRING,1,inclusive_tax,3,,,,,',
-  'product,MyProduct01,MYBAR001,1234,500,600,350,SKU-001,MY CATEGORY,10,inclusive_tax,5,,,,,',
+  'B8BPOE01,BPOE01,7117,2800,2800,933.33,,B8BPOE01,BLK PLSH CZ EARRING,MyBrand,2,2,1,inclusive_tax,3,0,Elegant earring,',
+  'B8BPOE02,BPOE02,7117,1200,1200,400,,,BLK PLSH CZ EARRING,,1,1,0,inclusive_tax,3,0,,',
+  'MyProduct01,MYBAR001,1234,500,600,350,480,SKU-001,MY CATEGORY,BrandName,10,10,2,inclusive_tax,5,5,Sample product,Some note',
 ].join('\n')
 
 // Parse one CSV row object → Product model payload
+// Accepts many common column name variations so imports from different sources work
 const csvRowToProduct = (row) => {
-  // tax_type: "inclusive_tax" → "inclusive", "exclusive_tax" → "exclusive", missing → "inclusive"
   const rawTaxType = (row.tax_type || '').trim().toLowerCase()
   const taxType = rawTaxType.includes('exclusive') ? 'exclusive' : 'inclusive'
 
-  // discount_per: support "discount_per", "discount%" or "discount" columns
   const rawDiscount = row.discount_per ?? row['discount%'] ?? row.discount ?? ''
   const discountPer = parseFloat(rawDiscount) || 0
 
+  const str = (v) => (v || '').trim()
+
   return {
-    name:           (row.name || '').trim()       || undefined,
-    sku:            (row.sku  || '').trim()       || undefined,
-    barcode:        (row.bar_code || row.barcode || '').trim() || undefined,
-    hsn_code:       (row.hsn_code || '').trim()   || undefined,
-    sale_price:     parseFloat(row.sell_price)    || 0,
-    mrp:            parseFloat(row.mrp)           || 0,
-    purchase_price: parseFloat(row.cost_price)    || 0,
-    stock:          parseFloat(row.stock_qty)     || 0,
-    tax_type:       taxType,
-    // Support both "tax_rate" and "TAX RATE" (normalized to "tax rate" by PapaParse)
-    tax_rate:       parseFloat(row.tax_rate || row['tax rate']) || 3,
-    discount_per:   discountPer,
-    color:          (row.color || '').trim()      || undefined,
-    show_on_website: (row.show_on_website || '').trim().toUpperCase() === 'Y',
-    trending:        (row.trending || '').trim().toUpperCase() === 'Y',
-    category_name:  (row.category || row.categories || row.category_name || '').trim() || undefined,
+    name:            str(row.name)                                                                              || undefined,
+    sku:             str(row.sku)                                                                               || undefined,
+    barcode:         str(row.bar_code    || row.barcode    || row.barcode_no    || row.code)                   || undefined,
+    hsn_code:        str(row.hsn_code   || row.hsn)                                                            || undefined,
+    description:     str(row.description || row.desc      || row.product_description)                          || undefined,
+    sale_price:      parseFloat(row.sell_price   || row.sale_price   || row.selling_price  || row.price)       || 0,
+    mrp:             parseFloat(row.mrp          || row.max_price    || row.maximum_retail_price)               || 0,
+    purchase_price:  parseFloat(row.cost_price   || row.purchase_price || row.cost         || row.buying_price) || 0,
+    wholesale_price: parseFloat(row.wholesale_price || row.wholesale)                                          || 0,
+    stock:           parseFloat(row.stock_qty    || row.stock  || row.quantity || row.qty  || row.current_stock) || 0,
+    opening_stock:   parseFloat(row.opening_stock || row.opening_qty)                                          || 0,
+    min_stock:       parseFloat(row.min_stock    || row.minimum_stock || row.reorder_level || row.alert_qty)   || 0,
+    max_stock:       parseFloat(row.max_stock    || row.maximum_stock) || undefined,
+    tax_type:        taxType,
+    tax_rate:        parseFloat(row.tax_rate     || row['tax rate']   || row.gst  || row.gst_rate || row['gst%']) || 3,
+    discount_per:    discountPer,
+    notes:           str(row.notes  || row.remarks)                                                             || undefined,
+    category_name:   str(row.category || row.categories || row.category_name)                                   || undefined,
+    brand_name:      str(row.brand  || row.brand_name)                                                          || undefined,
     // _photo is used for image matching; stripped before sending to backend
-    _photo:         (row.photo || row.image || row.image_url || '').trim(),
+    _photo:          str(row.photo  || row.image || row.image_url),
   }
 }
 
@@ -257,7 +261,7 @@ function ImportModal({ onClose, onSuccess }) {
           {/* Sample download */}
           <div className="flex items-center justify-between bg-amber-50 rounded-lg px-4 py-3 text-sm">
             <span className="text-amber-700">
-              <strong>Required columns:</strong> name, bar_code, categories, hsn_code, sell_price, mrp, cost_price, stock_qty, tax_rate
+              <strong>Required:</strong> name &nbsp;·&nbsp; <strong>Supported:</strong> bar_code / barcode, categories, brand, hsn_code, sell_price / price, mrp, cost_price / cost, wholesale_price, stock_qty / stock / qty, opening_stock, min_stock, tax_rate / gst, discount, description, notes
             </span>
             <button
               onClick={downloadSample}
@@ -389,7 +393,7 @@ function ImportModal({ onClose, onSuccess }) {
                   <thead className="bg-slate-50 sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-left text-slate-500">#</th>
-                      {['Name','Category','Barcode','Sell Price','MRP','Disc%','Stock','Image'].map((h) => (
+                      {['Name','Category','Brand','Barcode','Sell Price','Cost Price','MRP','Disc%','Stock','GST%','Image'].map((h) => (
                         <th key={h} className="px-3 py-2 text-left text-slate-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -397,36 +401,36 @@ function ImportModal({ onClose, onSuccess }) {
                   <tbody>
                     {rows.slice(0, 20).map((row, i) => {
                       const hasImg = !!findImageForRow(row._photo, row.barcode, row.sku)
+                      const imgPrice = imagePriceMap[(row.barcode || '').toLowerCase()]
                       return (
                         <tr key={i} className="border-t border-slate-100 hover:bg-slate-50">
                           <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
                           <td className="px-3 py-1.5 font-medium text-slate-800 max-w-[140px] truncate">{row.name || <span className="text-red-400">MISSING</span>}</td>
                           <td className="px-3 py-1.5 text-slate-600 text-xs max-w-[100px] truncate">{row.category_name || '-'}</td>
+                          <td className="px-3 py-1.5 text-slate-500 text-xs truncate">{row.brand_name || '-'}</td>
                           <td className="px-3 py-1.5 font-mono text-slate-500">{row.barcode || '-'}</td>
                           <td className="px-3 py-1.5 text-slate-700">
-                            {(() => {
-                              const csvPrice = row.sale_price
-                              const imgPrice = imagePriceMap[(row.barcode || '').toLowerCase()]
-                              if (csvPrice && csvPrice > 0) return `₹${csvPrice}`
-                              if (imgPrice) return <span className="text-blue-600 font-medium">₹{imgPrice} <span className="text-xs text-blue-400">(img)</span></span>
-                              return <span className="text-gray-300">—</span>
-                            })()}
+                            {row.sale_price > 0
+                              ? `₹${row.sale_price}`
+                              : imgPrice
+                                ? <span className="text-blue-600 font-medium">₹{imgPrice} <span className="text-xs text-blue-400">(img)</span></span>
+                                : <span className="text-gray-300">—</span>}
                           </td>
+                          <td className="px-3 py-1.5 text-slate-600">{row.purchase_price > 0 ? `₹${row.purchase_price}` : <span className="text-gray-300">—</span>}</td>
                           <td className="px-3 py-1.5 text-slate-700">
-                            {(() => {
-                              const csvMrp = row.mrp
-                              const imgPrice = imagePriceMap[(row.barcode || '').toLowerCase()]
-                              if (csvMrp && csvMrp > 0) return `₹${csvMrp}`
-                              if (imgPrice) return <span className="text-blue-600 font-medium">₹{imgPrice} <span className="text-xs text-blue-400">(img)</span></span>
-                              return <span className="text-gray-300">—</span>
-                            })()}
+                            {row.mrp > 0
+                              ? `₹${row.mrp}`
+                              : imgPrice
+                                ? <span className="text-blue-600 font-medium">₹{imgPrice} <span className="text-xs text-blue-400">(img)</span></span>
+                                : <span className="text-gray-300">—</span>}
                           </td>
                           <td className="px-3 py-1.5 text-center">
                             {parseFloat(row.discount_per) > 0
                               ? <span className="bg-green-100 text-green-700 text-xs font-bold px-1.5 py-0.5 rounded">{row.discount_per}%</span>
                               : <span className="text-gray-300">—</span>}
                           </td>
-                          <td className="px-3 py-1.5 text-slate-600">{row.stock ?? '-'}</td>
+                          <td className="px-3 py-1.5 text-slate-600">{row.stock > 0 ? row.stock : <span className="text-gray-300">—</span>}</td>
+                          <td className="px-3 py-1.5 text-slate-600">{row.tax_rate}%</td>
                           <td className="px-3 py-1.5">
                             {Object.keys(imageFiles).length > 0 ? (
                               hasImg
@@ -440,7 +444,7 @@ function ImportModal({ onClose, onSuccess }) {
                       )
                     })}
                     {rows.length > 20 && (
-                      <tr><td colSpan={9} className="px-3 py-2 text-center text-gray-400 text-xs">...and {rows.length - 20} more rows</td></tr>
+                      <tr><td colSpan={12} className="px-3 py-2 text-center text-gray-400 text-xs">...and {rows.length - 20} more rows</td></tr>
                     )}
                   </tbody>
                 </table>

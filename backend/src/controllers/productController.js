@@ -211,12 +211,37 @@ const bulkImport = async (req, res, next) => {
       }
     }
 
+    // Resolve brand names → brand_id
+    const brandNames = [...new Set(
+      products.map((p) => (p.brand_name || '').trim()).filter(Boolean)
+    )];
+    const brandMap = {};
+    if (brandNames.length > 0) {
+      const existingBrands = await Brand.findAll({
+        where: { firm_id: firmId, name: { [Op.in]: brandNames } },
+        attributes: ['id', 'name'],
+      });
+      existingBrands.forEach((b) => { brandMap[b.name] = b.id; });
+      for (const name of brandNames) {
+        if (brandMap[name]) continue;
+        try {
+          const b = await Brand.create({ name, firm_id: firmId });
+          brandMap[name] = b.id;
+        } catch {
+          const b = await Brand.findOne({ where: { name, firm_id: firmId } });
+          if (b) brandMap[name] = b.id;
+        }
+      }
+    }
+
     const toCreate = products
       .filter((p) => p.name && String(p.name).trim())
-      .map(({ category_name, ...p }) => ({
+      // eslint-disable-next-line no-unused-vars
+      .map(({ category_name, brand_name, ...p }) => ({
         ...p,
         firm_id: firmId,
         category_id: categoryMap[(category_name || '').trim()] || null,
+        brand_id:    brandMap[(brand_name    || '').trim()] || null,
       }));
 
     if (!toCreate.length) {
