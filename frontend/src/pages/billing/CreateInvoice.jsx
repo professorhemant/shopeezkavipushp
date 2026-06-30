@@ -32,7 +32,7 @@ function calcRow(r) {
   const tax_rate     = parseFloat(r.tax_rate)     || 0
   const total_before = qty * unit_price
   const tax_amt      = (total_before * tax_rate) / 100
-  const total_after  = total_before + tax_amt
+  const total_after  = total_before
   return { ...r, unit_price, tax_amt, total_before, total_after }
 }
 
