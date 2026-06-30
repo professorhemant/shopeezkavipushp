@@ -637,7 +637,7 @@ export default function CreateInvoice() {
                   <th className="px-1 py-1.5 text-right text-slate-200 font-medium">MRP.</th>
                   <th className="px-1 py-1.5 text-center text-slate-200 font-medium">Disc%</th>
                   <th className="px-1 py-1.5 text-right text-slate-200 font-medium">UnitPrice</th>
-                  <th className="px-1 py-1.5 text-right text-slate-200 font-medium">Tax</th>
+                  <th className="px-1 py-1.5 text-right text-slate-200 font-medium">GST</th>
                   <th className="px-1 py-1.5 text-right text-slate-200 font-medium">Total<span className="text-slate-300 font-normal">(BT)</span></th>
                   <th className="px-1 py-1.5 text-right text-slate-200 font-medium">Total<span className="text-slate-300 font-normal">(AT)</span></th>
                   <th className="px-1 py-1.5"></th>
@@ -777,12 +777,9 @@ export default function CreateInvoice() {
                       />
                     </td>
 
-                    {/* Tax */}
-                    <td className="px-1 py-1">
-                      <input type="number" min="0" max="28" step="0.01" value={row.tax_rate}
-                        onChange={(e) => updateRow(idx, 'tax_rate', e.target.value)}
-                        className="w-full border-2 border-amber-300 rounded-lg px-1 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
-                      />
+                    {/* GST */}
+                    <td className="px-1 py-1 text-right">
+                      <span className="inline-block w-full text-right text-xs font-semibold text-yellow-700 bg-yellow-50 border-2 border-yellow-300 rounded-lg px-1 py-0.5">{(row.tax_amt || 0).toFixed(2)}</span>
                     </td>
 
                     {/* Total Before Tax */}
