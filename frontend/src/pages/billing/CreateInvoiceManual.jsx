@@ -18,7 +18,7 @@ function newRow() {
     mrp: 0,
     discount_per: 0,
     unit_price: 0,
-    tax_rate: 0,
+    tax_rate: 3,
     tax_amt: 0,
     total_before: 0,
     total_after: 0,
@@ -514,8 +514,11 @@ export default function CreateInvoiceManual() {
                     </td>
 
                     {/* GST */}
-                    <td className="px-1 py-1 text-right">
-                      <span className="inline-block w-full text-right text-xs font-semibold text-yellow-700 bg-yellow-50 border-2 border-yellow-300 rounded-lg px-1 py-0.5">{(row.tax_amt || 0).toFixed(2)}</span>
+                    <td className="px-1 py-1">
+                      <input type="number" min="0" max="28" step="0.01" value={row.tax_rate}
+                        onChange={(e) => updateRow(idx, 'tax_rate', e.target.value)}
+                        className="w-full border-2 border-yellow-300 rounded-lg px-1 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-500 bg-yellow-50"
+                      />
                     </td>
 
                     {/* Total Before Tax */}
