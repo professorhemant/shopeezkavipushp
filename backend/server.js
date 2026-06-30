@@ -63,6 +63,9 @@ async function startServer() {
       "ALTER TABLE firms MODIFY COLUMN phone VARCHAR(50) NULL",
       // Customer name on security refund entries (Day Book → Expenses).
       "ALTER TABLE daybook_security_refunds ADD COLUMN customer_name VARCHAR(150) NULL",
+      // Invoice counter and prefix for auto-numbering (firms table must have these columns).
+      "ALTER TABLE firms ADD COLUMN invoice_counter INT NOT NULL DEFAULT 0",
+      "ALTER TABLE firms ADD COLUMN invoice_prefix VARCHAR(20) NOT NULL DEFAULT 'INV'",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }

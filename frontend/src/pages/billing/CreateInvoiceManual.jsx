@@ -85,11 +85,15 @@ export default function CreateInvoiceManual() {
   const [invoiceImages,  setInvoiceImages]  = useState([]) // [{file, preview}]
   const invoiceFileRef = useRef(null)
 
-  // ── load next invoice no + settings ──────────────────────────
-  useEffect(() => {
+  const fetchNextInvoiceNo = () => {
     saleAPI.getNextInvoiceNo()
       .then(({ data }) => setInvoiceNo(data.invoice_no || data.next_number || 'KPJ-/0001'))
       .catch(() => {})
+  }
+
+  // ── load next invoice no + settings ──────────────────────────
+  useEffect(() => {
+    fetchNextInvoiceNo()
     settingsAPI.getSettings()
       .then(({ data }) => {
         const s = data.data || data.settings || data
@@ -384,7 +388,7 @@ export default function CreateInvoiceManual() {
             onChange={(e) => setInvoiceNo(e.target.value)}
             className="w-28 border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
           />
-          <button className="p-1.5 bg-green-500 hover:bg-green-600 rounded text-white">
+          <button onClick={fetchNextInvoiceNo} className="p-1.5 bg-green-500 hover:bg-green-600 rounded text-white" title="Refresh invoice number">
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
         </div>

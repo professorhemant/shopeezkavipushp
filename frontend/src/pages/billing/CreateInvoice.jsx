@@ -106,6 +106,12 @@ export default function CreateInvoice() {
   const [existingImages,   setExistingImages]   = useState([]) // string[] of existing URL paths
   const invoiceFileRef = useRef(null)
 
+  const fetchNextInvoiceNo = () => {
+    saleAPI.getNextInvoiceNo()
+      .then(({ data }) => setInvoiceNo(data.invoice_no || data.next_number || 'KPJ-/0001'))
+      .catch(() => {})
+  }
+
   // ── load master data ─────────────────────────────────────────
   useEffect(() => {
     productAPI.getAll({ limit: 1000 })
@@ -118,9 +124,7 @@ export default function CreateInvoice() {
           setUpiIds({ upi1: s.payment_upi_id || '', upi2: s.payment_upi_id_2 || '' })
       }).catch(() => {})
     if (!isEdit) {
-      saleAPI.getNextInvoiceNo()
-        .then(({ data }) => setInvoiceNo(data.invoice_no || data.next_number || 'KPJ-/0001'))
-        .catch(() => {})
+      fetchNextInvoiceNo()
     }
   }, [isEdit])
 
@@ -581,7 +585,7 @@ export default function CreateInvoice() {
             onChange={(e) => setInvoiceNo(e.target.value)}
             className="w-28 border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
           />
-          <button className="p-1.5 bg-green-500 hover:bg-green-600 rounded text-white">
+          <button onClick={fetchNextInvoiceNo} className="p-1.5 bg-green-500 hover:bg-green-600 rounded text-white" title="Refresh invoice number">
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
         </div>
