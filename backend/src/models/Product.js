@@ -16,7 +16,7 @@ const Product = sequelize.define('Product', {
   sale_price: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
   mrp: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
   wholesale_price: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
-  tax_rate: { type: DataTypes.DECIMAL(5, 2), defaultValue: 18 },
+  tax_rate: { type: DataTypes.DECIMAL(5, 2), defaultValue: 3 },
   tax_type: { type: DataTypes.ENUM('inclusive', 'exclusive'), defaultValue: 'exclusive' },
   stock: { type: DataTypes.DECIMAL(12, 3), defaultValue: 0 },
   min_stock: { type: DataTypes.DECIMAL(12, 3), defaultValue: 0 },

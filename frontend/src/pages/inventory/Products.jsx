@@ -86,7 +86,7 @@ const csvRowToProduct = (row) => {
     stock:          parseFloat(row.stock_qty)     || 0,
     tax_type:       taxType,
     // Support both "tax_rate" and "TAX RATE" (normalized to "tax rate" by PapaParse)
-    tax_rate:       parseFloat(row.tax_rate || row['tax rate']) || 0,
+    tax_rate:       parseFloat(row.tax_rate || row['tax rate']) || 3,
     discount_per:   discountPer,
     color:          (row.color || '').trim()      || undefined,
     show_on_website: (row.show_on_website || '').trim().toUpperCase() === 'Y',

@@ -66,6 +66,8 @@ async function startServer() {
       // Invoice counter and prefix for auto-numbering (firms table must have these columns).
       "ALTER TABLE firms ADD COLUMN invoice_counter INT NOT NULL DEFAULT 0",
       "ALTER TABLE firms ADD COLUMN invoice_prefix VARCHAR(20) NOT NULL DEFAULT 'INV'",
+      // Set all existing products with tax_rate = 0 to 3% (jewellery GST default).
+      "UPDATE products SET tax_rate = 3 WHERE tax_rate = 0 OR tax_rate IS NULL",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
