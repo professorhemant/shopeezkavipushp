@@ -589,7 +589,7 @@ export default function CreateInvoiceManual() {
           <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 text-xs bg-white">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-5 rounded-full bg-yellow-400 shrink-0" />
-              <span className="text-gray-600 font-medium">Tax</span>
+              <span className="text-gray-600 font-medium">GST</span>
             </div>
             <span className="font-bold text-yellow-600 text-sm">+₹{effectiveTax.toFixed(2)}</span>
           </div>
