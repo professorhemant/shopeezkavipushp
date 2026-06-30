@@ -9,7 +9,7 @@ import toast from 'react-hot-toast'
 import { productAPI, categoryAPI, brandAPI, unitAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
-const TAX_RATES = [0, 5, 12, 18, 28]
+const TAX_RATES = [0, 3, 5, 12, 18, 28]
 
 export default function AddProduct() {
   const { id } = useParams()
