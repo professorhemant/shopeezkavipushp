@@ -23,7 +23,7 @@ export default function AddProductManual() {
       name: '', sku: '', barcode: '', hsn_code: '', description: '',
       category_id: '', brand_id: '', unit_id: '',
       purchase_price: '', sale_price: '', mrp: '', wholesale_price: '',
-      tax_rate: '0', tax_type: 'exclusive',
+      tax_rate: '3', tax_type: 'exclusive',
       stock: '', min_stock: '', max_stock: '', opening_stock: '',
       is_service: false, track_inventory: true, has_variants: false,
       is_active: true,
