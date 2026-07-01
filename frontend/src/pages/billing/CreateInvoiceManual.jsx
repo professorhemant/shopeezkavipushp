@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
-  X, Truck, Trash2, Plus, Calendar, Info, Banknote,
+  X, Trash2, Plus, Calendar, Info, Banknote,
   CreditCard, Smartphone, FileText, RefreshCw, Camera
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -350,18 +350,6 @@ export default function CreateInvoiceManual() {
 
         {/* Action buttons */}
         <div className="flex items-center gap-1 flex-wrap">
-          <button
-            onClick={() => setOrderType('takeaway')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded ${orderType === 'takeaway' ? 'bg-orange-500 text-white' : 'border border-orange-500 text-orange-600 hover:bg-orange-50'}`}
-          >
-            TAKE AWAY
-          </button>
-          <button
-            onClick={() => setOrderType('delivery')}
-            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded ${orderType === 'delivery' ? 'bg-amber-600 text-white' : 'border border-amber-500 text-amber-600 hover:bg-amber-50'}`}
-          >
-            <Truck className="h-3 w-3" /> DELIVERY
-          </button>
           <button
             onClick={() => setRows((prev) => [...prev, newRow()])}
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded border border-gray-300 text-gray-700 hover:bg-gray-50"

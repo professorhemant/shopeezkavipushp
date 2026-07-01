@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate, useParams, useLocation, Link } from 'react-router-dom'
 import {
-  ScanBarcode, X, Truck, Package, Repeat2,
+  ScanBarcode, X,
   Trash2, Plus, Calendar, Info, Banknote,
   CreditCard, Smartphone, FileText, ChevronDown,
   RefreshCw, Camera
@@ -540,28 +540,10 @@ export default function CreateInvoice() {
             <option>Category 1</option>
           </select>
           <button
-            onClick={() => setOrderType('takeaway')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded ${orderType === 'takeaway' ? 'bg-orange-500 text-white' : 'border border-orange-500 text-orange-600 hover:bg-orange-50'}`}
-          >
-            TAKE AWAY
-          </button>
-          <button
-            onClick={() => setOrderType('delivery')}
-            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded ${orderType === 'delivery' ? 'bg-amber-600 text-white' : 'border border-amber-500 text-amber-600 hover:bg-amber-50'}`}
-          >
-            <Truck className="h-3 w-3" /> DELIVERY
-          </button>
-          <button
             onClick={() => setRows((prev) => [...prev, newRow()])}
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             <Plus className="h-3 w-3" /> PRODUCT
-          </button>
-          <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded bg-orange-400 text-white hover:bg-orange-500">
-            HOLD(F3)
-          </button>
-          <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded bg-yellow-500 text-white hover:bg-yellow-600">
-            <Repeat2 className="h-3 w-3" /> EXCHANGE
           </button>
           <button className="px-3 py-1.5 text-xs font-semibold rounded border border-gray-300 text-gray-700 hover:bg-gray-50">
             ADD GST
