@@ -1399,22 +1399,22 @@ bBQusfbKqlGg61r07k8bA4M=
                 <div className="border-2 border-slate-300 rounded bg-white overflow-hidden relative" style={{ width: 340, height: 51 }}>
                   {/* Left 50mm blank — tag string area */}
                   <div className="absolute top-0 left-0 bottom-0 border-r border-dashed border-slate-300" style={{ width: 170 }} />
-                  {/* Name: x=400,y=2 → left=170,top=1 */}
+                  {/* Name: shifted +17px (5% of 340px) right */}
                   {showName && (
-                    <span className="absolute font-bold text-slate-800" style={{ left: 172, top: 1, fontSize: 6.5, maxWidth: 72, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span className="absolute font-bold text-slate-800" style={{ left: 189, top: 1, fontSize: 6.5, maxWidth: 72, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {previewName.length > 13 ? previewName.slice(0,13)+'…' : previewName}
                     </span>
                   )}
-                  {/* Price: x=575,y=2 → left=244,top=1 */}
+                  {/* Price: shifted +17px */}
                   {showPrice && (
-                    <span className="absolute text-slate-700" style={{ left: 244, top: 1, fontSize: 6.5 }}>Rs.{previewPrice}</span>
+                    <span className="absolute text-slate-700" style={{ left: 261, top: 1, fontSize: 6.5 }}>Rs.{previewPrice}</span>
                   )}
-                  {/* Barcode: x=400,y=20,w=200,h=80 → left=170,top=9,width=85,height=34 (25×10mm) */}
+                  {/* Barcode: shifted +17px */}
                   {previewBarcodeUrl && (
-                    <img src={previewBarcodeUrl} alt="barcode" style={{ position: 'absolute', left: 172, top: 9, width: 85, height: 34, objectFit: 'fill' }} />
+                    <img src={previewBarcodeUrl} alt="barcode" style={{ position: 'absolute', left: 189, top: 9, width: 85, height: 34, objectFit: 'fill' }} />
                   )}
-                  {/* Code text: x=400,y=102 → left=170,top=43 */}
-                  <div className="absolute font-mono text-slate-700" style={{ left: 172, top: 43, fontSize: 5.5 }}>{previewBarcode}</div>
+                  {/* Code text: shifted +17px */}
+                  <div className="absolute font-mono text-slate-700" style={{ left: 189, top: 43, fontSize: 5.5 }}>{previewBarcode}</div>
                 </div>
               )}
 
