@@ -1394,22 +1394,27 @@ bBQusfbKqlGg61r07k8bA4M=
                 </div>
               )}
 
-              {/* Thermal 100×15 mm preview */}
+              {/* Thermal 100×15 mm preview — pixel-accurate at 0.425px/dot (340px=800dots=100mm) */}
               {labelFormat === 'thermal100x15' && (
-                <div className="border-2 border-slate-300 rounded bg-white flex items-stretch overflow-hidden" style={{ width: 340, height: 52 }}>
-                  {/* Left blank (tag string area) */}
-                  <div className="border-r border-dashed border-slate-300" style={{ width: 170 }} />
-                  {/* Right content area */}
-                  <div className="flex-1 px-1.5 py-1 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      {showName && <span className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[90px]">{previewName.length > 12 ? previewName.slice(0,12)+'…' : previewName}</span>}
-                      {showPrice && <span className="text-xs text-slate-700 font-medium">Rs.{previewPrice}</span>}
-                    </div>
-                    {previewBarcodeUrl && (
-                      <img src={previewBarcodeUrl} alt="barcode" style={{ height: 22, objectFit: 'fill', width: '100%' }} />
-                    )}
-                    <div className="text-center font-mono text-slate-700" style={{ fontSize: 7 }}>{previewBarcode}</div>
-                  </div>
+                <div className="border-2 border-slate-300 rounded bg-white overflow-hidden relative" style={{ width: 340, height: 51 }}>
+                  {/* Left 50mm blank — tag string area */}
+                  <div className="absolute top-0 left-0 bottom-0 border-r border-dashed border-slate-300" style={{ width: 170 }} />
+                  {/* Name: x=400,y=2 → left=170,top=1 */}
+                  {showName && (
+                    <span className="absolute font-bold text-slate-800" style={{ left: 172, top: 1, fontSize: 6.5, maxWidth: 72, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {previewName.length > 13 ? previewName.slice(0,13)+'…' : previewName}
+                    </span>
+                  )}
+                  {/* Price: x=575,y=2 → left=244,top=1 */}
+                  {showPrice && (
+                    <span className="absolute text-slate-700" style={{ left: 244, top: 1, fontSize: 6.5 }}>Rs.{previewPrice}</span>
+                  )}
+                  {/* Barcode: x=400,y=20,w=200,h=80 → left=170,top=9,width=85,height=34 (25×10mm) */}
+                  {previewBarcodeUrl && (
+                    <img src={previewBarcodeUrl} alt="barcode" style={{ position: 'absolute', left: 172, top: 9, width: 85, height: 34, objectFit: 'fill' }} />
+                  )}
+                  {/* Code text: x=400,y=102 → left=170,top=43 */}
+                  <div className="absolute font-mono text-slate-700" style={{ left: 172, top: 43, fontSize: 5.5 }}>{previewBarcode}</div>
                 </div>
               )}
 
