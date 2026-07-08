@@ -632,12 +632,13 @@ const RIGHT_MARGIN   = 48          // 6mm non-printable right edge
 // Jewellery-optimised default: left 50mm blank (tag string), right 50mm content
 // Safe print zone: x 400–752 (352 dots = 44mm)
 // Barcode: 25mm wide (200 dots) × 10mm tall (80 dots) at 203 DPI
-// Price + code sit just above barcode (y=4); name hidden by default
+// Price + code centred in right half just above barcode (y=4); name hidden by default
+// Right half: x=400–800 (400 dots). Price≈56 dots + gap 8 + code≈64 dots = 128 dots → start x=536
 const DEFAULT_LABEL_TEMPLATE = {
   name:    { x: 400, y: 4,  w: 175, h: 14, fontSize: 8,  bold: false, show: false },
-  price:   { x: 400, y: 4,  w: 110, h: 14, fontSize: 8,  bold: true,  show: true  },
+  price:   { x: 536, y: 4,  w: 110, h: 14, fontSize: 8,  bold: true,  show: true  },
   barcode: { x: 400, y: 20, w: 200, h: 80, show: true },
-  code:    { x: 516, y: 4,  w: 236, h: 14, fontSize: 8,  bold: false, show: true  },
+  code:    { x: 600, y: 4,  w: 200, h: 14, fontSize: 8,  bold: false, show: true  },
 }
 
 const EL_COLORS = {
