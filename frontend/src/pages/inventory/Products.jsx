@@ -1394,29 +1394,30 @@ bBQusfbKqlGg61r07k8bA4M=
                 </div>
               )}
 
-              {/* Thermal 100×15 mm preview — pixel-accurate at 0.425px/dot (340px=800dots=100mm) */}
-              {labelFormat === 'thermal100x15' && (
-                <div className="border-2 border-slate-300 rounded bg-white overflow-hidden relative" style={{ width: 340, height: 51 }}>
-                  {/* Left 50mm blank — tag string area */}
-                  <div className="absolute top-0 left-0 bottom-0 border-r border-dashed border-slate-300" style={{ width: 170 }} />
-                  {/* Name: shifted +17px (5% of 340px) right */}
-                  {showName && (
-                    <span className="absolute font-bold text-slate-800" style={{ left: 189, top: 1, fontSize: 6.5, maxWidth: 72, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {previewName.length > 13 ? previewName.slice(0,13)+'…' : previewName}
-                    </span>
-                  )}
-                  {/* Price: shifted +17px */}
-                  {showPrice && (
-                    <span className="absolute text-slate-700" style={{ left: 261, top: 1, fontSize: 6.5 }}>Rs.{previewPrice}</span>
-                  )}
-                  {/* Barcode: shifted +17px */}
-                  {previewBarcodeUrl && (
-                    <img src={previewBarcodeUrl} alt="barcode" style={{ position: 'absolute', left: 189, top: 9, width: 85, height: 34, objectFit: 'fill' }} />
-                  )}
-                  {/* Code text: shifted +17px */}
-                  <div className="absolute font-mono text-slate-700" style={{ left: 189, top: 43, fontSize: 5.5 }}>{previewBarcode}</div>
-                </div>
-              )}
+              {/* Thermal 100×15 mm preview — scaled from labelTpl (340px=800dots=100mm) */}
+              {labelFormat === 'thermal100x15' && (() => {
+                const S = 340 / 800
+                const px = (dots) => Math.round(dots * S)
+                return (
+                  <div className="border-2 border-slate-300 rounded bg-white overflow-hidden relative" style={{ width: 340, height: 51 }}>
+                    <div className="absolute top-0 left-0 bottom-0 border-r border-dashed border-slate-300" style={{ width: 170 }} />
+                    {showName && labelTpl.name.show && (
+                      <span className="absolute text-slate-800" style={{ left: px(labelTpl.name.x), top: px(labelTpl.name.y), fontSize: 6.5, fontWeight: labelTpl.name.bold ? 'bold' : 'normal', maxWidth: px(labelTpl.name.w), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {previewName}
+                      </span>
+                    )}
+                    {showPrice && labelTpl.price.show && (
+                      <span className="absolute text-slate-700" style={{ left: px(labelTpl.price.x), top: px(labelTpl.price.y), fontSize: 6.5 }}>Rs.{previewPrice}</span>
+                    )}
+                    {previewBarcodeUrl && labelTpl.barcode.show && (
+                      <img src={previewBarcodeUrl} alt="barcode" style={{ position: 'absolute', left: px(labelTpl.barcode.x), top: px(labelTpl.barcode.y), width: px(labelTpl.barcode.w), height: px(labelTpl.barcode.h), objectFit: 'fill' }} />
+                    )}
+                    {labelTpl.code.show && (
+                      <div className="absolute font-mono text-slate-700" style={{ left: px(labelTpl.code.x), top: px(labelTpl.code.y), fontSize: 5.5 }}>{previewBarcode}</div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* A4 sheet preview — shows 3 sample cards in a row */}
               {labelFormat === 'a4sheet5x13' && (
