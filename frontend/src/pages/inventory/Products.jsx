@@ -632,11 +632,12 @@ const RIGHT_MARGIN   = 48          // 6mm non-printable right edge
 // Jewellery-optimised default: left 50mm blank (tag string), right 50mm content
 // Safe print zone: x 400–752 (352 dots = 44mm)
 // Barcode: 25mm wide (200 dots) × 10mm tall (80 dots) at 203 DPI
+// Price + code sit just above barcode (y=4); name hidden by default
 const DEFAULT_LABEL_TEMPLATE = {
-  name:    { x: 400, y: 2,  w: 175, h: 18, fontSize: 11, bold: true,  show: true },
-  price:   { x: 575, y: 2,  w: 177, h: 18, fontSize: 11, bold: false, show: true },
+  name:    { x: 400, y: 4,  w: 175, h: 14, fontSize: 8,  bold: false, show: false },
+  price:   { x: 400, y: 4,  w: 110, h: 14, fontSize: 8,  bold: true,  show: true  },
   barcode: { x: 400, y: 20, w: 200, h: 80, show: true },
-  code:    { x: 400, y: 102, w: 352, h: 18, fontSize: 8,  bold: false, show: true },
+  code:    { x: 516, y: 4,  w: 236, h: 14, fontSize: 8,  bold: false, show: true  },
 }
 
 const EL_COLORS = {
@@ -1097,7 +1098,12 @@ bBQusfbKqlGg61r07k8bA4M=
         const barcodeText = p.barcode || p.sku || ''
         if (!barcodeText) continue
         const price = p.sale_price || p.sell_price || 0
-        const tspl = buildTSPL(p.name || '', barcodeText, price, copies, labelTpl)
+        const effectiveTpl = {
+          ...labelTpl,
+          name:  { ...labelTpl.name,  show: labelTpl.name.show  && showName  },
+          price: { ...labelTpl.price, show: labelTpl.price.show && showPrice },
+        }
+        const tspl = buildTSPL(p.name || '', barcodeText, price, copies, effectiveTpl)
         await qz.print(config, [{ type: 'raw', format: 'plain', data: tspl }])
       }
 
@@ -1454,10 +1460,19 @@ bBQusfbKqlGg61r07k8bA4M=
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 flex-wrap">
-          <button onClick={() => setShowDesigner(true)}
-            className="flex items-center gap-2 text-sm font-medium text-violet-600 hover:text-violet-800 border border-violet-200 hover:border-violet-400 px-4 py-2 rounded-lg bg-violet-50 hover:bg-violet-100">
-            <Palette className="h-4 w-4" /> Design Label
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowDesigner(true)}
+              className="flex items-center gap-2 text-sm font-medium text-violet-600 hover:text-violet-800 border border-violet-200 hover:border-violet-400 px-4 py-2 rounded-lg bg-violet-50 hover:bg-violet-100">
+              <Palette className="h-4 w-4" /> Design Label
+            </button>
+            <button onClick={() => {
+              settingsAPI.updateSettings({ label_template: JSON.stringify(DEFAULT_LABEL_TEMPLATE) })
+                .then(() => { setLabelTpl(DEFAULT_LABEL_TEMPLATE); toast.success('Layout reset: price+code above barcode, name hidden') })
+                .catch(() => toast.error('Failed to reset layout'))
+            }} className="text-xs text-slate-500 hover:text-slate-700 border border-slate-200 hover:border-slate-400 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100">
+              Reset Layout
+            </button>
+          </div>
           <div className="flex items-center gap-3 flex-wrap">
             <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">
               Cancel
