@@ -11,6 +11,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner'
 function newRow() {
   return {
     _id: Date.now() + Math.random(),
+    product_id: '',
     item_name: '',
     item_code: '',
     qty: 1,
@@ -153,6 +154,7 @@ export default function CreateInvoiceManual() {
 
   const applyProductToManualRow = (existingRow, product) => calcRow({
     ...existingRow,
+    product_id: product.id || '',
     item_name:  product.name || existingRow.item_name,
     item_code:  product.sku || product.barcode || existingRow.item_code,
     unit_price: parseFloat(product.sale_price || 0),
@@ -215,6 +217,7 @@ export default function CreateInvoiceManual() {
         const next = [...prev]
         next[idx] = calcRow({
           ...next[idx],
+          product_id: match.id || '',
           item_name:  match.name || next[idx].item_name,
           item_code:  match.sku || match.barcode || code,
           unit_price: parseFloat(match.sale_price) || 0,
@@ -292,7 +295,7 @@ export default function CreateInvoiceManual() {
         invoice_date: invoiceDate || new Date().toISOString().slice(0, 10),
         order_type: orderType,
         items: validRows.map((r) => ({
-          product_id: null,
+          product_id: r.product_id || null,
           product_name: r.item_name.trim(),
           batch: r.item_code.trim() || null,
           quantity: parseFloat(r.qty) || 1,
