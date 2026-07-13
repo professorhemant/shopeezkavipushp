@@ -5,7 +5,7 @@ import {
   CreditCard, Smartphone, FileText, RefreshCw, Camera
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saleAPI, whatsappAPI, settingsAPI, productAPI } from '../../api'
+import { saleAPI, customerAPI, whatsappAPI, settingsAPI, productAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 function newRow() {
@@ -102,6 +102,17 @@ export default function CreateInvoiceManual() {
           setUpiIds({ upi1: s.payment_upi_id || '', upi2: s.payment_upi_id_2 || '' })
       }).catch(() => {})
   }, [])
+
+  const saveCustomer = async () => {
+    if (!custName.trim()) { toast.error('Enter customer name to save'); return }
+    try {
+      await customerAPI.create({ name: custName.trim(), mobile: mobile.trim() || undefined })
+      toast.success('Customer saved!')
+    } catch (err) {
+      const msg = err?.response?.data?.message || ''
+      toast.error(msg.toLowerCase().includes('duplicate') ? 'Customer already exists' : 'Failed to save customer')
+    }
+  }
 
   // ── row helpers ───────────────────────────────────────────────
   const updateRow = (idx, field, val) => {
@@ -273,35 +284,42 @@ export default function CreateInvoiceManual() {
       {/* ── Row 1: Customer search | Action buttons ── */}
       <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-amber-200 bg-amber-50/40 flex-wrap">
 
-        {/* Customer Name */}
-        <input
-          type="text"
-          value={custName}
-          onChange={(e) => setCustName(e.target.value)}
-          placeholder="Customer Name"
-          className="border-2 border-amber-500 rounded-lg px-2 py-1.5 text-xs w-36 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
-        />
-
-        {/* Mobile Number */}
-        <input
-          type="text"
-          value={mobile}
-          onChange={(e) => setMobile(e.target.value)}
-          placeholder="Mobile Number"
-          className="border-2 border-amber-500 rounded-lg px-2 py-1.5 text-xs w-32 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
-        />
-
-        {/* Prev Balance */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-red-600 font-medium whitespace-nowrap">Prev. ₹</span>
-          <input
-            type="number"
-            min="0"
-            value={prevBalanceInput}
-            onChange={(e) => setPrevBalanceInput(e.target.value)}
-            placeholder="0"
-            className="w-20 border border-red-500 rounded-lg px-1.5 py-1.5 text-xs text-red-700 font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-red-400"
-          />
+        {/* Customer fields + Save button */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={custName}
+              onChange={(e) => setCustName(e.target.value)}
+              placeholder="Customer Name"
+              className="border-2 border-amber-500 rounded-lg px-2 py-1.5 text-xs w-36 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+            />
+            <input
+              type="text"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              placeholder="Mobile Number"
+              className="border-2 border-amber-500 rounded-lg px-2 py-1.5 text-xs w-32 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+            />
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-red-600 font-medium whitespace-nowrap">Prev. ₹</span>
+              <input
+                type="number"
+                min="0"
+                value={prevBalanceInput}
+                onChange={(e) => setPrevBalanceInput(e.target.value)}
+                placeholder="0"
+                className="w-20 border border-red-500 rounded-lg px-1.5 py-1.5 text-xs text-red-700 font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-red-400"
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={saveCustomer}
+            className="self-start text-[10px] font-semibold px-2 py-0.5 rounded bg-green-600 hover:bg-green-700 text-white"
+          >
+            Save Customer Data
+          </button>
         </div>
 
         {/* Action buttons */}
