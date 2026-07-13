@@ -177,9 +177,6 @@ export default function Customers() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Customers</h1>
           <p className="text-sm text-slate-500 mt-0.5">{total} total customers</p>
         </div>
-        <button onClick={openAdd} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-          <Plus className="h-4 w-4" /> Add Customer
-        </button>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
