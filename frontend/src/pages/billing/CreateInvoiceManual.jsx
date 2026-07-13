@@ -57,6 +57,15 @@ export default function CreateInvoiceManual() {
   const [invoiceNo,   setInvoiceNo]   = useState('')
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10))
 
+  // product cache + row search
+  const [allProducts,         setAllProducts]         = useState([])
+  const [activeRowSearch,     setActiveRowSearch]     = useState(null)
+  const [rowSearch,           setRowSearch]           = useState('')
+  const [rowResults,          setRowResults]          = useState([])
+  const [activeBarcodeSearch, setActiveBarcodeSearch] = useState(null)
+  const [barcodeSearch,       setBarcodeSearch]       = useState('')
+  const [barcodeResults,      setBarcodeResults]      = useState([])
+
   // rows
   const [rows, setRows] = useState([newRow()])
 
@@ -92,7 +101,7 @@ export default function CreateInvoiceManual() {
       .catch(() => {})
   }
 
-  // ── load next invoice no + settings ──────────────────────────
+  // ── load next invoice no + settings + product cache ──────────
   useEffect(() => {
     fetchNextInvoiceNo()
     settingsAPI.getSettings()
@@ -101,7 +110,57 @@ export default function CreateInvoiceManual() {
         if (s.payment_upi_id || s.payment_upi_id_2)
           setUpiIds({ upi1: s.payment_upi_id || '', upi2: s.payment_upi_id_2 || '' })
       }).catch(() => {})
+    productAPI.getAll({ limit: 1000 })
+      .then(({ data }) => setAllProducts(data.data || data.products || data.results || []))
+      .catch(() => {})
   }, [])
+
+  // ── row product name search ───────────────────────────────────
+  useEffect(() => {
+    if (!rowSearch.trim()) { setRowResults(allProducts); return }
+    const q = rowSearch.toLowerCase()
+    const localResults = allProducts.filter((p) =>
+      p.name?.toLowerCase().includes(q) ||
+      p.barcode?.toLowerCase().includes(q) ||
+      p.sku?.toLowerCase().includes(q)
+    )
+    if (localResults.length > 0) {
+      setRowResults(localResults)
+    } else {
+      productAPI.getAll({ search: rowSearch.trim(), limit: 20 })
+        .then(({ data }) => setRowResults(data.data || data.products || data.results || []))
+        .catch(() => setRowResults([]))
+    }
+  }, [rowSearch, allProducts])
+
+  // ── barcode live search ───────────────────────────────────────
+  useEffect(() => {
+    if (!barcodeSearch.trim() || activeBarcodeSearch === null) { setBarcodeResults([]); return }
+    const q = barcodeSearch.toLowerCase()
+    const localResults = allProducts.filter((p) =>
+      (p.barcode || '').toLowerCase().includes(q) ||
+      (p.sku || '').toLowerCase().includes(q) ||
+      p.name?.toLowerCase().includes(q)
+    )
+    if (localResults.length > 0) {
+      setBarcodeResults(localResults)
+    } else {
+      productAPI.getAll({ search: barcodeSearch.trim(), limit: 20 })
+        .then(({ data }) => setBarcodeResults(data.data || data.products || data.results || []))
+        .catch(() => setBarcodeResults([]))
+    }
+  }, [barcodeSearch, allProducts, activeBarcodeSearch])
+
+  const applyProductToManualRow = (existingRow, product) => calcRow({
+    ...existingRow,
+    item_name:  product.name || existingRow.item_name,
+    item_code:  product.sku || product.barcode || existingRow.item_code,
+    unit_price: parseFloat(product.sale_price || 0),
+    mrp:        parseFloat(product.mrp || product.sale_price || 0),
+    tax_rate:   parseFloat(product.tax_rate || 0),
+    stock:      parseFloat(product.stock || 0),
+    discount_per: parseFloat(product.discount_per || 0),
+  })
 
   const saveCustomer = async () => {
     if (!custName.trim()) { toast.error('Enter customer name to save'); return }
@@ -422,25 +481,77 @@ export default function CreateInvoiceManual() {
 
                     {/* Item Name */}
                     <td className="px-1 py-1">
-                      <input
-                        type="text"
-                        value={row.item_name}
-                        onChange={(e) => updateRow(idx, 'item_name', e.target.value)}
-                        placeholder="Item name..."
-                        className="w-full border-2 border-amber-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={activeRowSearch === idx ? rowSearch : row.item_name}
+                          onChange={(e) => { setRowSearch(e.target.value); setActiveRowSearch(idx) }}
+                          onFocus={() => { setActiveRowSearch(idx); setRowSearch(row.item_name) }}
+                          onBlur={() => setTimeout(() => { if (activeRowSearch === idx) setActiveRowSearch(null) }, 200)}
+                          placeholder="Search item..."
+                          className="w-full border-2 border-amber-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
+                        />
+                        {activeRowSearch === idx && rowResults.length > 0 && (
+                          <div className="absolute top-full left-0 bg-white border border-slate-400 rounded shadow-lg z-40 max-h-72 overflow-y-auto min-w-[260px]">
+                            {rowResults.map((p) => (
+                              <button key={p.id}
+                                onMouseDown={() => {
+                                  setRows((prev) => {
+                                    const next = [...prev]
+                                    next[idx] = applyProductToManualRow(next[idx], p)
+                                    return next
+                                  })
+                                  setActiveRowSearch(null)
+                                  setRowSearch('')
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50"
+                              >
+                                <span className="font-medium">{p.name}</span>
+                                <span className="text-gray-400 ml-2">₹{p.sale_price}</span>
+                                <span className="text-gray-300 ml-1">· Stock: {p.stock}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </td>
 
                     {/* Code / Barcode */}
                     <td className="px-1 py-1">
-                      <input
-                        type="text"
-                        value={row.item_code}
-                        onChange={(e) => updateRow(idx, 'item_code', e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lookupByCode(idx, e.target.value) } }}
-                        placeholder="Code/Barcode"
-                        className="w-full border-2 border-slate-400 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={activeBarcodeSearch === idx ? barcodeSearch : row.item_code}
+                          onChange={(e) => { setBarcodeSearch(e.target.value); setActiveBarcodeSearch(idx) }}
+                          onFocus={() => { setActiveBarcodeSearch(idx); setBarcodeSearch(row.item_code) }}
+                          onBlur={() => setTimeout(() => { if (activeBarcodeSearch === idx) setActiveBarcodeSearch(null) }, 200)}
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter') return
+                            e.preventDefault()
+                            lookupByCode(idx, activeBarcodeSearch === idx ? barcodeSearch : row.item_code)
+                            setActiveBarcodeSearch(null); setBarcodeSearch('')
+                          }}
+                          placeholder="Code/Barcode"
+                          className="w-full border-2 border-slate-400 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white"
+                        />
+                        {activeBarcodeSearch === idx && barcodeResults.length > 0 && (
+                          <div className="absolute top-full left-0 bg-white border border-slate-400 rounded shadow-lg z-40 max-h-72 overflow-y-auto min-w-[280px]">
+                            {barcodeResults.map((p) => (
+                              <button key={p.id}
+                                onMouseDown={() => {
+                                  setRows((prev) => { const next = [...prev]; next[idx] = applyProductToManualRow(next[idx], p); return next })
+                                  setActiveBarcodeSearch(null); setBarcodeSearch('')
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50 flex items-center gap-2"
+                              >
+                                <span className="font-mono text-violet-600 shrink-0">{p.barcode || p.sku || '—'}</span>
+                                <span className="font-medium text-gray-800 truncate">{p.name}</span>
+                                <span className="text-gray-400 ml-auto shrink-0">₹{p.sale_price}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </td>
 
                     {/* Qty */}
