@@ -30,9 +30,12 @@ function calcRow(r) {
     ? parseFloat((mrp * (1 - discount_per / 100)).toFixed(2))
     : (parseFloat(r.unit_price) || 0)
   const tax_rate     = parseFloat(r.tax_rate)     || 0
-  const total_before = qty * unit_price
-  const tax_amt      = (total_before * tax_rate) / 100
-  const total_after  = total_before
+  // MRP/unit_price is GST-inclusive; extract the before-tax amount by back-calculating
+  const total_after  = qty * unit_price
+  const total_before = tax_rate > 0
+    ? parseFloat((total_after / (1 + tax_rate / 100)).toFixed(2))
+    : total_after
+  const tax_amt      = parseFloat((total_after - total_before).toFixed(2))
   return { ...r, unit_price, tax_amt, total_before, total_after }
 }
 
