@@ -108,11 +108,19 @@ export default function CreateInvoice() {
   const saveCustomer = async () => {
     if (!custName.trim()) { toast.error('Enter customer name to save'); return }
     try {
-      await customerAPI.create({ name: custName.trim(), phone: mobile.trim() || undefined })
-      toast.success('Customer saved!')
-    } catch (err) {
-      const msg = err?.response?.data?.message || ''
-      toast.error(msg.toLowerCase().includes('duplicate') ? 'Customer already exists' : 'Failed to save customer')
+      const { data: existing } = await customerAPI.getAll({ search: custName.trim(), limit: 5 })
+      const match = (existing.data || existing.customers || []).find(
+        (c) => c.name.trim().toLowerCase() === custName.trim().toLowerCase()
+      )
+      if (match) {
+        await customerAPI.update(match.id, { phone: mobile.trim() || undefined })
+        toast.success('Customer updated!')
+      } else {
+        await customerAPI.create({ name: custName.trim(), phone: mobile.trim() || undefined })
+        toast.success('Customer saved!')
+      }
+    } catch {
+      toast.error('Failed to save customer')
     }
   }
 
