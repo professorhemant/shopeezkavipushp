@@ -5,7 +5,7 @@ import {
   CreditCard, Smartphone, FileText, RefreshCw, Camera
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saleAPI, customerAPI, whatsappAPI, settingsAPI, productAPI } from '../../api'
+import { saleAPI, whatsappAPI, settingsAPI, productAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 function newRow() {
@@ -49,10 +49,8 @@ export default function CreateInvoiceManual() {
   const [waModal, setWaModal] = useState(null)
 
   // customer
-  const [custSearch,      setCustSearch]      = useState('')
-  const [custResults,     setCustResults]     = useState([])
-  const [showCustDrop,    setShowCustDrop]    = useState(false)
-  const [selectedCust,    setSelectedCust]    = useState(null)
+  const [custName,        setCustName]        = useState('')
+  const [mobile,          setMobile]          = useState('')
   const [prevBalanceInput, setPrevBalanceInput] = useState('')
 
   // invoice meta
@@ -104,14 +102,6 @@ export default function CreateInvoiceManual() {
           setUpiIds({ upi1: s.payment_upi_id || '', upi2: s.payment_upi_id_2 || '' })
       }).catch(() => {})
   }, [])
-
-  // ── customer search ───────────────────────────────────────────
-  useEffect(() => {
-    if (!custSearch.trim()) { setCustResults([]); return }
-    customerAPI.getAll({ search: custSearch, limit: 8 })
-      .then(({ data }) => setCustResults(data.data || data.customers || []))
-      .catch(() => {})
-  }, [custSearch])
 
   // ── row helpers ───────────────────────────────────────────────
   const updateRow = (idx, field, val) => {
@@ -217,9 +207,9 @@ export default function CreateInvoiceManual() {
       const primaryMode = splitPayments.length === 1 ? splitPayments[0].mode
         : splitPayments.length > 1 ? 'split' : 'unpaid'
       const payload = {
-        customer_id: selectedCust?.id || null,
-        customer_name: selectedCust?.name || custSearch.trim() || 'Walk-in',
-        mobile: selectedCust?.phone || selectedCust?.mobile || '',
+        customer_id: null,
+        customer_name: custName.trim() || 'Walk-in',
+        mobile: mobile || '',
         invoice_no: invoiceNo,
         invoice_date: invoiceDate || new Date().toISOString().slice(0, 10),
         order_type: orderType,
@@ -255,7 +245,7 @@ export default function CreateInvoiceManual() {
           await saleAPI.uploadImages(saleId, fd)
         } catch { /* non-critical */ }
       }
-      const custPhone = selectedCust?.phone || selectedCust?.mobile
+      const custPhone = mobile
       if (saleId && custPhone) {
         try {
           const { data: waRes } = await whatsappAPI.sendInvoice(saleId)
@@ -264,7 +254,7 @@ export default function CreateInvoiceManual() {
           if (msgText && phone) {
             const digits    = String(phone).replace(/\D/g, '')
             const intlPhone = digits.startsWith('91') ? digits : `91${digits.replace(/^0/, '')}`
-            setWaModal({ url: `https://wa.me/${intlPhone}?text=${encodeURIComponent(msgText)}`, customerName: selectedCust?.name || 'Customer' })
+            setWaModal({ url: `https://wa.me/${intlPhone}?text=${encodeURIComponent(msgText)}`, customerName: custName || 'Customer' })
             return
           }
         } catch { /* non-critical */ }
@@ -283,81 +273,35 @@ export default function CreateInvoiceManual() {
       {/* ── Row 1: Customer search | Action buttons ── */}
       <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-amber-200 bg-amber-50/40 flex-wrap">
 
-        {/* Customer search / selected chip */}
-        <div className="relative flex-1 min-w-[220px]">
-          {selectedCust ? (
-            <div className="flex flex-col gap-1 border-2 border-amber-400 rounded-lg px-2 py-1.5 bg-amber-50">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span className="text-xs font-semibold text-slate-800 truncate">{selectedCust.name}</span>
-                  {(selectedCust.phone || selectedCust.mobile) && (
-                    <span className="text-xs text-slate-500">{selectedCust.phone || selectedCust.mobile}</span>
-                  )}
-                </div>
-                <button
-                  onClick={() => { setSelectedCust(null); setCustSearch(''); setPrevBalanceInput('') }}
-                  className="text-gray-400 hover:text-red-500 shrink-0"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-red-600 font-medium whitespace-nowrap">Prev. Balance ₹</span>
-                <input
-                  type="number" min="0"
-                  value={prevBalanceInput}
-                  onChange={(e) => setPrevBalanceInput(e.target.value)}
-                  placeholder="0"
-                  className="w-24 border border-red-300 rounded px-1.5 py-0.5 text-xs text-red-700 font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-red-400"
-                />
-              </div>
-            </div>
-          ) : (
-            <input
-              type="text"
-              value={custSearch}
-              onChange={(e) => { setCustSearch(e.target.value); setShowCustDrop(true) }}
-              onFocus={() => setShowCustDrop(true)}
-              onBlur={() => setTimeout(() => setShowCustDrop(false), 180)}
-              placeholder="Search customer by name or mobile"
-              className="w-full border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
-            />
-          )}
-          {showCustDrop && custResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded shadow-lg z-40 max-h-48 overflow-y-auto">
-              {custResults.map((c) => (
-                <button key={c.id}
-                  onMouseDown={() => {
-                    setCustSearch('')
-                    setShowCustDrop(false)
-                    const initialBal = parseFloat(c.outstanding_balance || c.opening_balance || 0)
-                    setPrevBalanceInput(initialBal > 0 ? String(initialBal) : '')
-                    customerAPI.getOne(c.id)
-                      .then(({ data }) => {
-                        const full = data.data || data.customer || data
-                        setSelectedCust({ ...c, ...full })
-                        const bal = parseFloat(full.outstanding_balance || full.opening_balance || 0)
-                        setPrevBalanceInput(bal > 0 ? String(bal) : '')
-                      })
-                      .catch(() => setSelectedCust(c))
-                  }}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-amber-50 border-b border-gray-50 last:border-0"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <span className="font-medium text-slate-800">{c.name}</span>
-                      {(c.mobile || c.phone) && (
-                        <span className="text-gray-400 ml-2">{c.mobile || c.phone}</span>
-                      )}
-                    </div>
-                    {parseFloat(c.outstanding_balance) > 0 && (
-                      <span className="text-red-500 font-medium shrink-0">₹{parseFloat(c.outstanding_balance).toFixed(2)}</span>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Customer Name */}
+        <input
+          type="text"
+          value={custName}
+          onChange={(e) => setCustName(e.target.value)}
+          placeholder="Customer Name"
+          className="border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs w-36 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+        />
+
+        {/* Mobile Number */}
+        <input
+          type="text"
+          value={mobile}
+          onChange={(e) => setMobile(e.target.value)}
+          placeholder="Mobile Number"
+          className="border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs w-32 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+        />
+
+        {/* Prev Balance */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-red-600 font-medium whitespace-nowrap">Prev. ₹</span>
+          <input
+            type="number"
+            min="0"
+            value={prevBalanceInput}
+            onChange={(e) => setPrevBalanceInput(e.target.value)}
+            placeholder="0"
+            className="w-20 border border-red-300 rounded-lg px-1.5 py-1.5 text-xs text-red-700 font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-red-400"
+          />
         </div>
 
         {/* Action buttons */}
@@ -369,7 +313,7 @@ export default function CreateInvoiceManual() {
             <Plus className="h-3 w-3" /> ADD ITEM
           </button>
           <button
-            onClick={() => { setRows([newRow()]); setSelectedCust(null); setCustSearch(''); setPrevBalanceInput('') }}
+            onClick={() => { setRows([newRow()]); setCustName(''); setMobile(''); setPrevBalanceInput('') }}
             className="p-1.5 rounded bg-red-500 text-white hover:bg-red-600"
           >
             <Trash2 className="h-3.5 w-3.5" />
