@@ -279,7 +279,7 @@ export default function CreateInvoiceManual() {
           value={custName}
           onChange={(e) => setCustName(e.target.value)}
           placeholder="Customer Name"
-          className="border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs w-36 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+          className="border-2 border-amber-500 rounded-lg px-2 py-1.5 text-xs w-36 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
         />
 
         {/* Mobile Number */}
@@ -288,7 +288,7 @@ export default function CreateInvoiceManual() {
           value={mobile}
           onChange={(e) => setMobile(e.target.value)}
           placeholder="Mobile Number"
-          className="border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs w-32 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+          className="border-2 border-amber-500 rounded-lg px-2 py-1.5 text-xs w-32 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
         />
 
         {/* Prev Balance */}
@@ -300,7 +300,7 @@ export default function CreateInvoiceManual() {
             value={prevBalanceInput}
             onChange={(e) => setPrevBalanceInput(e.target.value)}
             placeholder="0"
-            className="w-20 border border-red-300 rounded-lg px-1.5 py-1.5 text-xs text-red-700 font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-red-400"
+            className="w-20 border border-red-500 rounded-lg px-1.5 py-1.5 text-xs text-red-700 font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-red-400"
           />
         </div>
 
@@ -308,7 +308,7 @@ export default function CreateInvoiceManual() {
         <div className="flex items-center gap-1 flex-wrap">
           <button
             onClick={() => setRows((prev) => [...prev, newRow()])}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded border border-gray-500 text-gray-700 hover:bg-gray-50"
           >
             <Plus className="h-3 w-3" /> ADD ITEM
           </button>
@@ -322,7 +322,7 @@ export default function CreateInvoiceManual() {
       </div>
 
       {/* ── Row 2: Invoice No | Invoice Date ── */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-slate-200 bg-slate-50/40 flex-wrap">
+      <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-slate-400 bg-slate-50/40 flex-wrap">
         <span className="text-xs text-amber-700 font-bold">MANUAL INVOICE</span>
         <div className="flex items-center gap-1 ml-auto">
           <span className="text-xs text-amber-700 font-semibold whitespace-nowrap">Invoice No.</span>
@@ -330,7 +330,7 @@ export default function CreateInvoiceManual() {
             type="text"
             value={invoiceNo}
             onChange={(e) => setInvoiceNo(e.target.value)}
-            className="w-28 border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+            className="w-28 border-2 border-amber-500 rounded-lg px-2 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
           />
           <button onClick={fetchNextInvoiceNo} className="p-1.5 bg-green-500 hover:bg-green-600 rounded text-white" title="Refresh invoice number">
             <RefreshCw className="h-3.5 w-3.5" />
@@ -344,9 +344,9 @@ export default function CreateInvoiceManual() {
             max={new Date().toISOString().slice(0, 10)}
             onChange={(e) => setInvoiceDate(e.target.value)}
             title="Editable — pick a past date to back-date this invoice"
-            className="w-36 border-2 border-amber-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+            className="w-36 border-2 border-amber-500 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
           />
-          <button type="button" className="p-1.5 border-2 border-amber-300 rounded-lg text-amber-600 hover:bg-amber-50" title="Back-dating sets the invoice and its payment to this date, so it lands in that day's Day Book.">
+          <button type="button" className="p-1.5 border-2 border-amber-500 rounded-lg text-amber-600 hover:bg-amber-50" title="Back-dating sets the invoice and its payment to this date, so it lands in that day's Day Book.">
             <Info className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -413,7 +413,7 @@ export default function CreateInvoiceManual() {
                         onChange={(e) => updateRow(idx, 'item_code', e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lookupByCode(idx, e.target.value) } }}
                         placeholder="Code/Barcode"
-                        className="w-full border-2 border-slate-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white"
+                        className="w-full border-2 border-slate-400 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white"
                       />
                     </td>
 
@@ -421,7 +421,7 @@ export default function CreateInvoiceManual() {
                     <td className="px-1 py-1">
                       <input type="number" min="1" step="1" value={row.qty}
                         onChange={(e) => updateRow(idx, 'qty', e.target.value)}
-                        className="w-full border-2 border-amber-300 rounded-lg px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+                        className="w-full border-2 border-amber-500 rounded-lg px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
                       />
                     </td>
 
@@ -429,7 +429,7 @@ export default function CreateInvoiceManual() {
                     <td className="px-1 py-1">
                       <input type="number" min="0" step="1" value={row.stock}
                         onChange={(e) => updateRow(idx, 'stock', e.target.value)}
-                        className="w-full border-2 border-slate-200 rounded-lg px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white"
+                        className="w-full border-2 border-slate-400 rounded-lg px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white"
                       />
                     </td>
 
@@ -437,7 +437,7 @@ export default function CreateInvoiceManual() {
                     <td className="px-1 py-1">
                       <input type="number" min="0" step="0.01" value={row.mrp}
                         onChange={(e) => updateRow(idx, 'mrp', e.target.value)}
-                        className="w-full border-2 border-amber-300 rounded-lg px-1 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
+                        className="w-full border-2 border-amber-500 rounded-lg px-1 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-500 bg-white"
                       />
                     </td>
 
@@ -489,7 +489,7 @@ export default function CreateInvoiceManual() {
           </div>
 
           {/* Footer bar */}
-          <div className="flex items-center gap-3 px-3 py-2 border-t border-slate-200 bg-slate-50">
+          <div className="flex items-center gap-3 px-3 py-2 border-t border-slate-400 bg-slate-50">
             <button
               onClick={() => setRows((prev) => [...prev, newRow()])}
               className="flex items-center gap-1 px-3 py-1 text-xs bg-amber-500 text-white rounded hover:bg-amber-600 font-medium"
