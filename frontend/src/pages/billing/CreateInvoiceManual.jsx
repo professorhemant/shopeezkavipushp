@@ -106,7 +106,7 @@ export default function CreateInvoiceManual() {
   const saveCustomer = async () => {
     if (!custName.trim()) { toast.error('Enter customer name to save'); return }
     try {
-      await customerAPI.create({ name: custName.trim(), mobile: mobile.trim() || undefined })
+      await customerAPI.create({ name: custName.trim(), phone: mobile.trim() || undefined })
       toast.success('Customer saved!')
     } catch (err) {
       const msg = err?.response?.data?.message || ''
