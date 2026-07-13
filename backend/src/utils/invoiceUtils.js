@@ -116,7 +116,7 @@ const generatePDF = (sale, firm, items) => {
         { key: 'qty',     label: 'Qty',          w: 28,  align: 'center' },
         { key: 'price',   label: 'Price',        w: 46,  align: 'right'  },
         { key: 'disc',    label: 'Disc',         w: 36,  align: 'right'  },
-        { key: 'taxable', label: 'Taxable\nAmt', w: 46,  align: 'right'  },
+        { key: 'taxable', label: 'Total\nAmt',   w: 46,  align: 'right'  },
         { key: 'gst',     label: 'GST\n%',       w: 28,  align: 'center' },
         { key: 'cgst',    label: 'CGST',         w: 38,  align: 'right'  },
         { key: 'sgst',    label: 'SGST',         w: 38,  align: 'right'  },
@@ -149,6 +149,12 @@ const generatePDF = (sale, firm, items) => {
 
         if (item) {
           doc.fillColor('#111').fontSize(7.5).font('Helvetica');
+          // Total Amt = taxable_amount (price × qty, GST-inclusive)
+          // CGST/SGST are back-calculated from the inclusive amount
+          const totalAmt  = parseFloat(item.taxable_amount || 0);
+          const taxRate   = parseFloat(item.tax_rate || 0);
+          const cgstRow   = parseFloat((totalAmt * (taxRate / 2) / (100 + taxRate)).toFixed(2));
+          const sgstRow   = cgstRow;
           const vals = [
             { key: 'no',      v: String(idx + 1) },
             { key: 'name',    v: item.product_name || '' },
@@ -156,11 +162,11 @@ const generatePDF = (sale, firm, items) => {
             { key: 'qty',     v: String(parseFloat(item.quantity || 0)) },
             { key: 'price',   v: parseFloat(item.unit_price || 0).toFixed(2) },
             { key: 'disc',    v: parseFloat(item.discount_amount || 0).toFixed(2) },
-            { key: 'taxable', v: parseFloat(item.taxable_amount || 0).toFixed(1) },
-            { key: 'gst',     v: parseFloat(item.tax_rate || 0).toFixed(1) },
-            { key: 'cgst',    v: parseFloat(item.cgst || 0).toFixed(2) },
-            { key: 'sgst',    v: parseFloat(item.sgst || 0).toFixed(2) },
-            { key: 'amount',  v: parseFloat(item.total || 0).toFixed(2) },
+            { key: 'taxable', v: totalAmt.toFixed(1) },
+            { key: 'gst',     v: taxRate.toFixed(1) },
+            { key: 'cgst',    v: cgstRow.toFixed(2) },
+            { key: 'sgst',    v: sgstRow.toFixed(2) },
+            { key: 'amount',  v: totalAmt.toFixed(2) },  // same as Total Amt
           ];
           vals.forEach((vd) => {
             const col = cols.find((c) => c.key === vd.key);
@@ -177,9 +183,14 @@ const generatePDF = (sale, firm, items) => {
       const totalQty     = safeItems.reduce((s, i) => s + parseFloat(i.quantity       || 0), 0);
       const totalMRP     = safeItems.reduce((s, i) => s + parseFloat(i.mrp            || 0), 0);
       const totalTaxable = safeItems.reduce((s, i) => s + parseFloat(i.taxable_amount || 0), 0);
-      const totalCGST    = safeItems.reduce((s, i) => s + parseFloat(i.cgst           || 0), 0);
-      const totalSGST    = safeItems.reduce((s, i) => s + parseFloat(i.sgst           || 0), 0);
-      const totalAmount  = safeItems.reduce((s, i) => s + parseFloat(i.total          || 0), 0);
+      // Back-calculate CGST/SGST from inclusive Total Amt
+      const totalCGST    = safeItems.reduce((s, i) => {
+        const ta = parseFloat(i.taxable_amount || 0);
+        const tr = parseFloat(i.tax_rate || 0);
+        return s + ta * (tr / 2) / (100 + tr);
+      }, 0);
+      const totalSGST    = totalCGST;
+      const totalAmount  = totalTaxable; // Amount = Total Amt (tax inclusive, nothing added on top)
 
       doc.rect(ML, ry, CW, ROW_H).fill('#E8E8E8');
       doc.fillColor('#111').fontSize(7.5).font('Helvetica-Bold');
@@ -243,10 +254,15 @@ const generatePDF = (sale, firm, items) => {
       doc.fillColor('#CCCCCC').fontSize(7).text('QR Code', midX + (midW - 50) / 2, botY + 32, { width: 50, align: 'center' });
 
       // Totals summary (right)
-      const grandTot = parseFloat(sale.total || 0);
-      const cgstAmt  = parseFloat(sale.cgst  || 0);
-      const sgstAmt  = parseFloat(sale.sgst  || 0);
-      const igstAmt  = parseFloat(sale.igst  || 0);
+      // Grand Total = Total Amount (GST-inclusive; CGST/SGST are back-calculated breakdowns)
+      const grandTot = parseFloat(sale.subtotal || 0);
+      const cgstAmt  = safeItems.reduce((s, i) => {
+        const ta = parseFloat(i.taxable_amount || 0);
+        const tr = parseFloat(i.tax_rate || 0);
+        return s + ta * (tr / 2) / (100 + tr);
+      }, 0);
+      const sgstAmt  = cgstAmt;
+      const igstAmt  = parseFloat(sale.igst || 0);
       const taxAmt   = cgstAmt + sgstAmt + igstAmt;
       const roundOff = Math.round(grandTot) - grandTot;
 
@@ -285,13 +301,14 @@ const generatePDF = (sale, firm, items) => {
         drawSumRow('Net Payable', (grandTot + prevBal).toFixed(0), true, false, '#c2410c');
       }
 
-      // Paid / Balance rows — only for partial payments or when prev balance exists
-      const paidAmt   = parseFloat(sale.paid_amount || 0);
-      const balAmt    = parseFloat(sale.balance || sale.balance_due || 0);
-      const netBalAmt = prevBal > 0 ? (grandTot + prevBal - paidAmt) : balAmt;
-      if (balAmt > 0 || prevBal > 0) {
+      // Paid / Balance rows — recalculate against the new inclusive Grand Total
+      const paidAmt      = parseFloat(sale.paid_amount || 0);
+      const effectiveBal = prevBal > 0
+        ? (grandTot + prevBal - paidAmt)
+        : Math.max(0, grandTot - paidAmt);
+      if (effectiveBal > 0 || prevBal > 0) {
         drawSumRow('Paid', paidAmt.toFixed(0), false, false, '#16a34a');
-        drawSumRow('Unpaid Balance', netBalAmt.toFixed(0), true, false, '#dc2626');
+        drawSumRow('Unpaid Balance', effectiveBal.toFixed(0), true, false, '#dc2626');
       }
 
       // Amount in words (italic, small, teal)
