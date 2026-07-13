@@ -236,6 +236,20 @@ export default function CreateInvoice() {
       addProductRow(found)
       setBarcode('')
     } else {
+      // Check if it's a sold (archived) product
+      try {
+        const soldRes = await productAPI.getAll({ search: q, limit: 10, is_active: false })
+        const soldList = soldRes.data?.data || soldRes.data?.products || []
+        const soldMatch = soldList.find(
+          (p) => (p.barcode || '').toLowerCase() === q.toLowerCase() ||
+                 (p.sku || '').toLowerCase() === q.toLowerCase()
+        )
+        if (soldMatch) {
+          toast.error(`SOLD — ${soldMatch.name} (out of stock)`)
+          setBarcode('')
+          return
+        }
+      } catch (_) {}
       toast.error('Product not found for barcode: ' + q)
     }
   }

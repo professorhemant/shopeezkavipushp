@@ -177,7 +177,9 @@ const create = async (req, res, next) => {
       if (product && product.track_inventory) {
         const newStock = parseFloat(product.stock || 0) - qty;
         if (newStock < 0) throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
-        await product.update({ stock: newStock }, { transaction: t });
+        const stockUpdates = { stock: newStock };
+        if (newStock <= 0) stockUpdates.is_active = false; // auto-archive when sold out
+        await product.update(stockUpdates, { transaction: t });
       }
     }
 

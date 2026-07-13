@@ -1535,9 +1535,11 @@ export default function Products() {
   const [rangePrinting, setRangePrinting] = useState(false)
   const [rangeProducts, setRangeProducts] = useState(null)
   const [exporting, setExporting] = useState(false)
+  const [soldProducts, setSoldProducts] = useState([])
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
+    setSoldProducts([])
     try {
       const { data } = await productAPI.getAll({
         search,
@@ -1548,11 +1550,19 @@ export default function Products() {
         sort_by: 'sku',
         include_images: true,
       })
-      setProducts(data.data || data.products || data.results || [])
+      const rows = data.data || data.products || data.results || []
+      setProducts(rows)
       setTotalPages(data.pagination?.pages || 1)
       setTotal(data.pagination?.total || 0)
       setBoxCounts(data.box_counts || {})
       setSelected([])
+      // When searching active tab and no results, check for sold products
+      if (tab === 'active' && search.trim() && rows.length === 0) {
+        try {
+          const { data: soldData } = await productAPI.getAll({ search, is_active: false, limit: 20 })
+          setSoldProducts(soldData.data || soldData.products || soldData.results || [])
+        } catch (_) {}
+      }
     } catch {
       toast.error('Failed to load products')
     } finally {
@@ -1886,12 +1896,47 @@ export default function Products() {
         {loading ? (
           <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
         ) : products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <Package className="h-12 w-12 mb-3 text-gray-300" />
-            <p className="text-base font-medium text-slate-500">No products found</p>
-            <Link to="/inventory/products/add" className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-              Add First Product
-            </Link>
+          <div>
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+              <Package className="h-12 w-12 mb-3 text-gray-300" />
+              <p className="text-base font-medium text-slate-500">No products found</p>
+              {!search && (
+                <Link to="/inventory/products/add" className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                  Add First Product
+                </Link>
+              )}
+            </div>
+            {soldProducts.length > 0 && (
+              <div className="border-t border-red-200">
+                <div className="px-4 py-2 bg-red-50 text-xs font-bold text-red-700 uppercase tracking-wider">
+                  SOLD / Out of Stock ({soldProducts.length} item{soldProducts.length !== 1 ? 's' : ''})
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="bg-red-50 text-xs text-red-500 uppercase">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Name</th>
+                      <th className="px-3 py-2 text-center">SKU</th>
+                      <th className="px-3 py-2 text-center">Barcode</th>
+                      <th className="px-3 py-2 text-right">MRP</th>
+                      <th className="px-3 py-2 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {soldProducts.map((p) => (
+                      <tr key={p.id} className="border-t border-red-100 hover:bg-red-50">
+                        <td className="px-3 py-2 font-medium text-slate-700">{p.name}</td>
+                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-500">{p.sku || '-'}</td>
+                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-500">{p.barcode || '-'}</td>
+                        <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(p.mrp || 0)}</td>
+                        <td className="px-3 py-2 text-center">
+                          <span className="inline-block bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded">SOLD</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">

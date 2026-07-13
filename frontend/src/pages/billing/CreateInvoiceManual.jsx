@@ -133,7 +133,16 @@ export default function CreateInvoiceManual() {
       const list = data.data || data.products || data.results || []
       const lc = code.toLowerCase()
       const match = list.find((p) => (p.sku || '').toLowerCase() === lc || (p.barcode || '').toLowerCase() === lc)
-      if (!match) { toast.error(`No product found for code "${code}"`); return }
+      if (!match) {
+        try {
+          const { data: soldData } = await productAPI.getAll({ search: code, limit: 10, is_active: false })
+          const soldList = soldData.data || soldData.products || soldData.results || []
+          const soldMatch = soldList.find((p) => (p.sku || '').toLowerCase() === lc || (p.barcode || '').toLowerCase() === lc)
+          if (soldMatch) { toast.error(`SOLD — ${soldMatch.name} (out of stock)`); return }
+        } catch (_) {}
+        toast.error(`No product found for code "${code}"`)
+        return
+      }
       setRows((prev) => {
         const next = [...prev]
         next[idx] = calcRow({
