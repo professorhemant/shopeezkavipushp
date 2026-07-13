@@ -207,11 +207,19 @@ export default function CreateInvoice() {
   useEffect(() => {
     if (!rowSearch.trim()) { setRowResults(allProducts); return }
     const q = rowSearch.toLowerCase()
-    setRowResults(allProducts.filter((p) =>
+    const localResults = allProducts.filter((p) =>
       p.name?.toLowerCase().includes(q) ||
       p.barcode?.toLowerCase().includes(q) ||
       p.sku?.toLowerCase().includes(q)
-    ))
+    )
+    if (localResults.length > 0) {
+      setRowResults(localResults)
+    } else {
+      // fallback: live API search (handles products outside the local 1000-item cache)
+      productAPI.getAll({ search: rowSearch.trim(), limit: 20 })
+        .then(({ data }) => setRowResults(data.data || data.products || data.results || []))
+        .catch(() => setRowResults([]))
+    }
   }, [rowSearch, allProducts])
 
   // ── barcode scan ─────────────────────────────────────────────
