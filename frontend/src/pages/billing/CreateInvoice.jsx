@@ -72,10 +72,13 @@ export default function CreateInvoice() {
   const [invoiceDate,     setInvoiceDate]     = useState(new Date().toLocaleDateString('en-IN'))
 
   // rows
-  const [rows,            setRows]            = useState([newRow()])
-  const [activeRowSearch, setActiveRowSearch] = useState(null)
-  const [rowSearch,       setRowSearch]       = useState('')
-  const [rowResults,      setRowResults]      = useState([])
+  const [rows,              setRows]              = useState([newRow()])
+  const [activeRowSearch,   setActiveRowSearch]   = useState(null)
+  const [rowSearch,         setRowSearch]         = useState('')
+  const [rowResults,        setRowResults]        = useState([])
+  const [activeBarcodeSearch, setActiveBarcodeSearch] = useState(null)
+  const [barcodeSearch,     setBarcodeSearch]     = useState('')
+  const [barcodeResults,    setBarcodeResults]    = useState([])
 
   // order type
   const [orderType,       setOrderType]       = useState('takeaway') // takeaway | delivery
@@ -221,6 +224,24 @@ export default function CreateInvoice() {
         .catch(() => setRowResults([]))
     }
   }, [rowSearch, allProducts])
+
+  // ── barcode live search ──────────────────────────────────────
+  useEffect(() => {
+    if (!barcodeSearch.trim() || activeBarcodeSearch === null) { setBarcodeResults([]); return }
+    const q = barcodeSearch.toLowerCase()
+    const localResults = allProducts.filter((p) =>
+      (p.barcode || '').toLowerCase().includes(q) ||
+      (p.sku || '').toLowerCase().includes(q) ||
+      p.name?.toLowerCase().includes(q)
+    )
+    if (localResults.length > 0) {
+      setBarcodeResults(localResults)
+    } else {
+      productAPI.getAll({ search: barcodeSearch.trim(), limit: 20 })
+        .then(({ data }) => setBarcodeResults(data.data || data.products || data.results || []))
+        .catch(() => setBarcodeResults([]))
+    }
+  }, [barcodeSearch, allProducts, activeBarcodeSearch])
 
   // ── barcode scan ─────────────────────────────────────────────
   const handleBarcodeEnter = async (e) => {
@@ -647,42 +668,59 @@ export default function CreateInvoice() {
 
                     {/* Barcode */}
                     <td className="px-1 py-1">
-                      <input
-                        type="text"
-                        value={row.batch}
-                        onChange={(e) => updateRow(idx, 'batch', e.target.value)}
-                        onKeyDown={async (e) => {
-                          if (e.key !== 'Enter' || !row.batch.trim()) return
-                          const q = row.batch.trim()
-                          // try local cache first
-                          let found = allProducts.find(
-                            (p) => (p.barcode || '').toLowerCase() === q.toLowerCase() ||
-                                   (p.sku || '').toLowerCase() === q.toLowerCase()
-                          )
-                          // fallback: search via API
-                          if (!found) {
-                            try {
-                              const res = await productAPI.getAll({ search: q, limit: 10 })
-                              const list = res.data?.data || []
-                              found = list.find(
-                                (p) => (p.barcode || '').toLowerCase() === q.toLowerCase() ||
-                                       (p.sku || '').toLowerCase() === q.toLowerCase()
-                              )
-                            } catch (_) {}
-                          }
-                          if (found) {
-                            setRows((prev) => {
-                              const next = [...prev]
-                              next[idx] = applyProductToRow(next[idx], found)
-                              return next
-                            })
-                          } else {
-                            toast.error('Product not found for barcode: ' + q)
-                          }
-                        }}
-                        placeholder="Scan barcode..."
-                        className="w-full border-2 border-amber-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={activeBarcodeSearch === idx ? barcodeSearch : row.batch}
+                          onChange={(e) => { setBarcodeSearch(e.target.value); setActiveBarcodeSearch(idx) }}
+                          onFocus={() => { setActiveBarcodeSearch(idx); setBarcodeSearch(row.batch) }}
+                          onBlur={() => setTimeout(() => { if (activeBarcodeSearch === idx) setActiveBarcodeSearch(null) }, 200)}
+                          onKeyDown={async (e) => {
+                            if (e.key !== 'Enter') return
+                            const q = (activeBarcodeSearch === idx ? barcodeSearch : row.batch).trim()
+                            if (!q) return
+                            let found = allProducts.find(
+                              (p) => (p.barcode || '').toLowerCase() === q.toLowerCase() ||
+                                     (p.sku || '').toLowerCase() === q.toLowerCase()
+                            )
+                            if (!found) {
+                              try {
+                                const res = await productAPI.getAll({ search: q, limit: 10 })
+                                const list = res.data?.data || []
+                                found = list.find(
+                                  (p) => (p.barcode || '').toLowerCase() === q.toLowerCase() ||
+                                         (p.sku || '').toLowerCase() === q.toLowerCase()
+                                )
+                              } catch (_) {}
+                            }
+                            if (found) {
+                              setRows((prev) => { const next = [...prev]; next[idx] = applyProductToRow(next[idx], found); return next })
+                              setActiveBarcodeSearch(null); setBarcodeSearch('')
+                            } else {
+                              toast.error('Product not found for barcode: ' + q)
+                            }
+                          }}
+                          placeholder="Scan barcode..."
+                          className="w-full border-2 border-amber-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
+                        />
+                        {activeBarcodeSearch === idx && barcodeResults.length > 0 && (
+                          <div className="absolute top-full left-0 bg-white border border-slate-400 rounded shadow-lg z-40 max-h-72 overflow-y-auto min-w-[280px]">
+                            {barcodeResults.map((p) => (
+                              <button key={p.id}
+                                onMouseDown={() => {
+                                  setRows((prev) => { const next = [...prev]; next[idx] = applyProductToRow(next[idx], p); return next })
+                                  setActiveBarcodeSearch(null); setBarcodeSearch('')
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50 flex items-center gap-2"
+                              >
+                                <span className="font-mono text-violet-600 shrink-0">{p.barcode || p.sku || '—'}</span>
+                                <span className="font-medium text-gray-800 truncate">{p.name}</span>
+                                <span className="text-gray-400 ml-auto shrink-0">₹{p.sale_price}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </td>
 
                     {/* Qty */}
