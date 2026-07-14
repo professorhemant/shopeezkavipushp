@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { User, Firm } = require('../models');
 
-const OWNER_PHONE = '8770555924';
+const OWNER_PHONE = '9414281954';
 
 const sendOtpSMS = async (otp, context = '') => {
   const apiKey = process.env.FAST2SMS_API_KEY;
