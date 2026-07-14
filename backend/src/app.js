@@ -67,18 +67,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// TEMPORARY: one-time admin password reset — REMOVE AFTER USE
-app.post('/api/_admin_reset', async (req, res) => {
-  const bcrypt = require('bcryptjs');
-  const { User } = require('./models');
-  const { secret, email, new_password } = req.body;
-  if (secret !== 'kavi_reset_2026_temp') return res.status(403).json({ error: 'forbidden' });
-  const user = await User.findOne({ where: { email } });
-  if (!user) return res.status(404).json({ error: 'user not found' });
-  await user.update({ password: new_password });
-  return res.json({ success: true, message: 'Password reset done.' });
-});
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
