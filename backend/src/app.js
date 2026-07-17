@@ -20,6 +20,7 @@ const ALLOWED_ORIGINS = [
   'https://shopeezkavipushp-production.up.railway.app',
   'http://localhost:5173',
   'http://localhost:3000',
+  'null',   // file:// standalone HTML (barcode printer)
 ].filter(Boolean);
 
 app.use(cors({
