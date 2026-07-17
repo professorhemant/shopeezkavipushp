@@ -605,7 +605,7 @@ function PriceUpdateModal({ products, onClose, onSuccess }) {
 const generateBarcodeDataUrl = (text) => {
   try {
     const canvas = document.createElement('canvas')
-    JsBarcode(canvas, text, { format: 'CODE128', width: 2, height: 60, displayValue: false, margin: 6 })
+    JsBarcode(canvas, text, { format: 'CODE128', width: 2.2, height: 60, displayValue: false, margin: 6 })
     return canvas.toDataURL('image/png')
   } catch {
     return null
@@ -616,7 +616,7 @@ const generateBarcodeDataUrl = (text) => {
 const generateThermalBarcodeDataUrl = (text) => {
   try {
     const canvas = document.createElement('canvas')
-    JsBarcode(canvas, text, { format: 'CODE128', width: 2, height: 80, displayValue: false, margin: 2 })
+    JsBarcode(canvas, text, { format: 'CODE128', width: 2.2, height: 80, displayValue: false, margin: 2 })
     return canvas.toDataURL('image/png')
   } catch {
     return null
@@ -637,7 +637,7 @@ const RIGHT_MARGIN   = 48          // 6mm non-printable right edge
 const DEFAULT_LABEL_TEMPLATE = {
   name:    { x: 400, y: 4,  w: 175, h: 14, fontSize: 8,  bold: false, show: false },
   price:   { x: 536, y: 4,  w: 110, h: 14, fontSize: 8,  bold: true,  show: true  },
-  barcode: { x: 500, y: 20, w: 200, h: 80, show: true },
+  barcode: { x: 500, y: 20, w: 220, h: 80, show: true },
   code:    { x: 600, y: 4,  w: 200, h: 14, fontSize: 8,  bold: false, show: true  },
 }
 
@@ -667,10 +667,10 @@ function buildTSPL(name, barcodeText, price, qty, tpl) {
   // SET TEAR ON advances the last printed label to the tear position instead of
   // leaving it held under the print head — fixes the "prints one less" symptom
   // on gap-sensing thermal printers. Only affects the raw TSPL print path.
-  const lines = ['SIZE 100 mm,15 mm','GAP 2 mm,0 mm','DIRECTION 1','SET TEAR ON','REFERENCE 0,0','SPEED 2','DENSITY 12','CLS']
+  const lines = ['SIZE 100 mm,15 mm','GAP 2 mm,0 mm','DIRECTION 1','SET TEAR ON','REFERENCE 0,0','SPEED 2','DENSITY 15','CLS']
   if (tpl.name.show)    lines.push(`TEXT ${tpl.name.x},${tpl.name.y},"${tsplFont(tpl.name.fontSize)}",0,1,1,"${safeName}"`)
   if (tpl.price.show)   lines.push(`TEXT ${tpl.price.x},${tpl.price.y},"${tsplFont(tpl.price.fontSize)}",0,1,1,"${priceStr}"`)
-  if (tpl.barcode.show) lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${Math.max(40, tpl.barcode.h)},0,0,2,4,"${safeCode}"`)
+  if (tpl.barcode.show) lines.push(`BARCODE ${tpl.barcode.x},${tpl.barcode.y},"128",${Math.max(40, tpl.barcode.h)},0,0,2.2,4.4,"${safeCode}"`)
   // Always print barcode serial number as readable text below bars — never suppress even if code.show is false in saved template
   lines.push(`TEXT ${tpl.code.x},${tpl.code.y},"${tsplFont(tpl.code.fontSize)}",0,1,1,"${safeCode}"`)
   lines.push(`PRINT ${qty},1`)
@@ -728,17 +728,17 @@ function LabelDesignerModal({ onClose, product, onSaved }) {
       ctx.strokeRect(0.5, 0.5, W - 1, H - 1)
       ctx.textBaseline = 'top'
       if (tpl.name.show) {
-        ctx.fillStyle = '#111'
+        ctx.fillStyle = '#000'
         ctx.font = `${tpl.name.bold ? 'bold ' : ''}${Math.round(tpl.name.fontSize * S)}px Arial,sans-serif`
         ctx.fillText(realName, tpl.name.x * S, tpl.name.y * S)
       }
       if (tpl.price.show) {
-        ctx.fillStyle = '#111'
+        ctx.fillStyle = '#000'
         ctx.font = `${tpl.price.bold ? 'bold ' : ''}${Math.round(tpl.price.fontSize * S)}px Arial,sans-serif`
         ctx.fillText(realPrice, tpl.price.x * S, tpl.price.y * S)
       }
       if (tpl.code.show) {
-        ctx.fillStyle = '#333'
+        ctx.fillStyle = '#000'
         ctx.font = `${Math.round(tpl.code.fontSize * S)}px Courier New,monospace`
         ctx.fillText(realBarcode, tpl.code.x * S, tpl.code.y * S)
       }
@@ -1144,7 +1144,8 @@ bBQusfbKqlGg61r07k8bA4M=
     const nameH = 5       // name+price row height
     const codeH = 4       // barcode text line height
     const padV = 2        // top/bottom padding inside card
-    const cardH = padV + nameH + imgH + codeH + padV  // ~20mm
+    const hasTopRow = showName || showPrice
+    const cardH = padV + (hasTopRow ? nameH : 0) + imgH + codeH + padV
 
     let col = 0
     let y = margin
@@ -1160,17 +1161,24 @@ bBQusfbKqlGg61r07k8bA4M=
 
       let cy = y + padV
 
-      // Name (left) + Price (right) on same row
-      const textY = cy + nameH - 1
-      const name = r.name.length > 18 ? r.name.substring(0, 18) + '…' : r.name
-      doc.setFontSize(8)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(30, 30, 30)
-      doc.text(name, x + 2, textY)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(60, 60, 60)
-      doc.text(`Rs.${r.price.toFixed(0)}`, x + cardW - 2, textY, { align: 'right' })
-      cy += nameH
+      // Name (left) + Price (right) on same row — only if toggled on
+      if (hasTopRow) {
+        const textY = cy + nameH - 1
+        if (showName) {
+          const name = r.name.length > 18 ? r.name.substring(0, 18) + '…' : r.name
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(0, 0, 0)
+          doc.text(name, x + 2, textY)
+        }
+        if (showPrice) {
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(0, 0, 0)
+          doc.text(`Rs.${r.price.toFixed(0)}`, x + cardW - 2, textY, { align: 'right' })
+        }
+        cy += nameH
+      }
 
       // Barcode image (half size, full width)
       const imgW = cardW - 4
@@ -1180,7 +1188,7 @@ bBQusfbKqlGg61r07k8bA4M=
       // Barcode serial number — always shown, larger font for readability
       doc.setFontSize(8)
       doc.setFont('courier', 'bold')
-      doc.setTextColor(30, 30, 30)
+      doc.setTextColor(0, 0, 0)
       doc.text(r.barcodeText, x + cardW / 2, cy + codeH - 0.5, { align: 'center' })
 
       col++
@@ -1218,28 +1226,32 @@ bBQusfbKqlGg61r07k8bA4M=
       const cx = Math.round(W * 0.51)  // content start x ≈ 306px = 51mm
       const cw = W - cx - 3            // content width ≈ 291px
 
-      // Name (top-left of content area)
-      ctx.fillStyle = '#111111'
-      ctx.font = 'bold 13px Arial, sans-serif'
-      const nm = p.name.length > 15 ? p.name.substring(0, 15) + '…' : p.name
-      ctx.fillText(nm, cx + 3, 15)
+      // Name (top-left of content area) — only if toggled on
+      if (showName) {
+        ctx.fillStyle = '#000000'
+        ctx.font = 'bold 13px Arial, sans-serif'
+        const nm = p.name.length > 15 ? p.name.substring(0, 15) + '…' : p.name
+        ctx.fillText(nm, cx + 3, 15)
+      }
 
-      // Price (top-right of content area)
-      ctx.font = '12px Arial, sans-serif'
-      ctx.fillStyle = '#222222'
-      const priceText = `Rs.${price.toFixed(0)}`
-      const pw = ctx.measureText(priceText).width
-      ctx.fillText(priceText, cx + cw - pw - 2, 15)
+      // Price (top-right of content area) — only if toggled on
+      if (showPrice) {
+        ctx.font = '12px Arial, sans-serif'
+        ctx.fillStyle = '#000000'
+        const priceText = `Rs.${price.toFixed(0)}`
+        const pw = ctx.measureText(priceText).width
+        ctx.fillText(priceText, cx + cw - pw - 2, 15)
+      }
 
       // Barcode image (sharp, full content width)
       try {
         const bc = document.createElement('canvas')
-        JsBarcode(bc, barcodeText, { format: 'CODE128', width: 3, height: 100, displayValue: false, margin: 3 })
+        JsBarcode(bc, barcodeText, { format: 'CODE128', width: 3.3, height: 100, displayValue: false, margin: 3 })
         ctx.drawImage(bc, cx, 18, cw, 58)
       } catch { /* skip */ }
 
       // Barcode serial number — bold and larger for visibility
-      ctx.fillStyle = '#111111'
+      ctx.fillStyle = '#000000'
       ctx.font = 'bold 11px Courier New, monospace'
       const ctw = ctx.measureText(barcodeText).width
       ctx.fillText(barcodeText, cx + (cw - ctw) / 2, 83)
@@ -1385,19 +1397,19 @@ bBQusfbKqlGg61r07k8bA4M=
                 <div className="border border-slate-200 rounded-lg overflow-hidden bg-white" style={{ width: 180 }}>
                   {showName && (
                     <div className="flex justify-between items-center px-2 pt-1.5 pb-0.5">
-                      <span className="text-xs font-bold text-slate-800 truncate max-w-[100px]">{previewName.length > 14 ? previewName.slice(0,14)+'…' : previewName}</span>
-                      {showPrice && <span className="text-xs text-slate-600 font-medium ml-1">Rs.{previewPrice}</span>}
+                      <span className="text-xs font-bold truncate max-w-[100px]" style={{ color: '#000' }}>{previewName.length > 14 ? previewName.slice(0,14)+'…' : previewName}</span>
+                      {showPrice && <span className="text-xs font-medium ml-1" style={{ color: '#000' }}>Rs.{previewPrice}</span>}
                     </div>
                   )}
                   {!showName && showPrice && (
-                    <div className="px-2 pt-1.5 pb-0.5 text-xs font-medium text-slate-600">Rs.{previewPrice}</div>
+                    <div className="px-2 pt-1.5 pb-0.5 text-xs font-medium" style={{ color: '#000' }}>Rs.{previewPrice}</div>
                   )}
                   {previewBarcodeUrl && (
                     <div className="px-2 py-1">
                       <img src={previewBarcodeUrl} alt="barcode" className="w-full" style={{ height: 36, objectFit: 'fill' }} />
                     </div>
                   )}
-                  <div className="text-center pb-1.5 font-mono text-xs text-slate-700">{previewBarcode}</div>
+                  <div className="text-center pb-1.5 font-mono text-xs" style={{ color: '#000' }}>{previewBarcode}</div>
                 </div>
               )}
 
@@ -1409,18 +1421,18 @@ bBQusfbKqlGg61r07k8bA4M=
                   <div className="border-2 border-slate-300 rounded bg-white overflow-hidden relative" style={{ width: 340, height: 51 }}>
                     <div className="absolute top-0 left-0 bottom-0 border-r border-dashed border-slate-300" style={{ width: 170 }} />
                     {showName && labelTpl.name.show && (
-                      <span className="absolute text-slate-800" style={{ left: px(labelTpl.name.x), top: px(labelTpl.name.y), fontSize: 6.5, fontWeight: labelTpl.name.bold ? 'bold' : 'normal', maxWidth: px(labelTpl.name.w), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span className="absolute" style={{ left: px(labelTpl.name.x), top: px(labelTpl.name.y), fontSize: 6.5, fontWeight: labelTpl.name.bold ? 'bold' : 'normal', maxWidth: px(labelTpl.name.w), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#000' }}>
                         {previewName}
                       </span>
                     )}
                     {showPrice && labelTpl.price.show && (
-                      <span className="absolute text-slate-700" style={{ left: px(labelTpl.price.x), top: px(labelTpl.price.y), fontSize: 6.5 }}>Rs.{previewPrice}</span>
+                      <span className="absolute" style={{ left: px(labelTpl.price.x), top: px(labelTpl.price.y), fontSize: 6.5, color: '#000' }}>Rs.{previewPrice}</span>
                     )}
                     {previewBarcodeUrl && labelTpl.barcode.show && (
                       <img src={previewBarcodeUrl} alt="barcode" style={{ position: 'absolute', left: px(labelTpl.barcode.x), top: px(labelTpl.barcode.y), width: px(labelTpl.barcode.w), height: px(labelTpl.barcode.h), objectFit: 'fill' }} />
                     )}
                     {labelTpl.code.show && (
-                      <div className="absolute font-mono text-slate-700" style={{ left: px(labelTpl.code.x), top: px(labelTpl.code.y), fontSize: 5.5 }}>{previewBarcode}</div>
+                      <div className="absolute font-mono" style={{ left: px(labelTpl.code.x), top: px(labelTpl.code.y), fontSize: 5.5, color: '#000' }}>{previewBarcode}</div>
                     )}
                   </div>
                 )
