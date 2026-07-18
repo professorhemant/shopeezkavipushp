@@ -149,12 +149,14 @@ const generatePDF = (sale, firm, items) => {
 
         if (item) {
           doc.fillColor('#111').fontSize(7.5).font('Helvetica');
-          // Total Amt = taxable_amount (price × qty, GST-inclusive)
-          // CGST/SGST are back-calculated from the inclusive amount
+          // Total Amt = taxable_amount, the ex-tax base the row was booked on.
+          // Print the GST stored against the item rather than re-deriving it —
+          // the old back-calculation treated taxable_amount as still tax-inclusive
+          // and so disagreed with the CGST/SGST in the summary below.
           const totalAmt  = parseFloat(item.taxable_amount || 0);
           const taxRate   = parseFloat(item.tax_rate || 0);
-          const cgstRow   = parseFloat((totalAmt * (taxRate / 2) / (100 + taxRate)).toFixed(2));
-          const sgstRow   = cgstRow;
+          const cgstRow   = parseFloat(item.cgst || 0);
+          const sgstRow   = parseFloat(item.sgst || 0);
           const vals = [
             { key: 'no',      v: String(idx + 1) },
             { key: 'name',    v: item.product_name || '' },
@@ -183,13 +185,10 @@ const generatePDF = (sale, firm, items) => {
       const totalQty     = safeItems.reduce((s, i) => s + parseFloat(i.quantity       || 0), 0);
       const totalMRP     = safeItems.reduce((s, i) => s + parseFloat(i.mrp            || 0), 0);
       const totalTaxable = safeItems.reduce((s, i) => s + parseFloat(i.taxable_amount || 0), 0);
-      // Back-calculate CGST/SGST from inclusive Total Amt
-      const totalCGST    = safeItems.reduce((s, i) => {
-        const ta = parseFloat(i.taxable_amount || 0);
-        const tr = parseFloat(i.tax_rate || 0);
-        return s + ta * (tr / 2) / (100 + tr);
-      }, 0);
-      const totalSGST    = totalCGST;
+      // Sum the GST booked against each item, so this row agrees with the item
+      // rows above it and the CGST/SGST in the summary below.
+      const totalCGST    = safeItems.reduce((s, i) => s + parseFloat(i.cgst || 0), 0);
+      const totalSGST    = safeItems.reduce((s, i) => s + parseFloat(i.sgst || 0), 0);
       const totalAmount  = totalTaxable; // Amount = Total Amt (tax inclusive, nothing added on top)
 
       doc.rect(ML, ry, CW, ROW_H).fill('#E8E8E8');
@@ -254,14 +253,17 @@ const generatePDF = (sale, firm, items) => {
       doc.fillColor('#CCCCCC').fontSize(7).text('QR Code', midX + (midW - 50) / 2, botY + 32, { width: 50, align: 'center' });
 
       // Totals summary (right)
-      // Grand Total = Total Amount (GST-inclusive; CGST/SGST are back-calculated breakdowns)
-      const grandTot = parseFloat(sale.subtotal || 0);
-      const cgstAmt  = safeItems.reduce((s, i) => {
-        const ta = parseFloat(i.taxable_amount || 0);
-        const tr = parseFloat(i.tax_rate || 0);
-        return s + ta * (tr / 2) / (100 + tr);
-      }, 0);
-      const sgstAmt  = cgstAmt;
+      // Grand Total is the amount actually payable — sale.total, which already has
+      // the discount taken off. It previously read sale.subtotal, the pre-discount
+      // figure, so a discounted invoice printed the undiscounted amount and then
+      // showed the difference as an unpaid balance.
+      const grandTot = parseFloat(sale.total || 0);
+      const discountAmt = parseFloat(sale.discount_amount || 0);
+      // Use the GST the sale was booked with. This used to re-derive it as
+      // ta * (tr/2) / (100 + tr), but taxable_amount is already the ex-tax base,
+      // so that backed the tax out a second time and under-reported CGST/SGST.
+      const cgstAmt  = parseFloat(sale.cgst || 0);
+      const sgstAmt  = parseFloat(sale.sgst || 0);
       const igstAmt  = parseFloat(sale.igst || 0);
       const taxAmt   = cgstAmt + sgstAmt + igstAmt;
       const roundOff = Math.round(grandTot) - grandTot;
@@ -287,6 +289,9 @@ const generatePDF = (sale, firm, items) => {
       drawSumRow('Total Tax',  taxAmt.toFixed(0));
       drawSumRow('CGST',       cgstAmt.toFixed(0));
       drawSumRow('SGST',       sgstAmt.toFixed(0));
+      // Shown only when there is one, so the customer can see why Grand Total is
+      // lower than Sub Total + Tax.
+      if (discountAmt > 0) drawSumRow('Discount', `-${discountAmt.toFixed(0)}`, false, false, '#16a34a');
       drawSumRow('Round Off',  roundOff.toFixed(1));
 
       // Bold line before Grand Total

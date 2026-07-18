@@ -144,7 +144,11 @@ const create = async (req, res, next) => {
       const rate = parseFloat(item.rate || item.unit_price || product?.sale_price || 0);
       const itemDiscount = parseFloat(item.discount_amount || 0);
       const taxRate = parseFloat(item.tax_rate || product?.tax_rate || 0);
-      const isInclusive = item.is_tax_inclusive === true; // frontend always sends exclusive prices
+      // Prices are GST-inclusive: an item marked 2150 is what the customer pays,
+      // and CGST/SGST are back-calculated out of it. All three billing screens
+      // (POS, CreateInvoice, CreateInvoiceManual) price this way and none send
+      // the flag, so inclusive is the default; pass false to opt out.
+      const isInclusive = item.is_tax_inclusive !== false;
 
       const baseAmount = qty * rate - itemDiscount;
       const gst = calculateGST(baseAmount, taxRate, isInclusive, is_interstate || false);
@@ -410,7 +414,7 @@ const update = async (req, res, next) => {
       const rate = parseFloat(item.rate || item.unit_price || product?.sale_price || 0);
       const itemDiscount = parseFloat(item.discount_amount || 0);
       const taxRate = parseFloat(item.tax_rate || product?.tax_rate || 0);
-      const isInclusive = item.is_tax_inclusive === true;
+      const isInclusive = item.is_tax_inclusive !== false; // GST-inclusive, as in create()
 
       const baseAmount = qty * rate - itemDiscount;
       const gst = calculateGST(baseAmount, taxRate, isInclusive, isInterstate);
