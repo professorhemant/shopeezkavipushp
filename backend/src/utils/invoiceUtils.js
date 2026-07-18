@@ -68,7 +68,7 @@ const generatePDF = (sale, firm, items) => {
       let hy = doc.y + 3;
       doc.fillColor('#64748b').fontSize(8.5).font('Helvetica');
       if (firmAddr) { doc.text(firmAddr, ML, hy, { width: CW, align: 'center' }); hy = doc.y + 2; }
-      const contact = [firmPhone ? `Phone: ${firmPhone}` : '', firmEmail].filter(Boolean).join('    |    ');
+      const contact = [firmPhone ? `Mobile Number: ${firmPhone}` : '', firmEmail].filter(Boolean).join('    |    ');
       if (contact)  { doc.text(contact, ML, hy, { width: CW, align: 'center' }); hy = doc.y + 2; }
 
       // ── GOLD DIVIDER ───────────────────────────────────────────────

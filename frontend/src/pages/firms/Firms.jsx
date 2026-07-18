@@ -111,7 +111,7 @@ export default function Firms() {
               </div>
               <div className="space-y-1.5 text-sm">
                 {firm.gstin && <div className="flex gap-2"><span className="text-slate-400 w-16 flex-shrink-0">GSTIN:</span><span className="font-mono text-slate-700">{firm.gstin}</span></div>}
-                {firm.phone && <div className="flex gap-2"><span className="text-slate-400 w-16 flex-shrink-0">Phone:</span><span className="text-slate-700">{firm.phone}</span></div>}
+                {firm.phone && <div className="flex gap-2"><span className="text-slate-400 w-16 flex-shrink-0">Mobile:</span><span className="text-slate-700">{firm.phone}</span></div>}
                 {firm.email && <div className="flex gap-2"><span className="text-slate-400 w-16 flex-shrink-0">Email:</span><span className="text-slate-700">{firm.email}</span></div>}
                 {firm.address && <div className="flex gap-2"><span className="text-slate-400 w-16 flex-shrink-0">Address:</span><span className="text-slate-700">{[firm.address, firm.city, firm.state, firm.pincode].filter(Boolean).join(', ')}</span></div>}
               </div>
@@ -140,7 +140,7 @@ export default function Firms() {
                   <Field label="Legal Name" field="legal_name" colSpan={2} />
                   <Field label="GSTIN" field="gstin" mono />
                   <Field label="PAN" field="pan" mono />
-                  <Field label="Phone" field="phone" />
+                  <Field label="Mobile Number" field="phone" />
                   <Field label="Email" field="email" type="email" />
                 </div>
               </div>

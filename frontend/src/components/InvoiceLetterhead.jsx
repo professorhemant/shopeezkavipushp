@@ -15,7 +15,7 @@ export default function InvoiceLetterhead({ firm }) {
         <p className="text-xs text-slate-500 mt-0.5 flex items-center justify-center gap-1 flex-wrap">
           {phone && (
             <span className="inline-flex items-center gap-1">
-              <Phone className="h-3 w-3" /> Phone: {phone}
+              <Phone className="h-3 w-3" /> Mobile Number: {phone}
             </span>
           )}
           {phone && email && <span className="px-1">|</span>}
