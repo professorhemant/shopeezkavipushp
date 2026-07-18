@@ -329,20 +329,206 @@ const create = async (req, res, next) => {
 };
 
 /**
- * PUT /sales/:id  (update draft)
+ * PUT /sales/:id  (edit an existing invoice)
+ *
+ * Re-runs the same pipeline as create(): stock from the old line items is
+ * restored, the incoming items are re-priced and re-taxed, and stock is
+ * deducted again from the new quantities. A shallow field copy is not enough —
+ * `items` is not a Sale column, and the client sends `grand_total` where the
+ * column is `total`, so a plain update would leave the invoice internally
+ * inconsistent.
+ *
+ * Deliberately left alone:
+ *  - `invoice_no` / `invoice_date` are immutable, so an edit cannot re-date an
+ *    invoice or break the firm's invoice sequence.
+ *  - Payment rows. They may have been recorded later via addPayment on their own
+ *    dates, and the Day Book computes off live Payment data — destroying and
+ *    recreating them here would silently rewrite past days. paid_amount is
+ *    therefore recomputed from the payments that already exist; to change what
+ *    was paid, use POST /sales/:id/payment.
  */
 const update = async (req, res, next) => {
+  const t = await sequelize.transaction();
   try {
-    const sale = await Sale.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
-    if (!sale) return res.status(404).json({ success: false, message: 'Sale not found.' });
-    if (sale.status !== 'draft') return res.status(400).json({ success: false, message: 'Only draft sales can be updated.' });
-    const body = { ...req.body };
-    delete body.firm_id;
-    delete body.invoice_no;
-    await sale.update(body);
-    return res.status(200).json({ success: true, message: 'Sale updated.', data: sale });
+    const sale = await Sale.findOne({
+      where: { id: req.params.id, firm_id: req.firmId },
+      include: [{ model: SaleItem, as: 'items' }],
+      transaction: t,
+    });
+    if (!sale) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Sale not found.' });
+    }
+    // Cancelled/returned invoices have already had their stock restored;
+    // re-editing them would double-count inventory.
+    if (['cancelled', 'returned'].includes(sale.status)) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: `Cannot edit a ${sale.status} invoice.` });
+    }
+
+    const { items, discount_amount, customer_id, notes } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'At least one item is required.' });
+    }
+
+    // The client omits is_interstate on edit; keep whatever the invoice was
+    // raised under so GST does not silently flip between IGST and CGST/SGST.
+    const isInterstate = typeof req.body.is_interstate === 'boolean'
+      ? req.body.is_interstate
+      : Boolean(sale.is_interstate);
+
+    // 1. Give back the stock the current line items are holding. A product that
+    //    was auto-archived on sell-out comes back on sale once it has stock again.
+    for (const oldItem of (sale.items || [])) {
+      if (!oldItem.product_id) continue;
+      const product = await Product.findByPk(oldItem.product_id, { transaction: t });
+      if (product && product.track_inventory) {
+        const restoredStock = parseFloat(product.stock || 0) + parseFloat(oldItem.quantity);
+        const stockUpdates = { stock: restoredStock };
+        if (restoredStock > 0) stockUpdates.is_active = true; // un-archive: back in stock
+        await product.update(stockUpdates, { transaction: t });
+      }
+    }
+
+    // 2. Re-price the incoming items and take stock for the new quantities.
+    //    Mirrors the loop in create() — worth factoring into a shared helper.
+    let subtotal = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
+    const processedItems = [];
+
+    for (const item of items) {
+      let product = null;
+      if (item.product_id) {
+        product = await Product.findOne({ where: { id: item.product_id, firm_id: req.firmId }, transaction: t });
+        if (!product) throw new Error(`Product ${item.product_id} not found.`);
+      }
+
+      const qty = parseFloat(item.quantity);
+      const rate = parseFloat(item.rate || item.unit_price || product?.sale_price || 0);
+      const itemDiscount = parseFloat(item.discount_amount || 0);
+      const taxRate = parseFloat(item.tax_rate || product?.tax_rate || 0);
+      const isInclusive = item.is_tax_inclusive === true;
+
+      const baseAmount = qty * rate - itemDiscount;
+      const gst = calculateGST(baseAmount, taxRate, isInclusive, isInterstate);
+
+      subtotal += gst.taxableAmount;
+      totalCGST += gst.cgst;
+      totalSGST += gst.sgst;
+      totalIGST += gst.igst;
+
+      processedItems.push({
+        product_id: product?.id || null,
+        product_name: item.product_name || product?.name || 'Item',
+        hsn_code: item.hsn_code || product?.hsn_code || null,
+        barcode: item.barcode || product?.barcode || null,
+        quantity: qty,
+        unit_price: rate,
+        discount_amount: itemDiscount,
+        taxable_amount: gst.taxableAmount,
+        tax_rate: taxRate,
+        cgst_rate: isInterstate ? 0 : taxRate / 2,
+        sgst_rate: isInterstate ? 0 : taxRate / 2,
+        igst_rate: isInterstate ? taxRate : 0,
+        cgst: gst.cgst,
+        sgst: gst.sgst,
+        igst: gst.igst,
+        total: gst.total,
+      });
+
+      if (product && product.track_inventory) {
+        const newStock = parseFloat(product.stock || 0) - qty;
+        if (newStock < 0) throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+        const stockUpdates = { stock: newStock };
+        if (newStock <= 0) stockUpdates.is_active = false; // auto-archive when sold out
+        await product.update(stockUpdates, { transaction: t });
+      }
+    }
+
+    // 3. Swap the line items wholesale — row ids are not stable across an edit.
+    await SaleItem.destroy({ where: { sale_id: sale.id }, transaction: t });
+    for (const item of processedItems) {
+      await SaleItem.create({ sale_id: sale.id, ...item }, { transaction: t });
+    }
+
+    const discountAmt = parseFloat(discount_amount || 0);
+    const taxTotal = totalCGST + totalSGST + totalIGST;
+    const grandTotal = subtotal + taxTotal - discountAmt;
+
+    // 4. paid_amount comes from the payments on record, not from the request.
+    const paidAmount = await Payment.sum('amount', {
+      where: { sale_id: sale.id, reference_type: 'sale' },
+      transaction: t,
+    }) || 0;
+    const directPayment = Math.min(parseFloat(paidAmount), grandTotal);
+    const balance = Math.max(0, parseFloat((grandTotal - directPayment).toFixed(2)));
+
+    // 5. Outstanding carried in from elsewhere, excluding this invoice.
+    const nextCustomerId = customer_id !== undefined ? (customer_id || null) : sale.customer_id;
+    let customerName = sale.customer_name;
+    let customerPhone = sale.customer_phone;
+    let customerGstin = sale.customer_gstin;
+    let previousBalance = 0;
+    if (nextCustomerId) {
+      const customer = await Customer.findByPk(nextCustomerId, { transaction: t });
+      if (customer) {
+        customerName = customer.name;
+        customerPhone = customer.phone;
+        customerGstin = customer.gstin;
+        const prevSalesBalance = await Sale.sum('balance', {
+          where: {
+            customer_id: customer.id,
+            firm_id: req.firmId,
+            id: { [Op.ne]: sale.id },
+            status: { [Op.notIn]: ['cancelled', 'returned'] },
+          },
+          transaction: t,
+        }) || 0;
+        previousBalance = parseFloat(customer.opening_balance || 0) + parseFloat(prevSalesBalance || 0);
+      }
+    } else {
+      customerName = req.body.customer_name || 'Walk-in';
+      customerPhone = null;
+      customerGstin = null;
+    }
+
+    await sale.update({
+      customer_id: nextCustomerId,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      customer_gstin: customerGstin,
+      subtotal,
+      discount_amount: discountAmt,
+      taxable_amount: subtotal,
+      cgst: totalCGST,
+      sgst: totalSGST,
+      igst: totalIGST,
+      total: grandTotal,
+      paid_amount: directPayment,
+      balance,
+      previous_balance: previousBalance,
+      is_interstate: isInterstate,
+      payment_status: directPayment >= grandTotal ? 'paid' : directPayment > 0 ? 'partial' : 'unpaid',
+      notes: notes !== undefined ? notes : sale.notes,
+    }, { transaction: t });
+
+    await t.commit();
+
+    const updated = await Sale.findByPk(sale.id, {
+      include: [
+        { model: Customer, as: 'customer' },
+        { model: SaleItem, as: 'items' },
+      ],
+    });
+
+    return res.status(200).json({ success: true, message: 'Invoice updated.', data: updated });
   } catch (err) {
-    next(err);
+    await t.rollback();
+    console.error('Sale update ERROR:', err.message, '|', err.parent?.message);
+    return res.status(400).json({ success: false, message: err.message || 'Could not update invoice.' });
   }
 };
 
