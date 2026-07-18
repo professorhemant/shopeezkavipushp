@@ -211,8 +211,36 @@ const create = async (req, res, next) => {
     let customerGstin = null;
     let previousBalance = 0;
     let customer = null;
-    if (customer_id) {
-      customer = await Customer.findByPk(customer_id, { transaction: t });
+    let linkedCustomerId = customer_id || null;
+
+    const typedName  = (req.body.customer_name || '').trim();
+    const typedPhone = String(req.body.mobile || req.body.customer_phone || '').trim();
+
+    // A bill typed at the counter carries a number but no customer record, so
+    // the sale was never tied to anyone: no purchase history, and previous
+    // balance always read zero. Attach it to a customer keyed on the phone —
+    // the closest thing to a natural key for a walk-in — creating the record
+    // the first time we see that number.
+    if (!linkedCustomerId && typedPhone) {
+      customer = await Customer.findOne({
+        where: { firm_id: firmId, phone: typedPhone },
+        transaction: t,
+      });
+      if (!customer) {
+        customer = await Customer.create({
+          firm_id: firmId,
+          name: typedName || 'Walk-in',
+          phone: typedPhone,
+        }, { transaction: t });
+      } else if (typedName && customer.name === 'Walk-in') {
+        // Same number seen before without a name — take the real one now.
+        await customer.update({ name: typedName }, { transaction: t });
+      }
+      linkedCustomerId = customer.id;
+    }
+
+    if (linkedCustomerId) {
+      if (!customer) customer = await Customer.findByPk(linkedCustomerId, { transaction: t });
       if (customer) {
         customerName = customer.name;
         customerPhone = customer.phone;
@@ -232,7 +260,7 @@ const create = async (req, res, next) => {
 
     const sale = await Sale.create({
       firm_id: firmId,
-      customer_id: customer_id || null,
+      customer_id: linkedCustomerId,
       customer_name: customerName || req.body.customer_name || 'Walk-in',
       // Fall back to the number typed on the bill. Walk-in sales have no linked
       // Customer row, so without this the mobile entered on the invoice screen
@@ -271,7 +299,7 @@ const create = async (req, res, next) => {
         firm_id: firmId,
         reference_type: 'sale',
         sale_id: sale.id,
-        customer_id: customer_id || null,
+        customer_id: linkedCustomerId,
         payment_date: invoice_date || new Date(),
         amount: parseFloat(p.amount),
         payment_mode: p.mode || 'cash',
@@ -284,13 +312,13 @@ const create = async (req, res, next) => {
     }
 
     // Apply excess payment to previous balances (opening_balance + old unpaid invoices)
-    if (excessPayment > 0 && customer_id && customer) {
+    if (excessPayment > 0 && linkedCustomerId && customer) {
       let remaining = excessPayment;
 
       // 1. Clear oldest unpaid/partial previous invoices first
       const oldSales = await Sale.findAll({
         where: {
-          customer_id,
+          customer_id: linkedCustomerId,
           firm_id: firmId,
           balance: { [Op.gt]: 0 },
           status: { [Op.notIn]: ['cancelled', 'returned'] },
