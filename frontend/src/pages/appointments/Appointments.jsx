@@ -197,7 +197,7 @@ export default function Appointments() {
                   <input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Phone</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Mobile Number</label>
                   <input value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>

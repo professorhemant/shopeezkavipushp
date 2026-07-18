@@ -305,7 +305,7 @@ export default function Dashboard() {
               <thead>
                 <tr className="bg-slate-50 text-xs text-slate-500 uppercase">
                   <th className="px-4 py-2.5 text-left font-medium">Name</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Mobile</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Mobile Number</th>
                   <th className="px-4 py-2.5 text-left font-medium">Last Purchase</th>
                   <th className="px-4 py-2.5 text-left font-medium">Segment</th>
                 </tr>

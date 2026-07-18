@@ -67,7 +67,7 @@ export default function Payables() {
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Supplier</th>
-                  <th className="px-4 py-3 text-left">Phone</th>
+                  <th className="px-4 py-3 text-left">Mobile Number</th>
                   <th className="px-4 py-3 text-right">Total Purchases</th>
                   <th className="px-4 py-3 text-right">Total Paid</th>
                   <th className="px-4 py-3 text-right">Outstanding</th>

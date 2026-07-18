@@ -182,7 +182,7 @@ export default function Customers() {
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input type="text" placeholder="Search by name, phone, GSTIN..." value={search}
+          <input type="text" placeholder="Search by name, mobile number, GSTIN..." value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
         </div>
@@ -203,7 +203,7 @@ export default function Customers() {
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Customer</th>
-                  <th className="px-4 py-3 text-left">Phone</th>
+                  <th className="px-4 py-3 text-left">Mobile Number</th>
                   <th className="px-4 py-3 text-left">GSTIN</th>
                   <th className="px-4 py-3 text-left">City</th>
                   <th className="px-4 py-3 text-right">Previous Balance</th>
@@ -310,7 +310,7 @@ export default function Customers() {
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Phone</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Mobile Number</label>
                   <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>

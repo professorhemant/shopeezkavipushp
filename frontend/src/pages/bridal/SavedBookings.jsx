@@ -156,7 +156,7 @@ function DetailModal({ booking, onClose, onSaved, onDelete }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div><label className={lbl}>Customer Name</label><input value={form.customer_name} onChange={e => set('customer_name', e.target.value)} className={inp} /></div>
-          <div><label className={lbl}>Mobile No.</label><input value={form.mobile_no} onChange={e => set('mobile_no', e.target.value)} className={inp} /></div>
+          <div><label className={lbl}>Mobile Number</label><input value={form.mobile_no} onChange={e => set('mobile_no', e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Aadhaar No.</label><input value={form.aadhaar_no} onChange={e => set('aadhaar_no', e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Function Date</label><input type="date" value={form.function_date} onChange={e => set('function_date', e.target.value)} className={inp} /></div>
           <div><label className={lbl}>Stylist</label><input value={form.stylist} onChange={e => set('stylist', e.target.value)} className={inp} /></div>

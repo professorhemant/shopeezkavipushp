@@ -71,7 +71,7 @@ export default function Register() {
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Mobile *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Mobile Number *</label>
                 <input {...register('phone')} placeholder="10-digit mobile"
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}

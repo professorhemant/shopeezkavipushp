@@ -129,7 +129,7 @@ export default function Staff() {
                 <tr>
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Email</th>
-                  <th className="px-4 py-3 text-left">Phone</th>
+                  <th className="px-4 py-3 text-left">Mobile Number</th>
                   <th className="px-4 py-3 text-left">Role</th>
                   <th className="px-4 py-3 text-left">Joined</th>
                   <th className="px-4 py-3 text-center">Status</th>
@@ -194,7 +194,7 @@ export default function Staff() {
                   <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Phone</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Mobile Number</label>
                   <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
                 <div>

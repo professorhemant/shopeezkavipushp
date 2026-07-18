@@ -340,7 +340,7 @@ export default function SentForPromotions() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, event, phone..."
+            placeholder="Search by name, event, mobile number..."
             className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
@@ -490,7 +490,7 @@ export default function SentForPromotions() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Phone / WhatsApp</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Mobile Number / WhatsApp</label>
                     <input value={form.contact_phone} onChange={e => setForm(f => ({ ...f, contact_phone: e.target.value }))}
                       placeholder="Contact number"
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
