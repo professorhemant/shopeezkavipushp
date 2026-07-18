@@ -448,10 +448,16 @@ export default function CreateInvoice() {
             await saleAPI.uploadImages(saleId, fd)
           } catch { /* non-critical */ }
         }
-        const custPhone = mobile
+        // Offer WhatsApp even when no number was typed on the bill — most
+        // walk-in invoices are raised without one, and this used to skip
+        // silently so the option looked like it had disappeared.
+        let custPhone = mobile
+        if (saleId && !custPhone) {
+          custPhone = window.prompt("Send this invoice on WhatsApp?\nEnter the customer's number, or leave blank to skip:", '') || ''
+        }
         if (saleId && custPhone) {
           try {
-            const { data: waRes } = await whatsappAPI.sendInvoice(saleId)
+            const { data: waRes } = await whatsappAPI.sendInvoice(saleId, { phone: custPhone })
             const msgText = waRes?.message_text
             const phone   = waRes?.phone || custPhone
             if (msgText && phone) {

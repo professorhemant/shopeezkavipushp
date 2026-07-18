@@ -2,10 +2,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Plus, Search, Download, Printer, Edit2, XCircle, Trash2,
-  FileText, ChevronLeft, ChevronRight, Filter, Eye
+  FileText, ChevronLeft, ChevronRight, Filter, Eye, MessageCircle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saleAPI } from '../../api'
+import { saleAPI, whatsappAPI } from '../../api'
 import { formatCurrency, formatDate, getPaymentStatusColor } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import EditOtpModal from '../../components/common/EditOtpModal'
@@ -81,6 +81,37 @@ export default function Invoices() {
       URL.revokeObjectURL(url)
     } catch {
       toast.error('Failed to generate PDF')
+    }
+  }
+
+  /**
+   * Hand the invoice to WhatsApp for the customer on it.
+   *
+   * The server builds the message text (items, total, balance, payment details)
+   * and we open wa.me pre-filled with it. WhatsApp cannot be handed a file
+   * through a link, so this sends the invoice as a formatted message, not as
+   * the PDF itself — use Download alongside it if the customer wants the file.
+   *
+   * Invoices raised without a mobile number are common, so rather than failing
+   * we ask for one and pass it through for this send.
+   */
+  const handleSendWhatsApp = async (inv) => {
+    let phone = inv.customer?.phone || inv.customer_phone || ''
+    if (!phone) {
+      phone = window.prompt(`No mobile number on ${inv.invoice_no}.\nEnter the customer's WhatsApp number to send it:`, '')
+      if (!phone) return
+    }
+    try {
+      const { data } = await whatsappAPI.sendInvoice(inv.id, { phone })
+      const text = data?.message_text
+      const to   = data?.phone || phone
+      if (!text || !to) { toast.error('Could not build the WhatsApp message'); return }
+      // Normalise to an international number: wa.me rejects local formats.
+      const digits = String(to).replace(/\D/g, '')
+      const intl   = digits.startsWith('91') ? digits : `91${digits.replace(/^0/, '')}`
+      window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to send on WhatsApp')
     }
   }
 
@@ -205,6 +236,11 @@ export default function Invoices() {
                         <button onClick={() => handleDownloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600" title="Download">
                           <Download className="h-4 w-4" />
                         </button>
+                        {!isCancelled && (
+                          <button onClick={() => handleSendWhatsApp(inv)} className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600" title="Send on WhatsApp">
+                            <MessageCircle className="h-4 w-4" />
+                          </button>
+                        )}
                         <button onClick={() => setOtpModal({ open: true, action: 'edit', invoiceId: inv.id })} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="Edit">
                           <Edit2 className="h-4 w-4" />
                         </button>

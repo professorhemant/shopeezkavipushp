@@ -221,7 +221,8 @@ export const whatsappAPI = {
   createCampaign: (data) => api.post('/whatsapp/campaigns', data),
   sendCampaign: (id) => api.post(`/whatsapp/campaigns/${id}/send`),
   sendMessage: (data) => api.post('/whatsapp/send', data),
-  sendInvoice: (saleId) => api.post(`/whatsapp/send-invoice/${saleId}`),
+  // body may carry { phone } for invoices raised without a customer number
+  sendInvoice: (saleId, body) => api.post(`/whatsapp/send-invoice/${saleId}`, body || {}),
   getCustomerMessages: (customerId) => api.get(`/whatsapp/customer/${customerId}/messages`),
 }
 
