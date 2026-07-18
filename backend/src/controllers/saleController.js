@@ -234,7 +234,11 @@ const create = async (req, res, next) => {
       firm_id: firmId,
       customer_id: customer_id || null,
       customer_name: customerName || req.body.customer_name || 'Walk-in',
-      customer_phone: customerPhone || null,
+      // Fall back to the number typed on the bill. Walk-in sales have no linked
+      // Customer row, so without this the mobile entered on the invoice screen
+      // was dropped — leaving the PDF's "Mobile:" blank and WhatsApp sending
+      // impossible for exactly the invoices raised at the counter.
+      customer_phone: customerPhone || req.body.mobile || req.body.customer_phone || null,
       customer_gstin: customerGstin || null,
       invoice_no: invoiceNo,
       invoice_date: invoice_date || new Date(),
@@ -495,7 +499,9 @@ const update = async (req, res, next) => {
       }
     } else {
       customerName = req.body.customer_name || 'Walk-in';
-      customerPhone = null;
+      // Keep the number typed on the bill, and don't wipe an existing one when
+      // the edit screen submits without it.
+      customerPhone = req.body.mobile || req.body.customer_phone || sale.customer_phone || null;
       customerGstin = null;
     }
 
