@@ -4,7 +4,7 @@ import {
   ScanBarcode, X,
   Trash2, Plus, Calendar, Info, Banknote,
   CreditCard, Smartphone, FileText, ChevronDown,
-  RefreshCw, Camera
+  RefreshCw, Camera, Lock
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { saleAPI, customerAPI, productAPI, whatsappAPI, settingsAPI } from '../../api'
@@ -417,8 +417,13 @@ export default function CreateInvoice() {
         discount_amount: parseFloat((subTotal + totalTax - (grandTotal - shippingAmt)).toFixed(2)),
         grand_total: grandTotal,
         status: 'confirmed',
-        payment: { mode: primaryMode, amount: totalSplitPaid },
-        payments: splitPayments,
+        // Payments are only submitted when raising the bill. On edit the server
+        // recomputes paid_amount from the existing payment rows and ignores
+        // these, so sending them would imply a change that never happens.
+        ...(isEdit ? {} : {
+          payment: { mode: primaryMode, amount: totalSplitPaid },
+          payments: splitPayments,
+        }),
       }
       if (isEdit) {
         await saleAPI.update(id, payload)
@@ -1129,7 +1134,10 @@ export default function CreateInvoice() {
 
 
       {/* ── Payment mode popups ───────────────────────────────── */}
-      {activePayPopup && (
+      {/* Locked while editing: PUT /sales/:id recomputes paid_amount from the
+          payment rows already on record and ignores any sent here, so an edit
+          made in this popup would silently do nothing. */}
+      {activePayPopup && !isEdit && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setActivePayPopup(null)} />
           <div className="fixed bottom-16 left-0 lg:left-64 z-50 w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl overflow-hidden">
@@ -1267,37 +1275,52 @@ export default function CreateInvoice() {
       {/* ── Sticky bottom payment bar — mode buttons ─────────── */}
       <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-gray-900 flex items-center z-30 h-14">
 
-        {/* CASH */}
-        <button onClick={() => setActivePayPopup('cash')}
-          className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.cash) > 0 ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
-          <Banknote className="h-4 w-4" />
-          <span className="text-xs font-semibold">CASH</span>
-          {parseFloat(splitPay.cash) > 0 && <span className="text-xs text-green-200">₹{parseFloat(splitPay.cash).toFixed(0)}</span>}
-        </button>
+        {/* Payment mode buttons — only when raising a new bill. On edit the
+            backend keeps the existing payment records untouched, so offering
+            these would let staff "change" a payment that never changes. */}
+        {!isEdit ? (
+          <>
+            {/* CASH */}
+            <button onClick={() => setActivePayPopup('cash')}
+              className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.cash) > 0 ? 'bg-green-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+              <Banknote className="h-4 w-4" />
+              <span className="text-xs font-semibold">CASH</span>
+              {parseFloat(splitPay.cash) > 0 && <span className="text-xs text-green-200">₹{parseFloat(splitPay.cash).toFixed(0)}</span>}
+            </button>
 
-        {/* CARD */}
-        <button onClick={() => setActivePayPopup('card')}
-          className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.card) > 0 ? 'bg-blue-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
-          <CreditCard className="h-4 w-4" />
-          <span className="text-xs font-semibold">CARD</span>
-          {parseFloat(splitPay.card) > 0 && <span className="text-xs text-blue-200">₹{parseFloat(splitPay.card).toFixed(0)}</span>}
-        </button>
+            {/* CARD */}
+            <button onClick={() => setActivePayPopup('card')}
+              className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.card) > 0 ? 'bg-blue-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+              <CreditCard className="h-4 w-4" />
+              <span className="text-xs font-semibold">CARD</span>
+              {parseFloat(splitPay.card) > 0 && <span className="text-xs text-blue-200">₹{parseFloat(splitPay.card).toFixed(0)}</span>}
+            </button>
 
-        {/* ONLINE */}
-        <button onClick={() => setActivePayPopup('upi')}
-          className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.upi) > 0 ? 'bg-violet-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
-          <Smartphone className="h-4 w-4" />
-          <span className="text-xs font-semibold">ONLINE</span>
-          {parseFloat(splitPay.upi) > 0 && <span className="text-xs text-violet-200">₹{parseFloat(splitPay.upi).toFixed(0)}</span>}
-        </button>
+            {/* ONLINE */}
+            <button onClick={() => setActivePayPopup('upi')}
+              className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.upi) > 0 ? 'bg-violet-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+              <Smartphone className="h-4 w-4" />
+              <span className="text-xs font-semibold">ONLINE</span>
+              {parseFloat(splitPay.upi) > 0 && <span className="text-xs text-violet-200">₹{parseFloat(splitPay.upi).toFixed(0)}</span>}
+            </button>
 
-        {/* CHEQUE */}
-        <button onClick={() => setActivePayPopup('cheque')}
-          className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.cheque) > 0 ? 'bg-orange-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
-          <FileText className="h-4 w-4" />
-          <span className="text-xs font-semibold">CHEQUE</span>
-          {parseFloat(splitPay.cheque) > 0 && <span className="text-xs text-orange-200">₹{parseFloat(splitPay.cheque).toFixed(0)}</span>}
-        </button>
+            {/* CHEQUE */}
+            <button onClick={() => setActivePayPopup('cheque')}
+              className={`flex flex-col items-center justify-center h-full px-5 border-r border-gray-700 transition-colors gap-0.5 ${parseFloat(splitPay.cheque) > 0 ? 'bg-orange-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+              <FileText className="h-4 w-4" />
+              <span className="text-xs font-semibold">CHEQUE</span>
+              {parseFloat(splitPay.cheque) > 0 && <span className="text-xs text-orange-200">₹{parseFloat(splitPay.cheque).toFixed(0)}</span>}
+            </button>
+          </>
+        ) : (
+          <div className="flex items-center gap-2 px-4 h-full border-r border-gray-700 text-gray-400">
+            <Lock className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-xs">
+              Payments locked — recorded payments stay as they are.
+              <span className="hidden sm:inline"> Use Add Payment on the invoice to record a new one.</span>
+            </span>
+          </div>
+        )}
 
         {/* Paid / Balance */}
         <div className="flex items-center gap-4 px-4 text-xs">
