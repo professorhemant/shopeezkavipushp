@@ -91,7 +91,7 @@ const AppointmentLetter = forwardRef(function AppointmentLetter({ employee, firm
             ? <Detail label="Daily Wage" value={`${formatCurrency(employee?.monthly_salary || 0)} per day`} />
             : <Detail label="Monthly Salary" value={formatCurrency(employee?.monthly_salary || 0)} />}
           <Detail label="Working Hours" value={employee?.work_timings} />
-          <Detail label="Weekly Off" value={employee?.weekly_off} />
+          <Detail label="Monthly Off" value={`${employee?.monthly_off ?? 4} day(s) per month`} />
         </tbody>
       </table>
 

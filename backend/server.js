@@ -71,6 +71,8 @@ async function startServer() {
       // Pay basis: monthly salary vs daily wages; days worked per month for daily-wage pay
       "ALTER TABLE employees ADD COLUMN pay_basis ENUM('monthly','daily') NOT NULL DEFAULT 'monthly'",
       "ALTER TABLE employee_leaves ADD COLUMN days_worked DECIMAL(5,1) NOT NULL DEFAULT 0",
+      // Monthly Off: free offs allowed per month (extras deducted at salary/30)
+      "ALTER TABLE employees ADD COLUMN monthly_off INT NOT NULL DEFAULT 4",
       // Set all existing products with tax_rate = 0 to 3% (jewellery GST default).
       "UPDATE products SET tax_rate = 3 WHERE tax_rate = 0 OR tax_rate IS NULL",
     ];

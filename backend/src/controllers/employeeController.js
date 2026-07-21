@@ -29,11 +29,13 @@ const monthSummary = (employee, entries, month, leave) => {
   const advancePaid = sumType('advance');
   const salaryPaid = sumType('salary');
 
-  const days = num(leave?.leave_days);
-  // Leave deduction only applies to monthly-salary staff; daily wages already
-  // exclude non-worked days via days_worked.
-  const leaveDeduction = !isDaily && employee.deduct_leaves && days > 0
-    ? Math.round((rate / 30) * days)
+  const days = num(leave?.leave_days);                          // offs taken this month
+  const allowedOff = employee.monthly_off == null ? 4 : num(employee.monthly_off); // free offs/month
+  const chargeableOff = Math.max(0, days - allowedOff);         // offs beyond the allowance
+  // Only monthly-salary staff are docked for excess offs (at salary/30 per extra day).
+  // Daily-wage staff are unaffected — they are paid only for days actually worked.
+  const leaveDeduction = !isDaily && chargeableOff > 0
+    ? Math.round((rate / 30) * chargeableOff)
     : 0;
 
   // Incentive is kept independent — it is NOT folded into Net Payable (or Balance Due).
@@ -51,6 +53,8 @@ const monthSummary = (employee, entries, month, leave) => {
     incentives,
     manual_deductions: manualDeductions,
     leave_days: days,
+    allowed_off: allowedOff,
+    chargeable_off: chargeableOff,
     leave_deduction: leaveDeduction,
     net_payable: netPayable,
     advance_paid: advancePaid,

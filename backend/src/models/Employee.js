@@ -18,7 +18,7 @@ const Employee = sequelize.define('Employee', {
     defaultValue: 'monthly',
   },
   work_timings: { type: DataTypes.STRING(100) },            // e.g. "10:00 AM – 7:00 PM"
-  weekly_off: { type: DataTypes.STRING(20) },               // e.g. "Sunday"
+  monthly_off: { type: DataTypes.INTEGER, defaultValue: 4 }, // free offs allowed per month; extras deducted at salary/30
   monthly_salary: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 }, // monthly salary, OR daily rate when pay_basis='daily'
   date_of_joining: { type: DataTypes.DATEONLY },
   address: { type: DataTypes.STRING(255) },

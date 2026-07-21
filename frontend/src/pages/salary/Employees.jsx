@@ -32,8 +32,8 @@ const STATUS = {
 const emptyEmployee = {
   name: '', phone: '', designation: '', employment_type: 'permanent',
   pay_basis: 'monthly',
-  work_timings: '', weekly_off: '', monthly_salary: '', date_of_joining: '',
-  address: '', emergency_contact: '', deduct_leaves: false, is_active: true, notes: '',
+  work_timings: '', monthly_off: 4, monthly_salary: '', date_of_joining: '',
+  address: '', emergency_contact: '', is_active: true, notes: '',
 }
 
 export default function Employees() {
@@ -125,7 +125,7 @@ export default function Employees() {
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Appointment</th>
                   <th className="px-4 py-3 text-left">Timings</th>
-                  <th className="px-4 py-3 text-left">Weekly Off</th>
+                  <th className="px-4 py-3 text-left">Monthly Off</th>
                   <th className="px-4 py-3 text-right">Monthly Salary</th>
                   <th className="px-4 py-3 text-right">Balance</th>
                   <th className="px-4 py-3 text-center">Status</th>
@@ -144,7 +144,7 @@ export default function Employees() {
                     </td>
                     <td className="px-4 py-3 text-slate-600">{typeLabel(e.employment_type)}</td>
                     <td className="px-4 py-3 text-slate-600">{e.work_timings || '—'}</td>
-                    <td className="px-4 py-3 text-slate-600">{e.weekly_off || '—'}</td>
+                    <td className="px-4 py-3 text-slate-600">{e.monthly_off ?? 4}/mo</td>
                     <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurrency(e.monthly_salary)}</td>
                     <td className="px-4 py-3 text-right font-medium text-slate-700">{formatCurrency(e.summary?.balance || 0)}</td>
                     <td className="px-4 py-3 text-center">
@@ -196,8 +196,8 @@ export default function Employees() {
               <Field label="Work Timings">
                 <input value={form.work_timings} onChange={(e) => setForm({ ...form, work_timings: e.target.value })} className={inp} placeholder="e.g. 10 AM – 7 PM" />
               </Field>
-              <Field label="Weekly Off">
-                <input value={form.weekly_off} onChange={(e) => setForm({ ...form, weekly_off: e.target.value })} className={inp} placeholder="e.g. Sunday" />
+              <Field label="Monthly Off (allowed)">
+                <input type="number" min="0" step="1" value={form.monthly_off} onChange={(e) => setForm({ ...form, monthly_off: e.target.value })} className={inp} placeholder="4" />
               </Field>
               <Field label="Date of Joining">
                 <input type="date" value={form.date_of_joining} onChange={(e) => setForm({ ...form, date_of_joining: e.target.value })} className={inp} />
@@ -208,10 +208,9 @@ export default function Employees() {
               <Field label="Address" className="col-span-2">
                 <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={inp} placeholder="Address" />
               </Field>
-              <label className="col-span-2 flex items-center gap-2 text-sm text-slate-600">
-                <input type="checkbox" checked={form.deduct_leaves} onChange={(e) => setForm({ ...form, deduct_leaves: e.target.checked })} className="rounded" />
-                Auto-deduct salary for leave days (per-day = salary ÷ 30)
-              </label>
+              <p className="col-span-2 text-xs text-slate-500">
+                Offs beyond the allowed Monthly Off are auto-deducted at salary ÷ 30 per extra day (monthly-salary staff only).
+              </p>
               <div className="col-span-2 flex gap-2 pt-1">
                 <button type="submit" disabled={saving} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50">
                   {saving ? 'Saving...' : 'Add Employee'}

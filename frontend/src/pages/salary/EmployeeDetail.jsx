@@ -185,7 +185,7 @@ export default function EmployeeDetail() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
           <Meta icon={Briefcase} label="Appointment" value={typeLabel(employee.employment_type)} />
           <Meta icon={Clock} label="Timings" value={employee.work_timings || '—'} />
-          <Meta icon={CalendarOff} label="Weekly Off" value={employee.weekly_off || '—'} />
+          <Meta icon={CalendarOff} label="Monthly Off" value={`${employee.monthly_off ?? 4}/mo`} />
           <Meta icon={Phone} label="Phone" value={employee.phone || '—'} />
         </div>
         {(employee.date_of_joining || employee.emergency_contact || employee.address) && (
@@ -213,7 +213,7 @@ export default function EmployeeDetail() {
           hint={summary.pay_basis === 'daily' ? `${summary.days_worked || 0}d × ${formatCurrency(summary.daily_rate || 0)}/day` : null} />
         <Stat label="Incentives" value={summary.incentives} tone="green" hint="not included in Net Payable" />
         <Stat label="− Deductions" value={summary.manual_deductions + summary.leave_deduction} tone="red"
-          hint={summary.leave_deduction ? `incl. ${formatCurrency(summary.leave_deduction)} leave (${summary.leave_days}d)` : null} />
+          hint={summary.leave_deduction ? `incl. ${formatCurrency(summary.leave_deduction)} for ${summary.chargeable_off}d off over ${summary.allowed_off} allowed` : null} />
         <Stat label="Net Payable" value={summary.net_payable} tone="bold" />
         <Stat label="Advance Paid" value={summary.advance_paid} />
         <Stat label="Salary Paid" value={summary.salary_paid} />
@@ -238,9 +238,10 @@ export default function EmployeeDetail() {
           </div>
         ) : (
           <div className="ml-auto flex items-center gap-2 text-sm">
-            <span className="text-slate-500">Leave days ({monthLabel(month)}):</span>
+            <span className="text-slate-500">Offs taken ({monthLabel(month)}):</span>
             <input type="number" step="0.5" min="0" value={leaveInput} onChange={(e) => setLeaveInput(e.target.value)}
               className="w-20 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+            <span className="text-xs text-slate-400">/ {employee.monthly_off ?? 4} free</span>
             <button onClick={saveLeave} className="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm">Save</button>
           </div>
         )}
@@ -351,14 +352,11 @@ export default function EmployeeDetail() {
             </Field>
             <Field label={editForm.pay_basis === 'daily' ? 'Daily Wage (₹/day)' : 'Monthly Salary (₹)'}><input type="number" step="0.01" value={editForm.monthly_salary} onChange={(e) => setEditForm({ ...editForm, monthly_salary: e.target.value })} className={inp} /></Field>
             <Field label="Work Timings"><input value={editForm.work_timings || ''} onChange={(e) => setEditForm({ ...editForm, work_timings: e.target.value })} className={inp} /></Field>
-            <Field label="Weekly Off"><input value={editForm.weekly_off || ''} onChange={(e) => setEditForm({ ...editForm, weekly_off: e.target.value })} className={inp} /></Field>
+            <Field label="Monthly Off (allowed)"><input type="number" min="0" step="1" value={editForm.monthly_off ?? 4} onChange={(e) => setEditForm({ ...editForm, monthly_off: e.target.value })} className={inp} /></Field>
             <Field label="Date of Joining"><input type="date" value={editForm.date_of_joining || ''} onChange={(e) => setEditForm({ ...editForm, date_of_joining: e.target.value })} className={inp} /></Field>
             <Field label="Emergency Contact"><input value={editForm.emergency_contact || ''} onChange={(e) => setEditForm({ ...editForm, emergency_contact: e.target.value })} className={inp} /></Field>
             <Field label="Address" className="col-span-2"><input value={editForm.address || ''} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} className={inp} /></Field>
-            <label className="col-span-2 flex items-center gap-2 text-sm text-slate-600">
-              <input type="checkbox" checked={!!editForm.deduct_leaves} onChange={(e) => setEditForm({ ...editForm, deduct_leaves: e.target.checked })} className="rounded" />
-              Auto-deduct salary for leave days
-            </label>
+            <p className="col-span-2 text-xs text-slate-500">Offs beyond the allowed Monthly Off are auto-deducted at salary ÷ 30 per extra day (monthly-salary staff only).</p>
             <label className="col-span-2 flex items-center gap-2 text-sm text-slate-600">
               <input type="checkbox" checked={!!editForm.is_active} onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })} className="rounded" />
               Active employee
