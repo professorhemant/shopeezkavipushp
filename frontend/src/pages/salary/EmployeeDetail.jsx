@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, X, Trash2, Pencil, Phone, Clock, CalendarOff, Briefcase } from 'lucide-react'
+import { ArrowLeft, Plus, X, Trash2, Pencil, Phone, Clock, CalendarOff, Briefcase, FileText, Printer, FileDown } from 'lucide-react'
+import { useReactToPrint } from 'react-to-print'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import toast from 'react-hot-toast'
 import { employeeAPI } from '../../api'
+import useAuthStore from '../../store/authStore'
 import { formatCurrency, formatDate } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import AppointmentLetter from './AppointmentLetter'
 
 const APPOINTMENT_TYPES = [
   { value: 'permanent', label: 'Permanent' },
@@ -40,9 +45,13 @@ const STATUS = {
 export default function EmployeeDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { firm } = useAuthStore()
   const [month, setMonth] = useState(currentMonth())
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const [showLetter, setShowLetter] = useState(false)
+  const letterRef = useRef(null)
 
   const [showPay, setShowPay] = useState(false)
   const [payForm, setPayForm] = useState(null)
@@ -113,6 +122,22 @@ export default function EmployeeDetail() {
     catch { toast.error('Failed to delete') }
   }
 
+  const printLetter = useReactToPrint({ content: () => letterRef.current, documentTitle: `Appointment Letter - ${data?.employee?.name || ''}` })
+
+  const downloadLetter = async () => {
+    if (!letterRef.current) return
+    try {
+      const canvas = await html2canvas(letterRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+      const img = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
+      const pageW = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      const imgH = (canvas.height * pageW) / canvas.width
+      pdf.addImage(img, 'PNG', 0, 0, pageW, Math.min(imgH, pageH))
+      pdf.save(`Appointment-Letter-${(data?.employee?.name || 'employee').replace(/\s+/g, '-')}.pdf`)
+    } catch { toast.error('Could not create PDF') }
+  }
+
   if (loading || !data) return <div className="flex items-center justify-center py-20"><LoadingSpinner size="lg" /></div>
 
   const { employee, summary, entries } = data
@@ -126,6 +151,7 @@ export default function EmployeeDetail() {
           <ArrowLeft className="h-4 w-4" /> All Employees
         </button>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowLetter(true)} className="inline-flex items-center gap-1.5 border border-amber-200 text-amber-700 hover:bg-amber-50 px-3 py-1.5 rounded-lg text-sm"><FileText className="h-3.5 w-3.5" /> Appointment Letter</button>
           <button onClick={openEdit} className="inline-flex items-center gap-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm"><Pencil className="h-3.5 w-3.5" /> Edit</button>
           <button onClick={removeEmployee} className="inline-flex items-center gap-1.5 border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm"><Trash2 className="h-3.5 w-3.5" /> Delete</button>
         </div>
@@ -317,6 +343,25 @@ export default function EmployeeDetail() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Appointment letter modal */}
+      {showLetter && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 py-8 overflow-y-auto" onClick={() => setShowLetter(false)}>
+          <div className="w-full max-w-4xl my-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h2 className="font-bold text-white text-lg">Appointment Letter</h2>
+              <div className="flex items-center gap-2">
+                <button onClick={printLetter} className="inline-flex items-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium"><Printer className="h-4 w-4" /> Print</button>
+                <button onClick={downloadLetter} className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"><FileDown className="h-4 w-4" /> Download PDF</button>
+                <button onClick={() => setShowLetter(false)} className="inline-flex items-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 p-1.5 rounded-lg"><X className="h-4 w-4" /></button>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-2xl overflow-x-auto">
+              <AppointmentLetter ref={letterRef} employee={employee} firm={firm} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
