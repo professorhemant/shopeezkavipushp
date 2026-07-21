@@ -12,6 +12,7 @@ const APPOINTMENT_TYPES = [
   { value: 'part_time', label: 'Part-time' },
   { value: 'probation', label: 'Probation' },
   { value: 'intern', label: 'Intern' },
+  { value: 'purely_temporary', label: 'Purely Temporary' },
 ]
 const typeLabel = (v) => APPOINTMENT_TYPES.find(t => t.value === v)?.label || v
 
@@ -173,7 +174,7 @@ export default function EmployeeDetail() {
       {/* Salary breakdown */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Base Salary" value={summary.base_salary} />
-        <Stat label="+ Incentives" value={summary.incentives} tone="green" />
+        <Stat label="Incentives" value={summary.incentives} tone="green" hint="not included in Net Payable" />
         <Stat label="− Deductions" value={summary.manual_deductions + summary.leave_deduction} tone="red"
           hint={summary.leave_deduction ? `incl. ${formatCurrency(summary.leave_deduction)} leave (${summary.leave_days}d)` : null} />
         <Stat label="Net Payable" value={summary.net_payable} tone="bold" />

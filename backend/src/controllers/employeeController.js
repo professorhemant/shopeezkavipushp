@@ -29,7 +29,8 @@ const monthSummary = (employee, entries, month, leaveDays) => {
     ? Math.round((base / 30) * days)
     : 0;
 
-  const netPayable = base + incentives - manualDeductions - leaveDeduction;
+  // Incentive is kept independent — it is NOT folded into Net Payable (or Balance Due).
+  const netPayable = base - manualDeductions - leaveDeduction;
   const totalPaid = advancePaid + salaryPaid;
   const balance = netPayable - totalPaid;
   const status = totalPaid <= 0 ? 'unpaid' : (balance <= 0.5 ? 'paid' : 'partial');
