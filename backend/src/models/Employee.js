@@ -10,7 +10,7 @@ const Employee = sequelize.define('Employee', {
   phone: { type: DataTypes.STRING(20) },
   designation: { type: DataTypes.STRING(100) },            // job title, e.g. Beautician, Helper
   employment_type: {                                        // "Type of appointment"
-    type: DataTypes.ENUM('permanent', 'contract', 'part_time', 'probation', 'intern'),
+    type: DataTypes.ENUM('permanent', 'contract', 'part_time', 'probation', 'intern', 'purely_temporary'),
     defaultValue: 'permanent',
   },
   work_timings: { type: DataTypes.STRING(100) },            // e.g. "10:00 AM – 7:00 PM"

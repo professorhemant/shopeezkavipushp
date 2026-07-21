@@ -12,6 +12,7 @@ const APPOINTMENT_TYPES = [
   { value: 'part_time', label: 'Part-time' },
   { value: 'probation', label: 'Probation' },
   { value: 'intern', label: 'Intern' },
+  { value: 'purely_temporary', label: 'Purely Temporary' },
 ]
 const typeLabel = (v) => APPOINTMENT_TYPES.find(t => t.value === v)?.label || v
 
