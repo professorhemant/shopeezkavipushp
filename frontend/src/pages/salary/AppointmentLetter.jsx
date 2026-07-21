@@ -8,6 +8,7 @@ const TYPE_LABELS = {
   probation: 'Probation',
   intern: 'Intern',
   purely_temporary: 'Purely Temporary',
+  daily_wages: 'On Daily Wages',
 }
 const typeLabel = (v) => TYPE_LABELS[v] || v || '—'
 
@@ -86,7 +87,9 @@ const AppointmentLetter = forwardRef(function AppointmentLetter({ employee, firm
           <Detail label="Designation" value={employee?.designation} />
           <Detail label="Type of Appointment" value={typeLabel(employee?.employment_type)} />
           <Detail label="Date of Joining" value={joining ? formatDate(joining) : '—'} />
-          <Detail label="Monthly Salary" value={formatCurrency(employee?.monthly_salary || 0)} />
+          {employee?.pay_basis === 'daily'
+            ? <Detail label="Daily Wage" value={`${formatCurrency(employee?.monthly_salary || 0)} per day`} />
+            : <Detail label="Monthly Salary" value={formatCurrency(employee?.monthly_salary || 0)} />}
           <Detail label="Working Hours" value={employee?.work_timings} />
           <Detail label="Weekly Off" value={employee?.weekly_off} />
         </tbody>

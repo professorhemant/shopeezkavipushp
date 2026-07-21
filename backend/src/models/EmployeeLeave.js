@@ -8,6 +8,7 @@ const EmployeeLeave = sequelize.define('EmployeeLeave', {
   employee_id: { type: DataTypes.UUID, allowNull: false },
   month: { type: DataTypes.DATEONLY, allowNull: false },    // first day of the month
   leave_days: { type: DataTypes.DECIMAL(5, 1), defaultValue: 0 }, // allows half-days
+  days_worked: { type: DataTypes.DECIMAL(5, 1), defaultValue: 0 }, // days present this month (used for daily-wage pay)
   notes: { type: DataTypes.STRING(255) },
 }, {
   tableName: 'employee_leaves',

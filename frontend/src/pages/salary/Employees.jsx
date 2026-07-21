@@ -13,6 +13,7 @@ const APPOINTMENT_TYPES = [
   { value: 'probation', label: 'Probation' },
   { value: 'intern', label: 'Intern' },
   { value: 'purely_temporary', label: 'Purely Temporary' },
+  { value: 'daily_wages', label: 'On Daily Wages' },
 ]
 const typeLabel = (v) => APPOINTMENT_TYPES.find(t => t.value === v)?.label || v
 
@@ -30,6 +31,7 @@ const STATUS = {
 
 const emptyEmployee = {
   name: '', phone: '', designation: '', employment_type: 'permanent',
+  pay_basis: 'monthly',
   work_timings: '', weekly_off: '', monthly_salary: '', date_of_joining: '',
   address: '', emergency_contact: '', deduct_leaves: false, is_active: true, notes: '',
 }
@@ -182,7 +184,13 @@ export default function Employees() {
                   {APPOINTMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </Field>
-              <Field label="Monthly Salary (₹)">
+              <Field label="Pay Basis">
+                <select value={form.pay_basis} onChange={(e) => setForm({ ...form, pay_basis: e.target.value })} className={inp}>
+                  <option value="monthly">Monthly Salary</option>
+                  <option value="daily">Daily Wages</option>
+                </select>
+              </Field>
+              <Field label={form.pay_basis === 'daily' ? 'Daily Wage (₹/day)' : 'Monthly Salary (₹)'} className="col-span-2">
                 <input type="number" step="0.01" value={form.monthly_salary} onChange={(e) => setForm({ ...form, monthly_salary: e.target.value })} className={inp} placeholder="0.00" />
               </Field>
               <Field label="Work Timings">

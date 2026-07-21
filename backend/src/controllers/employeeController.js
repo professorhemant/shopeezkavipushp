@@ -13,20 +13,27 @@ const monthStart = (d) => {
 };
 
 // Compute the payroll picture for one employee for one month.
-// entries = that employee's PayrollEntry rows (all months); leaveDays for the month.
-const monthSummary = (employee, entries, month, leaveDays) => {
+// entries = that employee's PayrollEntry rows (all months); leave = that month's EmployeeLeave row.
+const monthSummary = (employee, entries, month, leave) => {
   const forMonth = entries.filter((e) => e.for_month === month);
   const sumType = (t) => forMonth.filter((e) => e.entry_type === t).reduce((s, e) => s + num(e.amount), 0);
 
-  const base = num(employee.monthly_salary);
+  const isDaily = employee.pay_basis === 'daily';
+  const rate = num(employee.monthly_salary);        // monthly salary, or daily rate when pay_basis='daily'
+  const daysWorked = num(leave?.days_worked);
+  // Daily-wage base = rate × days worked; monthly base = fixed monthly salary.
+  const base = isDaily ? rate * daysWorked : rate;
+
   const incentives = sumType('incentive');
   const manualDeductions = sumType('deduction');
   const advancePaid = sumType('advance');
   const salaryPaid = sumType('salary');
 
-  const days = num(leaveDays);
-  const leaveDeduction = employee.deduct_leaves && days > 0
-    ? Math.round((base / 30) * days)
+  const days = num(leave?.leave_days);
+  // Leave deduction only applies to monthly-salary staff; daily wages already
+  // exclude non-worked days via days_worked.
+  const leaveDeduction = !isDaily && employee.deduct_leaves && days > 0
+    ? Math.round((rate / 30) * days)
     : 0;
 
   // Incentive is kept independent — it is NOT folded into Net Payable (or Balance Due).
@@ -37,6 +44,9 @@ const monthSummary = (employee, entries, month, leaveDays) => {
 
   return {
     month,
+    pay_basis: isDaily ? 'daily' : 'monthly',
+    daily_rate: isDaily ? rate : null,
+    days_worked: daysWorked,
     base_salary: base,
     incentives,
     manual_deductions: manualDeductions,
@@ -70,7 +80,7 @@ const getAll = async (req, res, next) => {
     const data = employees.map((emp) => {
       const empEntries = entries.filter((e) => e.employee_id === emp.id);
       const leave = leaves.find((l) => l.employee_id === emp.id);
-      return { ...emp.toJSON(), summary: monthSummary(emp, empEntries, month, leave?.leave_days) };
+      return { ...emp.toJSON(), summary: monthSummary(emp, empEntries, month, leave) };
     });
 
     res.json({ success: true, data, month });
@@ -88,14 +98,14 @@ const getOne = async (req, res, next) => {
       EmployeeLeave.findOne({ where: { employee_id: employee.id, month } }),
     ]);
 
-    const summary = monthSummary(employee, entries, month, leave?.leave_days);
+    const summary = monthSummary(employee, entries, month, leave);
     res.json({
       success: true,
       data: {
         employee: employee.toJSON(),
         month,
         summary,
-        leave: leave ? leave.toJSON() : { month, leave_days: 0, notes: '' },
+        leave: leave ? leave.toJSON() : { month, leave_days: 0, days_worked: 0, notes: '' },
         entries: entries.map((e) => e.toJSON()),
       },
     });
@@ -178,9 +188,12 @@ const setLeave = async (req, res, next) => {
     const month = monthStart(req.body.month);
     const [row] = await EmployeeLeave.findOrCreate({
       where: { employee_id: employee.id, month },
-      defaults: { firm_id: req.firmId, leave_days: 0 },
+      defaults: { firm_id: req.firmId, leave_days: 0, days_worked: 0 },
     });
-    await row.update({ leave_days: num(req.body.leave_days), notes: req.body.notes || null });
+    const updates = { notes: req.body.notes || null };
+    if (req.body.leave_days !== undefined) updates.leave_days = num(req.body.leave_days);
+    if (req.body.days_worked !== undefined) updates.days_worked = num(req.body.days_worked);
+    await row.update(updates);
     res.json({ success: true, data: row });
   } catch (err) { next(err); }
 };

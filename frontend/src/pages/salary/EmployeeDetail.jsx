@@ -18,6 +18,7 @@ const APPOINTMENT_TYPES = [
   { value: 'probation', label: 'Probation' },
   { value: 'intern', label: 'Intern' },
   { value: 'purely_temporary', label: 'Purely Temporary' },
+  { value: 'daily_wages', label: 'On Daily Wages' },
 ]
 const typeLabel = (v) => APPOINTMENT_TYPES.find(t => t.value === v)?.label || v
 
@@ -61,6 +62,7 @@ export default function EmployeeDetail() {
   const [editForm, setEditForm] = useState(null)
 
   const [leaveInput, setLeaveInput] = useState('')
+  const [daysWorkedInput, setDaysWorkedInput] = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -68,6 +70,7 @@ export default function EmployeeDetail() {
       const res = await employeeAPI.get(id, `${month}-01`)
       setData(res.data.data)
       setLeaveInput(String(res.data.data.leave?.leave_days ?? 0))
+      setDaysWorkedInput(String(res.data.data.leave?.days_worked ?? 0))
     } catch { toast.error('Failed to load employee') }
     finally { setLoading(false) }
   }
@@ -101,6 +104,13 @@ export default function EmployeeDetail() {
       await employeeAPI.setLeave(id, { month: `${month}-01`, leave_days: leaveInput || 0 })
       toast.success('Leave updated'); load()
     } catch { toast.error('Failed to update leave') }
+  }
+
+  const saveDaysWorked = async () => {
+    try {
+      await employeeAPI.setLeave(id, { month: `${month}-01`, days_worked: daysWorkedInput || 0 })
+      toast.success('Days worked updated'); load()
+    } catch { toast.error('Failed to update days worked') }
   }
 
   const openEdit = () => { setEditForm({ ...data.employee, date_of_joining: data.employee.date_of_joining || '' }); setShowEdit(true) }
@@ -168,8 +178,8 @@ export default function EmployeeDetail() {
             <p className="text-sm text-slate-500 mt-0.5">{employee.designation || 'No designation'}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-400 uppercase tracking-wide">Monthly Salary</p>
-            <p className="text-xl font-bold text-slate-800">{formatCurrency(employee.monthly_salary)}</p>
+            <p className="text-xs text-slate-400 uppercase tracking-wide">{employee.pay_basis === 'daily' ? 'Daily Wage' : 'Monthly Salary'}</p>
+            <p className="text-xl font-bold text-slate-800">{formatCurrency(employee.monthly_salary)}{employee.pay_basis === 'daily' && <span className="text-sm font-medium text-slate-400">/day</span>}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
@@ -199,7 +209,8 @@ export default function EmployeeDetail() {
 
       {/* Salary breakdown */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label="Base Salary" value={summary.base_salary} />
+        <Stat label="Base Salary" value={summary.base_salary}
+          hint={summary.pay_basis === 'daily' ? `${summary.days_worked || 0}d × ${formatCurrency(summary.daily_rate || 0)}/day` : null} />
         <Stat label="Incentives" value={summary.incentives} tone="green" hint="not included in Net Payable" />
         <Stat label="− Deductions" value={summary.manual_deductions + summary.leave_deduction} tone="red"
           hint={summary.leave_deduction ? `incl. ${formatCurrency(summary.leave_deduction)} leave (${summary.leave_days}d)` : null} />
@@ -218,12 +229,21 @@ export default function EmployeeDetail() {
             <Plus className="h-3.5 w-3.5" /> {t.label}
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-2 text-sm">
-          <span className="text-slate-500">Leave days ({monthLabel(month)}):</span>
-          <input type="number" step="0.5" min="0" value={leaveInput} onChange={(e) => setLeaveInput(e.target.value)}
-            className="w-20 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
-          <button onClick={saveLeave} className="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm">Save</button>
-        </div>
+        {employee.pay_basis === 'daily' ? (
+          <div className="ml-auto flex items-center gap-2 text-sm">
+            <span className="text-slate-500">Days worked ({monthLabel(month)}):</span>
+            <input type="number" step="0.5" min="0" value={daysWorkedInput} onChange={(e) => setDaysWorkedInput(e.target.value)}
+              className="w-20 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+            <button onClick={saveDaysWorked} className="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm">Save</button>
+          </div>
+        ) : (
+          <div className="ml-auto flex items-center gap-2 text-sm">
+            <span className="text-slate-500">Leave days ({monthLabel(month)}):</span>
+            <input type="number" step="0.5" min="0" value={leaveInput} onChange={(e) => setLeaveInput(e.target.value)}
+              className="w-20 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+            <button onClick={saveLeave} className="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm">Save</button>
+          </div>
+        )}
       </div>
 
       {/* This month's entries */}
@@ -323,7 +343,13 @@ export default function EmployeeDetail() {
                 {APPOINTMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </Field>
-            <Field label="Monthly Salary (₹)"><input type="number" step="0.01" value={editForm.monthly_salary} onChange={(e) => setEditForm({ ...editForm, monthly_salary: e.target.value })} className={inp} /></Field>
+            <Field label="Pay Basis">
+              <select value={editForm.pay_basis || 'monthly'} onChange={(e) => setEditForm({ ...editForm, pay_basis: e.target.value })} className={inp}>
+                <option value="monthly">Monthly Salary</option>
+                <option value="daily">Daily Wages</option>
+              </select>
+            </Field>
+            <Field label={editForm.pay_basis === 'daily' ? 'Daily Wage (₹/day)' : 'Monthly Salary (₹)'}><input type="number" step="0.01" value={editForm.monthly_salary} onChange={(e) => setEditForm({ ...editForm, monthly_salary: e.target.value })} className={inp} /></Field>
             <Field label="Work Timings"><input value={editForm.work_timings || ''} onChange={(e) => setEditForm({ ...editForm, work_timings: e.target.value })} className={inp} /></Field>
             <Field label="Weekly Off"><input value={editForm.weekly_off || ''} onChange={(e) => setEditForm({ ...editForm, weekly_off: e.target.value })} className={inp} /></Field>
             <Field label="Date of Joining"><input type="date" value={editForm.date_of_joining || ''} onChange={(e) => setEditForm({ ...editForm, date_of_joining: e.target.value })} className={inp} /></Field>

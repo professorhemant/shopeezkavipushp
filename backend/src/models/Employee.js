@@ -10,12 +10,16 @@ const Employee = sequelize.define('Employee', {
   phone: { type: DataTypes.STRING(20) },
   designation: { type: DataTypes.STRING(100) },            // job title, e.g. Beautician, Helper
   employment_type: {                                        // "Type of appointment"
-    type: DataTypes.ENUM('permanent', 'contract', 'part_time', 'probation', 'intern', 'purely_temporary'),
+    type: DataTypes.ENUM('permanent', 'contract', 'part_time', 'probation', 'intern', 'purely_temporary', 'daily_wages'),
     defaultValue: 'permanent',
+  },
+  pay_basis: {                                              // how monthly_salary is interpreted for pay
+    type: DataTypes.ENUM('monthly', 'daily'),               // 'monthly' = fixed monthly salary; 'daily' = rate/day × days worked
+    defaultValue: 'monthly',
   },
   work_timings: { type: DataTypes.STRING(100) },            // e.g. "10:00 AM – 7:00 PM"
   weekly_off: { type: DataTypes.STRING(20) },               // e.g. "Sunday"
-  monthly_salary: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+  monthly_salary: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 }, // monthly salary, OR daily rate when pay_basis='daily'
   date_of_joining: { type: DataTypes.DATEONLY },
   address: { type: DataTypes.STRING(255) },
   emergency_contact: { type: DataTypes.STRING(50) },
