@@ -273,6 +273,18 @@ export const dayBookAPI = {
   deleteSecurityRefund: (id) => api.delete(`/daybook/security-refunds/${id}`),
 }
 
+export const employeeAPI = {
+  getAll: (params) => api.get('/employees', { params }),
+  get: (id, month) => api.get(`/employees/${id}`, { params: { month } }),
+  create: (data) => api.post('/employees', data),
+  update: (id, data) => api.put(`/employees/${id}`, data),
+  remove: (id) => api.delete(`/employees/${id}`),
+  addEntry: (id, data) => api.post(`/employees/${id}/payroll`, data),
+  updateEntry: (entryId, data) => api.put(`/employees/payroll/${entryId}`, data),
+  deleteEntry: (entryId) => api.delete(`/employees/payroll/${entryId}`),
+  setLeave: (id, data) => api.put(`/employees/${id}/leave`, data),
+}
+
 // ─── Bridal (Inventory + Bookings) ──────────────────────────────────
 export const bridalAPI = {
   // Inventory

@@ -178,12 +178,13 @@ const computeSummary = async (date) => {
       dispatch: { cash: sum(dispatches, 'cash'), card: sum(dispatches, 'card'), online: sum(dispatches, 'online'), total: sum(dispatches) },
     };
 
+    // Salary / advance / incentive now live in the standalone Salary module and
+    // no longer flow through the Day Book — only routine expenses + security refunds do.
+    const routineExpenses = expenses.filter(e => e.expense_type === 'routine');
     const expenseSummary = {
-      routine:   { cash: sum(expenses.filter(e => e.expense_type === 'routine'), 'cash'),   online: sum(expenses.filter(e => e.expense_type === 'routine'), 'online'),   total: sum(expenses.filter(e => e.expense_type === 'routine')) },
-      incentive: { cash: sum(expenses.filter(e => e.expense_type === 'incentive'), 'cash'), online: sum(expenses.filter(e => e.expense_type === 'incentive'), 'online'), total: sum(expenses.filter(e => e.expense_type === 'incentive')) },
-      salary:    { cash: sum(expenses.filter(e => e.expense_type === 'salary'), 'cash'),    online: sum(expenses.filter(e => e.expense_type === 'salary'), 'online'),    total: sum(expenses.filter(e => e.expense_type === 'salary')) },
+      routine:   { cash: sum(routineExpenses, 'cash'),   online: sum(routineExpenses, 'online'),   total: sum(routineExpenses) },
       security_refunds: { cash: sum(refunds, 'cash'), online: sum(refunds, 'online'), total: sum(refunds) },
-      total:     { cash: sum(expenses, 'cash') + sum(refunds, 'cash'), online: sum(expenses, 'online') + sum(refunds, 'online'), total: sum(expenses) + sum(refunds) },
+      total:     { cash: sum(routineExpenses, 'cash') + sum(refunds, 'cash'), online: sum(routineExpenses, 'online') + sum(refunds, 'online'), total: sum(routineExpenses) + sum(refunds) },
     };
 
     const totalCashReceived = received.sales.cash + received.bookings.cash + received.dispatch.cash;

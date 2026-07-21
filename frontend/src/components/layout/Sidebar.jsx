@@ -9,7 +9,7 @@ import {
   Calculator, FileSpreadsheet, Zap, User, DollarSign,
   Landmark, Wrench, Store, Hammer, Warehouse, BookOpen,
   ClipboardList, Factory, MessageSquare, Calendar,
-  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone, Bell
+  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone, Bell, BadgeIndianRupee
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { bridalAPI } from '../../api'
@@ -25,6 +25,7 @@ const MENU = [
       { label: 'Saved Day Book',    path: '/daybook/saved',             icon: Bookmark },
     ],
   },
+  { id: 'salary', label: 'Salary', icon: BadgeIndianRupee, path: '/salary', allowedRoles: ['super_admin', 'admin'] },
   { id: 'customers', label: 'Customers',          icon: Users,           path: '/customers' },
   {
     id: 'invoices', label: 'Invoices', icon: Receipt,

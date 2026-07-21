@@ -39,6 +39,9 @@ const Promotion = require('./Promotion');
 const BridalInventory = require('./BridalInventory');
 const BridalBooking = require('./BridalBooking');
 const BridalInvoice = require('./BridalInvoice');
+const Employee = require('./Employee');
+const PayrollEntry = require('./PayrollEntry');
+const EmployeeLeave = require('./EmployeeLeave');
 
 // ─── Associations ────────────────────────────────────────────────
 // User <-> Role
@@ -100,6 +103,12 @@ Appointment.belongsTo(User, { foreignKey: 'staff_id', as: 'staff' });
 // WhatsApp Campaign
 WhatsAppCampaign.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 
+// Payroll / Salary module
+Employee.hasMany(PayrollEntry, { foreignKey: 'employee_id', as: 'payroll' });
+PayrollEntry.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
+Employee.hasMany(EmployeeLeave, { foreignKey: 'employee_id', as: 'leaves' });
+EmployeeLeave.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
+
 module.exports = {
   sequelize,
   User,
@@ -140,4 +149,7 @@ module.exports = {
   BridalInventory,
   BridalBooking,
   BridalInvoice,
+  Employee,
+  PayrollEntry,
+  EmployeeLeave,
 };

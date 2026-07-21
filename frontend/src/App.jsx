@@ -51,6 +51,9 @@ const FixedAssets = lazy(() => import('./pages/accounting/FixedAssets'))
 const Staff = lazy(() => import('./pages/staff/Staff'))
 const Roles = lazy(() => import('./pages/staff/Roles'))
 
+const Employees = lazy(() => import('./pages/salary/Employees'))
+const EmployeeDetail = lazy(() => import('./pages/salary/EmployeeDetail'))
+
 const SalesReport = lazy(() => import('./pages/reports/SalesReport'))
 const PurchaseReport = lazy(() => import('./pages/reports/PurchaseReport'))
 const InventoryReport = lazy(() => import('./pages/reports/InventoryReport'))
@@ -175,6 +178,10 @@ function App() {
           <Route path="accounting/profit-loss" element={<ProfitLoss />} />
           <Route path="accounting/balance-sheet" element={<BalanceSheet />} />
           <Route path="accounting/fixed-assets" element={<FixedAssets />} />
+
+          {/* Salary / Payroll — admins only */}
+          <Route path="salary" element={<RoleRoute allowedRoles={['super_admin','admin']}><Employees /></RoleRoute>} />
+          <Route path="salary/:id" element={<RoleRoute allowedRoles={['super_admin','admin']}><EmployeeDetail /></RoleRoute>} />
 
           {/* Staff */}
           <Route path="staff" element={<Staff />} />

@@ -80,8 +80,6 @@ export default function DayBookSummaryView({ data }) {
           </thead>
           <tbody>
             <Row label="Routine Expenses" cash={data.expenses.routine.cash} card={0} online={data.expenses.routine.online} total={data.expenses.routine.total} />
-            <Row label="Incentives" cash={data.expenses.incentive.cash} card={0} online={data.expenses.incentive.online} total={data.expenses.incentive.total} />
-            <Row label="Salary" cash={data.expenses.salary.cash} card={0} online={data.expenses.salary.online} total={data.expenses.salary.total} />
             <Row label="Security Refunds" cash={data.expenses.security_refunds?.cash||0} card={0} online={data.expenses.security_refunds?.online||0} total={data.expenses.security_refunds?.total||0} />
             <Row label="TOTAL EXPENSES" cash={data.expenses.total.cash} card={0} online={data.expenses.total.online} total={data.expenses.total.total} highlight />
           </tbody>
