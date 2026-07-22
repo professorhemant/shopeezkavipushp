@@ -1,5 +1,8 @@
 {
-  "rewrites": [{ "source": "**", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/barcode", "destination": "/barcode.html" },
+    { "source": "**", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "**",
