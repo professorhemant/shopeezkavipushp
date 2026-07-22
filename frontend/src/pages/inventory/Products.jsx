@@ -1950,6 +1950,53 @@ export default function Products() {
   const startRow = (page - 1) * PER_PAGE + 1
   const endRow = Math.min(page * PER_PAGE, total)
 
+  // Pagination controls — rendered both above and below the table
+  const paginationBar = (position) => totalPages > 1 && (
+    <div className={`flex items-center justify-center gap-1 px-4 py-3 flex-wrap ${position === 'top' ? 'border-b' : 'border-t'} border-slate-100`}>
+      <button
+        onClick={() => setPage(1)}
+        disabled={page === 1}
+        className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
+      >
+        «
+      </button>
+      <button
+        onClick={() => setPage((p) => Math.max(1, p - 1))}
+        disabled={page === 1}
+        className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      {pageButtons().map((btn, i) =>
+        btn === '...' ? (
+          <span key={`ellipsis-${position}-${i}`} className="px-2 py-1 text-sm text-slate-400">...</span>
+        ) : (
+          <button
+            key={`${position}-${btn}`}
+            onClick={() => setPage(btn)}
+            className={`px-3 py-1 rounded border text-sm ${page === btn ? 'bg-amber-600 text-white border-amber-600' : 'border-slate-200 hover:bg-slate-50'}`}
+          >
+            {btn}
+          </button>
+        )
+      )}
+      <button
+        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+        disabled={page === totalPages}
+        className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+      <button
+        onClick={() => setPage(totalPages)}
+        disabled={page === totalPages}
+        className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
+      >
+        »
+      </button>
+    </div>
+  )
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -2126,6 +2173,9 @@ export default function Products() {
             Showing {startRow}–{endRow} of {total} products (Page {page} of {totalPages}, {PER_PAGE} per page)
           </div>
         )}
+
+        {/* Pagination (top) */}
+        {!loading && paginationBar('top')}
 
         {loading ? (
           <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
@@ -2315,52 +2365,8 @@ export default function Products() {
           </div>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-1 px-4 py-3 border-t border-slate-100 flex-wrap">
-            <button
-              onClick={() => setPage(1)}
-              disabled={page === 1}
-              className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
-            >
-              «
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            {pageButtons().map((btn, i) =>
-              btn === '...' ? (
-                <span key={`ellipsis-${i}`} className="px-2 py-1 text-sm text-slate-400">...</span>
-              ) : (
-                <button
-                  key={btn}
-                  onClick={() => setPage(btn)}
-                  className={`px-3 py-1 rounded border text-sm ${page === btn ? 'bg-amber-600 text-white border-amber-600' : 'border-slate-200 hover:bg-slate-50'}`}
-                >
-                  {btn}
-                </button>
-              )
-            )}
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setPage(totalPages)}
-              disabled={page === totalPages}
-              className="px-2 py-1 rounded border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50"
-            >
-              »
-            </button>
-          </div>
-        )}
+        {/* Pagination (bottom) */}
+        {!loading && paginationBar('bottom')}
       </div>
 
       {/* Print Barcodes Modal */}
