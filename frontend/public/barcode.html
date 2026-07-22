@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kavipushp — Barcode Label Printer</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+.topbar {
+  background: #7c1c2e; padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+}
+.topbar-title { font-size: 16px; font-weight: 700; color: #fff; }
+.topbar-sub   { font-size: 11px; color: #f9a8b8; margin-top: 2px; }
+
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: #0f172a40; border-radius: 20px; padding: 5px 12px; font-size: 11px; color: #94a3b8;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #475569; }
+.dot.ok   { background: #22c55e; }
+.dot.err  { background: #ef4444; }
+.dot.warn { background: #f59e0b; }
+
+.layout { display: flex; height: calc(100vh - 58px); }
+
+.panel-left {
+  width: 400px; flex-shrink: 0; background: #1e293b;
+  border-right: 1px solid #334155; display: flex; flex-direction: column;
+}
+.search-bar { padding: 10px 12px; border-bottom: 1px solid #334155; display: flex; gap: 8px; }
+.search-input {
+  flex: 1; background: #0f172a; border: 1px solid #334155;
+  color: #f1f5f9; padding: 7px 11px; border-radius: 6px; font-size: 12px; outline: none;
+}
+.search-input:focus { border-color: #9f2a3f; }
+.search-input::placeholder { color: #475569; }
+
+.sel-bar {
+  padding: 6px 12px; border-bottom: 1px solid #334155;
+  display: flex; align-items: center; gap: 8px; font-size: 12px;
+}
+.badge { background: #334155; color: #94a3b8; padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+.badge.hi { background: #7c1c2e; color: #fff; }
+
+.prod-list { flex: 1; overflow-y: auto; }
+
+.box-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px;
+  background: #0f1f35; border-bottom: 1px solid #334155;
+  cursor: pointer; position: sticky; top: 0; z-index: 2;
+}
+.box-header:hover { background: #162032; }
+.box-label { font-size: 12px; font-weight: 700; color: #f9a8b8; }
+.box-count { font-size: 10px; color: #475569; margin-left: auto; }
+.prod-item {
+  display: flex; align-items: center; padding: 9px 12px;
+  border-bottom: 1px solid #1a2840; cursor: pointer; gap: 8px; transition: background 0.1s;
+}
+.prod-item:hover { background: #162032; }
+.prod-item.sel   { background: #1a0d14; border-left: 3px solid #7c1c2e; }
+
+input[type="checkbox"] { accent-color: #7c1c2e; width: 13px; height: 13px; cursor: pointer; flex-shrink: 0; }
+.prod-info  { flex: 1; min-width: 0; }
+.prod-name  { font-size: 12px; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prod-meta  { font-size: 10px; color: #475569; margin-top: 1px; }
+.prod-price { font-size: 12px; font-weight: 700; color: #f9a8b8; white-space: nowrap; }
+.prod-code  { font-size: 10px; color: #475569; }
+
+.qty-wrap { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.qty-btn {
+  width: 20px; height: 20px; background: #334155; border: none; color: #e2e8f0;
+  border-radius: 4px; font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.qty-btn:hover { background: #7c1c2e; }
+.qty-input {
+  width: 32px; background: #0f172a; border: 1px solid #334155; color: #f1f5f9;
+  text-align: center; padding: 2px; border-radius: 4px; font-size: 11px; font-weight: 700; outline: none;
+}
+
+.panel-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.print-toolbar {
+  padding: 10px 16px; background: #1e293b; border-bottom: 1px solid #334155;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.btn {
+  padding: 7px 16px; border: none; border-radius: 6px;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+}
+.btn:hover  { opacity: 0.85; }
+.btn:active { transform: scale(0.97); }
+.btn-red   { background: #7c1c2e; color: #fff; }
+.btn-slate { background: #334155; color: #cbd5e1; }
+
+select {
+  background: #0f172a; border: 1px solid #334155;
+  color: #f1f5f9; padding: 6px 10px; border-radius: 6px; font-size: 11px; outline: none;
+}
+.tip {
+  background: #082030; border: 1px solid #164e63; border-radius: 6px;
+  padding: 6px 10px; font-size: 10px; color: #7dd3fc; line-height: 1.6; margin-left: auto;
+}
+.tip strong { color: #38bdf8; }
+
+.preview-area { flex: 1; overflow-y: auto; background: #0f172a; padding: 14px; }
+.preview-head { font-size: 11px; color: #475569; margin-bottom: 10px; }
+.roll-container {
+  display: inline-flex; flex-direction: column; gap: 2px;
+  background: #b0b8c4; padding: 10px; border-radius: 8px;
+}
+.roll-row { zoom: 2; line-height: 0; }
+
+/* LABEL  100mm × 15mm  |← 50mm BLANK →|← 25mm Text centered →|← 25mm Barcode centered →| */
+.label {
+  width: 100mm; height: 15mm; display: flex; background: #fff;
+  font-family: Arial, sans-serif; overflow: hidden; flex-shrink: 0;
+}
+.lbl-blank { width: 50mm; flex-shrink: 0; background: #f9f9f9; border-right: 0.3mm dashed #ccc; }
+.lbl-text {
+  width: 25mm; flex-shrink: 0; display: flex;
+  align-items: center; justify-content: center;
+  border-right: 0.3mm solid #bbb; overflow: hidden;
+  font-size: 7px; font-weight: 700; color: #000; line-height: 1.2;
+}
+.text-content { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 0.8mm; }
+.lbl-text .t-name  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.lbl-text .t-price { white-space: nowrap; }
+.lbl-bc {
+  width: 25mm; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0.3mm; overflow: hidden;
+}
+.bc-content { display: flex; flex-direction: column; align-items: center; gap: 0.3mm; }
+.lbl-bc svg  { max-width: 23mm; max-height: 10mm; height: auto; display: block; flex-shrink: 0; }
+.bc-sku { font-size: 5.5px; font-family: Arial,sans-serif; color: #000; line-height: 1.2; letter-spacing: 0.3px; }
+
+.state-msg { color: #475569; font-size: 12px; padding: 30px 16px; text-align: center; }
+.state-msg .icon { font-size: 28px; margin-bottom: 6px; }
+
+/* ── DESIGN PANEL ── */
+.d-input {
+  background: #0f172a; border: 1px solid #334155; color: #f1f5f9;
+  padding: 4px 6px; border-radius: 5px; font-size: 11px; outline: none; text-align: center;
+}
+.d-input:focus { border-color: #9f2a3f; }
+.d-label { font-size: 10px; font-weight: 700; color: #f9a8b8; margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.5px; }
+.d-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #94a3b8; flex-wrap: wrap; }
+.d-sep { width: 1px; background: #334155; align-self: stretch; margin: 0 8px; flex-shrink: 0; }
+.d-valign { display: flex; gap: 2px; }
+.d-ab {
+  width: 22px; height: 22px; border: 1px solid #334155; background: #0f172a;
+  color: #94a3b8; border-radius: 4px; cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.d-ab:hover { background: #1e293b; border-color: #7c1c2e; }
+.d-ab.active { background: #7c1c2e; border-color: #9f2a3f; color: #fff; }
+
+#printMount { position: absolute; top: -9999px; left: -9999px; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body * { visibility: hidden; }
+  #printMount, #printMount * { visibility: visible; }
+  #printMount { position: fixed !important; top: 0 !important; left: 0 !important; }
+  .lbl-wrap { page-break-after: always; }
+  .lbl-wrap:last-child { page-break-after: avoid; }
+  .label { border: none !important; }
+}
+</style>
+<style id="designStyle"></style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="
+  display:none; position:fixed; inset:0; z-index:999;
+  background:#0f172a; align-items:center; justify-content:center;">
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;
+               padding:36px 40px;width:340px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:6px">🏷</div>
+    <div style="font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:4px">Kavipushp Barcode</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:24px">Sign in with your Kavipushp admin credentials</div>
+
+    <div id="loginErr" style="display:none;background:#7c1c2e20;border:1px solid #7c1c2e;
+         border-radius:6px;padding:8px 12px;font-size:12px;color:#f87171;margin-bottom:14px;"></div>
+
+    <input id="loginEmail" type="email" placeholder="Admin email" value="prof.hemant.sgnr@gmail.com"
+           style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;
+                  padding:10px 12px;border-radius:7px;font-size:13px;outline:none;margin-bottom:10px">
+    <input id="loginPass" type="password" placeholder="Password"
+           style="width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;
+                  padding:10px 12px;border-radius:7px;font-size:13px;outline:none;margin-bottom:18px"
+           onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()" id="loginBtn"
+            style="width:100%;background:#7c1c2e;color:#fff;border:none;
+                   border-radius:7px;padding:11px;font-size:14px;font-weight:700;cursor:pointer">
+      Sign In
+    </button>
+  </div>
+</div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div>
+    <div class="topbar-title">Kavipushp &mdash; Barcode Label Printer</div>
+    <div class="topbar-sub">100&times;15 mm &nbsp;|&nbsp; Left 50mm = Blank &nbsp;|&nbsp; Mid 25mm = Name+Price (centered) &nbsp;|&nbsp; Right 25mm = Barcode (centered)</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div class="status-pill"><div class="dot" id="apiDot"></div><span id="apiTxt">Connecting...</span></div>
+    <div class="status-pill"><div class="dot" id="qzDot"></div><span id="qzTxt">QZ Tray: checking...</span></div>
+    <button onclick="logout()" style="background:none;border:1px solid #475569;color:#94a3b8;
+            padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">Sign Out</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- LEFT: product list -->
+  <div class="panel-left">
+    <div class="search-bar">
+      <input class="search-input" id="searchInput" type="text"
+             placeholder="Search by name, SKU, category..." oninput="filterProducts()">
+    </div>
+    <div class="sel-bar">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px">
+        <input type="checkbox" id="chkAll" onchange="toggleAll(this)"> Select All
+      </label>
+      <span class="badge hi" id="selBadge">0 selected</span>
+      <span class="badge"    id="totBadge">0 products</span>
+    </div>
+    <div class="prod-list" id="prodList">
+      <div class="state-msg"><div class="icon">⏳</div>Loading products...</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: preview + print -->
+  <div class="panel-right">
+    <div class="print-toolbar">
+      <select id="printerSel" onchange="onPrinterChange()">
+        <option value="lp46neo">TVS LP46 NEO (QZ Tray + TSPL)</option>
+        <option value="samsung">Samsung / Any — System Print Dialog</option>
+      </select>
+      <button class="btn btn-red"   onclick="printSelected()">&#128438; Print Selected</button>
+      <button class="btn btn-slate" onclick="printAll()">&#128438; Print All</button>
+      <button class="btn btn-slate" onclick="clearSel()">&#10005; Clear</button>
+      <button class="btn btn-slate" onclick="toggleDesignPanel()" id="designToggleBtn">&#9881; Design Label</button>
+      <div class="tip" id="printerTip">
+        QZ Tray must be running. <strong>Allow Unsigned</strong> in QZ Tray preferences.
+      </div>
+    </div>
+
+    <!-- ── DESIGN PANEL ── -->
+    <div id="designPanel" style="display:none; background:#162032; border-bottom:1px solid #334155; padding:12px 16px; overflow-x:auto;">
+      <div style="display:flex; gap:0; align-items:flex-start; min-width:680px;">
+
+        <!-- Label Size -->
+        <div class="d-section">
+          <div class="d-label">Label Size</div>
+          <div class="d-row">
+            W <input id="dLabelW" type="number" min="30" max="250" value="100" class="d-input" style="width:48px" oninput="updateDesign()"> mm
+            &nbsp;H <input id="dLabelH" type="number" min="8" max="60" value="15" class="d-input" style="width:40px" oninput="updateDesign()"> mm
+          </div>
+        </div>
+        <div class="d-sep"></div>
+
+        <!-- Zone Widths -->
+        <div class="d-section">
+          <div class="d-label">Zone Widths <span id="dZoneWarn" style="color:#f87171;font-weight:400;font-size:9px;display:none">⚠ Total ≠ Label W</span></div>
+          <div class="d-row">
+            Blank <input id="dBlankW" type="number" min="0" max="200" value="50" class="d-input" style="width:44px" oninput="updateDesign()"> mm
+            &nbsp;Text <input id="dTextW" type="number" min="5" max="100" value="25" class="d-input" style="width:44px" oninput="updateDesign()"> mm
+            &nbsp;BC <input id="dBcW" type="number" min="5" max="100" value="25" class="d-input" style="width:44px" oninput="updateDesign()"> mm
+          </div>
+        </div>
+        <div class="d-sep"></div>
+
+        <!-- Text Zone -->
+        <div class="d-section">
+          <div class="d-label">Text Zone</div>
+          <div class="d-row">
+            Font <input id="dTextFont" type="number" min="4" max="20" step="0.5" value="7" class="d-input" style="width:40px" oninput="updateDesign()"> px
+            &nbsp;W <input id="dTextWidth" type="number" min="0" max="80" step="0.5" value="0" class="d-input" style="width:44px" oninput="updateDesign()"> mm
+            &nbsp;X <input id="dTextOffsetX" type="number" min="-20" max="20" step="0.5" value="0" class="d-input" style="width:44px" oninput="updateDesign()"> mm
+            &nbsp;Y <input id="dTextOffsetY" type="number" min="-20" max="20" step="0.5" value="0" class="d-input" style="width:44px" oninput="updateDesign()"> mm
+          </div>
+          <div class="d-row" style="margin-top:5px;font-size:10px;color:#475569">X = left(−)/right(+) &nbsp; Y = up(−)/down(+)</div>
+          <div class="d-row" style="margin-top:4px">
+            <label style="cursor:pointer;display:flex;align-items:center;gap:3px"><input type="checkbox" id="dShowName" checked onchange="updateDesign()"> Name</label>
+            <label style="cursor:pointer;display:flex;align-items:center;gap:3px"><input type="checkbox" id="dShowPrice" checked onchange="updateDesign()"> Price</label>
+          </div>
+        </div>
+        <div class="d-sep"></div>
+
+        <!-- Barcode Zone -->
+        <div class="d-section">
+          <div class="d-label">Barcode Zone</div>
+          <div class="d-row">
+            Bar H <input id="dBcHeight" type="number" min="10" max="120" value="40" class="d-input" style="width:44px" oninput="updateDesign()">
+            &nbsp;W <input id="dBcWidth" type="number" min="3" max="80" step="0.5" value="22" class="d-input" style="width:44px" oninput="updateDesign()"> mm
+            &nbsp;X <input id="dBcOffsetX" type="number" min="-20" max="20" step="0.5" value="0" class="d-input" style="width:44px" oninput="updateDesign()"> mm
+            &nbsp;Y <input id="dBcOffsetY" type="number" min="-20" max="20" step="0.5" value="0" class="d-input" style="width:44px" oninput="updateDesign()"> mm
+          </div>
+          <div class="d-row" style="margin-top:5px;font-size:10px;color:#475569">X = left(−)/right(+) &nbsp; Y = up(−)/down(+)</div>
+          <div class="d-row" style="margin-top:4px">
+            <label style="cursor:pointer;display:flex;align-items:center;gap:3px"><input type="checkbox" id="dShowSku" checked onchange="updateDesign()"> SKU text</label>
+            Font <input id="dSkuFont" type="number" min="3" max="14" step="0.5" value="5.5" class="d-input" style="width:40px" oninput="updateDesign()"> px
+          </div>
+        </div>
+        <div class="d-sep"></div>
+
+        <!-- Print Darkness -->
+        <div class="d-section">
+          <div class="d-label">Darkness</div>
+          <div class="d-row">
+            Density <input id="dDensity" type="number" min="1" max="15" value="7" class="d-input" style="width:44px" oninput="updateDesign()">
+          </div>
+          <div class="d-row" style="margin-top:5px;font-size:10px;color:#475569">Lower = lighter / less ink<br>(LP46 / QZ only · 1–15)</div>
+        </div>
+        <div class="d-sep"></div>
+
+        <!-- Lock -->
+        <div class="d-section" style="display:flex;flex-direction:column;justify-content:center;align-self:stretch;gap:4px">
+          <button class="btn btn-red" id="lockBtn" onclick="lockDesign()" style="white-space:nowrap;padding:8px 16px">
+            &#128274; Lock Design
+          </button>
+          <div id="lockStatus" style="font-size:10px;color:#4ade80;text-align:center;display:none">&#10003; Saved!</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="preview-area">
+      <div class="preview-head">Label Roll Preview — 2&times; zoom &nbsp;|&nbsp; 50mm blank · 25mm text (centered) · 25mm barcode (centered)</div>
+      <div class="roll-container" id="rollContainer">
+        <div class="state-msg" style="background:#b0b8c4;border-radius:4px;color:#444">
+          <div class="icon">🏷</div>Select products on the left
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="printMount"></div>
+
+<script>
+const API = 'https://backend-production-59b25.up.railway.app';
+
+/* ── AUTH ── */
+let authToken = localStorage.getItem('kv_token') || '';
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const btn   = document.getElementById('loginBtn');
+  const err   = document.getElementById('loginErr');
+  if (!email || !pass) { showErr('Enter email and password.'); return; }
+  btn.textContent = 'Signing in...'; btn.disabled = true;
+  err.style.display = 'none';
+  try {
+    const res  = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.token) throw new Error(data.message || 'Login failed');
+    authToken = data.token;
+    localStorage.setItem('kv_token', authToken);
+    document.getElementById('loginScreen').style.display = 'none';
+    loadProducts();
+  } catch (e) {
+    showErr(e.message);
+  } finally {
+    btn.textContent = 'Sign In'; btn.disabled = false;
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('loginErr');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function logout() {
+  localStorage.removeItem('kv_token');
+  authToken = '';
+  location.reload();
+}
+
+/* ── STATE ── */
+let allProducts = [];
+let filtered    = [];
+let selected    = new Map();
+let qzReady     = false;
+const LP46_NAME = 'TVS LP46 NEO';
+
+const mkCode = p => (p.sku || p.barcode || '').trim();
+
+/* ── QZ TRAY ── */
+function initQZ() {
+  try {
+    qz.security.setCertificatePromise(resolve => resolve());
+    qz.security.setSignaturePromise(() => resolve => resolve());
+    qz.websocket.connect()
+      .then(() => { qzReady = true;  setQZStatus('ok',  'QZ Tray: Connected'); })
+      .catch(()  => { qzReady = false; setQZStatus('err', 'QZ Tray: Not running'); });
+  } catch (e) { setQZStatus('err', 'QZ Tray: Error'); }
+}
+
+function setQZStatus(state, msg) {
+  document.getElementById('qzDot').className = 'dot ' + state;
+  document.getElementById('qzTxt').textContent = msg;
+}
+
+/* ── LOAD ALL PRODUCTS ── */
+async function loadProducts() {
+  if (!authToken) {
+    document.getElementById('loginScreen').style.display = 'flex';
+    return;
+  }
+  setAPI(false, 'Loading products...');
+  try {
+    let page = 1, all = [];
+    while (true) {
+      const res = await fetch(`${API}/api/products?page=${page}&limit=200&sort=name_asc`, {
+        headers: { Authorization: 'Bearer ' + authToken }
+      });
+      if (res.status === 401) {
+        localStorage.removeItem('kv_token'); authToken = '';
+        document.getElementById('loginScreen').style.display = 'flex';
+        return;
+      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      all = all.concat(data.data || []);
+      const totalPages = (data.pagination && data.pagination.pages) || 1;
+      setAPI(false, `Loading... ${all.length} products`);
+      if (page >= totalPages) break;
+      page++;
+    }
+    allProducts = all;
+    filtered    = all;
+    setAPI(true, all.length + ' products loaded');
+    document.getElementById('totBadge').textContent = all.length + ' products';
+    renderList();
+  } catch (e) {
+    setAPI(false, 'Error: ' + e.message);
+    document.getElementById('prodList').innerHTML = `
+      <div class="state-msg">
+        <div class="icon">⚠️</div><b>${e.message}</b><br>
+        <span style="font-size:10px;cursor:pointer;color:#7dd3fc" onclick="logout()">Sign out and try again</span>
+      </div>`;
+  }
+}
+
+function setAPI(ok, msg) {
+  document.getElementById('apiDot').className = 'dot ' + (ok ? 'ok' : 'warn');
+  document.getElementById('apiTxt').textContent = msg;
+}
+
+/* ── BOX NUMBER from SKU e.g. B20NPS81 → 20 ── */
+function getBoxNum(p) {
+  const m = mkCode(p).match(/^B(\d+)/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function groupByBox(products) {
+  const map = new Map();
+  products.forEach(p => {
+    const box = getBoxNum(p);
+    const key = box !== null ? box : 'Other';
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(p);
+  });
+  // Within each box: sort alphabetically by name, numeric-aware
+  // so "CZ BANGLE 2" < "CZ BANGLE 10" and same category stays grouped.
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  map.forEach(prods => prods.sort((a, b) =>
+    collator.compare((a.name || '').trim(), (b.name || '').trim())));
+  // Sort: numeric boxes first (ascending), then "Other"
+  const sorted = [...map.entries()].sort((a, b) => {
+    if (a[0] === 'Other') return 1;
+    if (b[0] === 'Other') return -1;
+    return a[0] - b[0];
+  });
+  return sorted;
+}
+
+/* ── SORT ENTRIES: Box number ascending (Other last), then name ── */
+const _boxNameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+function sortEntriesByBoxName(entries) {
+  return entries.slice().sort((a, b) => {
+    const ba = getBoxNum(a.product), bb = getBoxNum(b.product);
+    if (ba === null && bb !== null) return 1;
+    if (bb === null && ba !== null) return -1;
+    if (ba !== null && bb !== null && ba !== bb) return ba - bb;
+    return _boxNameCollator.compare(
+      (a.product.name || '').trim(), (b.product.name || '').trim());
+  });
+}
+
+/* ── RENDER LIST ── */
+function renderList() {
+  const list = document.getElementById('prodList');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="state-msg"><div class="icon">🔍</div>No products found</div>';
+    return;
+  }
+
+  const groups = groupByBox(filtered);
+  let html = '';
+
+  groups.forEach(([boxKey, prods]) => {
+    const label    = boxKey === 'Other' ? 'Other' : 'Box ' + boxKey;
+    const allBoxSel = prods.every(p => selected.has(p.id));
+    const someBoxSel = prods.some(p => selected.has(p.id));
+    html += `
+      <div class="box-header" onclick="toggleBox('${boxKey}', this)">
+        <input type="checkbox" ${allBoxSel ? 'checked' : (someBoxSel ? 'indeterminate-js' : '')}
+               id="chkBox${boxKey}"
+               onclick="event.stopPropagation();toggleBox('${boxKey}', this)">
+        <span class="box-label">${label}</span>
+        <span class="box-count">${prods.length} items</span>
+      </div>`;
+    prods.forEach(p => {
+      const code = mkCode(p);
+      const sel  = selected.has(p.id);
+      const qty  = sel ? selected.get(p.id).qty : 1;
+      const cat  = (p.Category && p.Category.name) || '';
+      html += `
+        <div class="prod-item${sel ? ' sel' : ''}" id="pi${p.id}" onclick="toggleProd('${p.id}')">
+          <input type="checkbox" ${sel ? 'checked' : ''}
+                 onclick="event.stopPropagation();toggleProd('${p.id}')">
+          <div class="prod-info">
+            <div class="prod-name">${esc(p.name)}</div>
+            <div class="prod-meta">${esc(cat)}${p.stock!=null?' · Stk:'+p.stock:''}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div class="prod-price">&#8377;${Number(p.sale_price||0).toLocaleString('en-IN')}</div>
+            <div class="prod-code">${esc(code)}</div>
+          </div>
+          <div class="qty-wrap" onclick="event.stopPropagation()">
+            <button class="qty-btn" onclick="adjQty('${p.id}',-1)">&#8722;</button>
+            <input  class="qty-input" id="qty${p.id}" type="number"
+                    min="1" max="99" value="${qty}" onchange="setQty('${p.id}',this.value)">
+            <button class="qty-btn" onclick="adjQty('${p.id}',+1)">&#43;</button>
+          </div>
+        </div>`;
+    });
+  });
+
+  list.innerHTML = html;
+
+  // Set indeterminate state on box checkboxes
+  groups.forEach(([boxKey, prods]) => {
+    const cb = document.getElementById('chkBox' + boxKey);
+    if (!cb) return;
+    const allSel  = prods.every(p => selected.has(p.id));
+    const someSel = prods.some(p => selected.has(p.id));
+    cb.checked       = allSel;
+    cb.indeterminate = !allSel && someSel;
+  });
+}
+
+function toggleBox(boxKey, el) {
+  const prods = groupByBox(filtered).find(([k]) => String(k) === String(boxKey))?.[1] || [];
+  const allSel = prods.every(p => selected.has(p.id));
+  if (allSel) {
+    prods.forEach(p => selected.delete(p.id));
+  } else {
+    prods.forEach(p => {
+      const qEl = document.getElementById('qty' + p.id);
+      selected.set(p.id, { product: p, qty: qEl ? parseInt(qEl.value)||1 : 1 });
+    });
+  }
+  refreshBadge(); renderList(); buildPreview();
+}
+
+/* ── SELECTION ── */
+function toggleProd(id) {
+  const p = allProducts.find(x => x.id === id);
+  if (!p) return;
+  if (selected.has(id)) { selected.delete(id); }
+  else {
+    const qEl = document.getElementById('qty' + id);
+    selected.set(id, { product: p, qty: qEl ? parseInt(qEl.value)||1 : 1 });
+  }
+  refreshBadge(); renderList(); buildPreview();
+}
+
+function toggleAll(el) {
+  if (el.checked) {
+    filtered.forEach(p => {
+      const qEl = document.getElementById('qty' + p.id);
+      selected.set(p.id, { product: p, qty: qEl ? parseInt(qEl.value)||1 : 1 });
+    });
+  } else { selected.clear(); }
+  refreshBadge(); renderList(); buildPreview();
+}
+
+function clearSel() {
+  selected.clear();
+  document.getElementById('chkAll').checked = false;
+  refreshBadge(); renderList(); buildPreview();
+}
+
+function adjQty(id, d) {
+  const el = document.getElementById('qty' + id);
+  if (!el) return;
+  const v = Math.max(1, Math.min(99, (parseInt(el.value)||1) + d));
+  el.value = v;
+  if (selected.has(id)) { selected.get(id).qty = v; buildPreview(); }
+}
+
+function setQty(id, val) {
+  const v = Math.max(1, Math.min(99, parseInt(val)||1));
+  if (selected.has(id)) { selected.get(id).qty = v; buildPreview(); }
+}
+
+function refreshBadge() {
+  document.getElementById('selBadge').textContent = selected.size + ' selected';
+}
+
+function filterProducts() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  filtered = q
+    ? allProducts.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        mkCode(p).toLowerCase().includes(q) ||
+        ((p.Category && p.Category.name)||'').toLowerCase().includes(q))
+    : allProducts;
+  renderList();
+}
+
+/* ── LABEL DESIGN STATE ── */
+const DESIGN_KEY = 'kv_label_design';
+let labelDesign = (function() {
+  const def = { labelW:100, labelH:15, blankW:50, textW:25, bcW:25,
+    textFontSize:7, textWidth:0, textOffsetX:0, textOffsetY:0, showName:true, showPrice:true,
+    bcHeight:40, bcWidth:22, bcOffsetX:0, bcOffsetY:0, showSku:true, skuFontSize:5.5,
+    density:7 };
+  try { const s = localStorage.getItem(DESIGN_KEY); if (s) return Object.assign(def, JSON.parse(s)); } catch(_){}
+  return def;
+})();
+
+function applyDesignCSS() {
+  const d = labelDesign;
+  document.getElementById('designStyle').textContent = `
+.label { width:${d.labelW}mm; height:${d.labelH}mm; }
+.lbl-blank { width:${d.blankW}mm; }
+.lbl-text { width:${d.textW}mm; font-size:${d.textFontSize}px; }
+.text-content { transform:translate(${d.textOffsetX}mm, ${d.textOffsetY}mm); ${d.textWidth > 0 ? 'max-width:' + d.textWidth + 'mm;' : ''} }
+.lbl-text .t-name  { display:${d.showName  ? 'block' : 'none'}; }
+.lbl-text .t-price { display:${d.showPrice ? 'block' : 'none'}; }
+.lbl-bc { width:${d.bcW}mm; }
+.bc-content { transform:translate(${d.bcOffsetX}mm, ${d.bcOffsetY}mm); }
+.bc-sku { font-size:${d.skuFontSize}px; display:${d.showSku ? 'block' : 'none'}; }
+@page { size:${d.labelW}mm ${d.labelH}mm; margin:0; }`.trim();
+}
+
+function toggleDesignPanel() {
+  const p = document.getElementById('designPanel');
+  const open = p.style.display !== 'none';
+  p.style.display = open ? 'none' : 'block';
+  document.getElementById('designToggleBtn').style.background = open ? '' : '#1e293b';
+  document.getElementById('designToggleBtn').style.borderColor = open ? '' : '#7c1c2e';
+  if (!open) populateDesignInputs();
+}
+
+function populateDesignInputs() {
+  const d = labelDesign;
+  document.getElementById('dLabelW').value      = d.labelW;
+  document.getElementById('dLabelH').value      = d.labelH;
+  document.getElementById('dBlankW').value      = d.blankW;
+  document.getElementById('dTextW').value       = d.textW;
+  document.getElementById('dBcW').value         = d.bcW;
+  document.getElementById('dTextFont').value    = d.textFontSize;
+  document.getElementById('dTextWidth').value   = d.textWidth;
+  document.getElementById('dTextOffsetX').value = d.textOffsetX;
+  document.getElementById('dTextOffsetY').value = d.textOffsetY;
+  document.getElementById('dBcHeight').value    = d.bcHeight;
+  document.getElementById('dBcWidth').value     = d.bcWidth;
+  document.getElementById('dBcOffsetX').value   = d.bcOffsetX;
+  document.getElementById('dBcOffsetY').value   = d.bcOffsetY;
+  document.getElementById('dShowName').checked  = d.showName;
+  document.getElementById('dShowPrice').checked = d.showPrice;
+  document.getElementById('dShowSku').checked   = d.showSku;
+  document.getElementById('dSkuFont').value     = d.skuFontSize;
+  document.getElementById('dDensity').value     = d.density;
+}
+
+
+function updateDesign() {
+  labelDesign = {
+    labelW:       parseFloat(document.getElementById('dLabelW').value)    || 100,
+    labelH:       parseFloat(document.getElementById('dLabelH').value)    || 15,
+    blankW:       parseFloat(document.getElementById('dBlankW').value)    || 50,
+    textW:        parseFloat(document.getElementById('dTextW').value)     || 25,
+    bcW:          parseFloat(document.getElementById('dBcW').value)       || 25,
+    textFontSize: parseFloat(document.getElementById('dTextFont').value)  || 7,
+    textWidth:    parseFloat(document.getElementById('dTextWidth').value)   || 0,
+    textOffsetX:  parseFloat(document.getElementById('dTextOffsetX').value) || 0,
+    textOffsetY:  parseFloat(document.getElementById('dTextOffsetY').value) || 0,
+    showName:     document.getElementById('dShowName').checked,
+    showPrice:    document.getElementById('dShowPrice').checked,
+    bcHeight:     parseFloat(document.getElementById('dBcHeight').value)    || 40,
+    bcWidth:      parseFloat(document.getElementById('dBcWidth').value)     || 22,
+    bcOffsetX:    parseFloat(document.getElementById('dBcOffsetX').value)   || 0,
+    bcOffsetY:    parseFloat(document.getElementById('dBcOffsetY').value)   || 0,
+    showSku:      document.getElementById('dShowSku').checked,
+    skuFontSize:  parseFloat(document.getElementById('dSkuFont').value)   || 5.5,
+    density:      Math.max(1, Math.min(15, parseInt(document.getElementById('dDensity').value) || 7)),
+  };
+  const total = labelDesign.blankW + labelDesign.textW + labelDesign.bcW;
+  document.getElementById('dZoneWarn').style.display =
+    Math.abs(total - labelDesign.labelW) > 0.1 ? 'inline' : 'none';
+  applyDesignCSS();
+  buildPreview();
+}
+
+function lockDesign() {
+  localStorage.setItem(DESIGN_KEY, JSON.stringify(labelDesign));
+  const s = document.getElementById('lockStatus');
+  s.style.display = 'block';
+  setTimeout(() => { s.style.display = 'none'; }, 2200);
+}
+
+/* ── LABEL HTML ── */
+function labelHTML(p, code) {
+  const price = '&#8377;' + Number(p.sale_price||0).toLocaleString('en-IN');
+  const name  = (p.name && p.name.trim()) ? p.name.trim() : code;
+  return `
+    <div class="label">
+      <div class="lbl-blank"></div>
+      <div class="lbl-text">
+        <div class="text-content">
+          <div class="t-name">${esc(name)}</div>
+          <div class="t-price">${price}</div>
+        </div>
+      </div>
+      <div class="lbl-bc">
+        <div class="bc-content">
+          <div class="bc-sku">${esc(code)}</div>
+          <svg class="bcsvg" data-val="${esc(code)}"></svg>
+        </div>
+      </div>
+    </div>`;
+}
+
+function genBarcodes(root) {
+  const d = labelDesign;
+  root.querySelectorAll('svg.bcsvg[data-val]').forEach(svg => {
+    try {
+      JsBarcode(svg, svg.dataset.val, {
+        format: 'CODE128', width: 0.9, height: d.bcHeight,
+        displayValue: false, margin: 1,
+      });
+      const w = svg.getAttribute('width');
+      const h = svg.getAttribute('height');
+      if (w && h) {
+        const wN = parseFloat(w), hN = parseFloat(h);
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        const cssW = (d.bcWidth > 0 ? d.bcWidth : d.bcW - 3);
+        const cssH = Math.min((hN / wN) * cssW, d.labelH - 3).toFixed(2);
+        svg.style.width  = cssW + 'mm';
+        svg.style.height = cssH + 'mm';
+      }
+    } catch(_) {}
+  });
+}
+
+/* ── LIVE PREVIEW ── */
+function buildPreview() {
+  const roll = document.getElementById('rollContainer');
+  if (!selected.size) {
+    roll.innerHTML = `<div class="state-msg" style="background:#b0b8c4;border-radius:4px;color:#444">
+      <div class="icon">🏷</div>Select products on the left</div>`;
+    return;
+  }
+  let html = '';
+  sortEntriesByBoxName([...selected.values()]).forEach(({ product: p, qty }) => {
+    const code = mkCode(p);
+    for (let i = 0; i < qty; i++)
+      html += `<div class="roll-row">${labelHTML(p, code)}</div>`;
+  });
+  roll.innerHTML = html;
+  genBarcodes(roll);
+}
+
+/* ── LP46 NEO TSPL  (203dpi = 8 dots/mm, label 800×120 dots)
+   Blank: 0–400 (50mm) | Text zone: 400–600 (25mm) | Barcode zone: 600–800 (25mm)
+   Font "2" at 1x: ~16 dots/char wide, 24 dots tall. Two lines centered vertically. ── */
+function tsplCenterX(text, zoneStart, zoneWidth, charDots) {
+  const w = text.length * charDots;
+  return zoneStart + Math.max(0, Math.floor((zoneWidth - w) / 2));
+}
+
+function buildTSPL(entries) {
+  const d    = labelDesign;
+  const DOTS = 8; // 203 dpi = 8 dots/mm
+  const LBL_W   = Math.round(d.labelW  * DOTS);
+  const LBL_H   = Math.round(d.labelH  * DOTS);
+  const BLANK_D = Math.round(d.blankW  * DOTS);
+  const TEXT_D  = Math.round(d.textW   * DOTS);
+  const BC_D    = Math.round(d.bcW     * DOTS);
+  const TX0     = BLANK_D;          // text zone start (dots)
+  const BX0     = BLANK_D + TEXT_D; // barcode zone start (dots)
+
+  const CHAR_W = 16, LINE_H = 24, GAP_Y = 10;
+  const twoLines = 2 * LINE_H + GAP_Y;
+
+  const tsplBcH = Math.min(Math.round(d.bcHeight * 1.4), LBL_H - 16);
+  const offTX   = Math.round((d.textOffsetX || 0) * DOTS);
+  const offTY   = Math.round((d.textOffsetY || 0) * DOTS);
+  const offBX   = Math.round((d.bcOffsetX   || 0) * DOTS);
+  const offBY   = Math.round((d.bcOffsetY   || 0) * DOTS);
+
+  let tspl = '';
+  entries.forEach(({ product: p, qty }) => {
+    const code   = mkCode(p);
+    const name   = p.name.length > 11 ? p.name.substring(0, 10) + '.' : p.name;
+    const price  = 'Rs.' + Math.round(p.sale_price || 0);
+    const nY     = Math.floor((LBL_H - twoLines) / 2) + offTY;
+    const pY     = nY + LINE_H + GAP_Y;
+    const nameX  = tsplCenterX(name,  TX0, TEXT_D, CHAR_W) + offTX;
+    const priceX = tsplCenterX(price, TX0, TEXT_D, CHAR_W) + offTX;
+    const bcPxW  = 35 + 11 * code.length;
+    const bcX    = BX0 + Math.max(0, Math.floor((BC_D - bcPxW) / 2)) + offBX;
+    // SKU text ABOVE barcode: center the [text + gap + barcode] block vertically
+    const SKU_H  = 12, SKU_GAP = 3;                 // font "1" ≈ 12 dots tall
+    const block  = (d.showSku ? SKU_H + SKU_GAP : 0) + tsplBcH;
+    const blockY = Math.floor((LBL_H - block) / 2) + offBY;
+    const skuY   = blockY;
+    const bY     = d.showSku ? blockY + SKU_H + SKU_GAP : blockY;
+
+    tspl += `SIZE ${d.labelW} mm,${d.labelH} mm\r\nGAP 2 mm,0 mm\r\nDIRECTION 0\r\nDENSITY ${d.density}\r\nCLS\r\n`;
+    if (d.showName)  tspl += `TEXT ${nameX},${nY},"2",0,1,1,"${name}"\r\n`;
+    if (d.showPrice) tspl += `TEXT ${priceX},${pY},"2",0,1,1,"${price}"\r\n`;
+    if (d.showSku) {
+      const skuX = BX0 + Math.max(0, Math.floor((BC_D - code.length * 8) / 2));
+      tspl += `TEXT ${skuX},${skuY},"1",0,1,1,"${code}"\r\n`;
+    }
+    // 5th param = human-readable line. Keep it 0 (off) so the barcode does
+    // NOT print its own code text below; the SKU text above (TEXT ... code)
+    // is the only one, matching the on-screen preview.
+    tspl += `BARCODE ${bcX},${bY},"128",${tsplBcH},0,0,1,2,"${code}"\r\n`;
+    tspl += `PRINT ${qty},1\r\n\r\n`;
+  });
+  return tspl;
+}
+
+async function printLP46(entries) {
+  if (!qzReady) {
+    try {
+      await qz.websocket.connect();
+      qzReady = true; setQZStatus('ok', 'QZ Tray: Connected');
+    } catch (e) {
+      alert('QZ Tray is not running.\n\n1. Download from qz.io\n2. Start QZ Tray\n3. Preferences → Allow Unsigned\n4. Try again');
+      return;
+    }
+  }
+  try {
+    const config = qz.configs.create(LP46_NAME);
+    await qz.print(config, [{ type: 'raw', format: 'plain', data: buildTSPL(entries) }]);
+    setQZStatus('ok', 'QZ Tray: Printed ✓');
+  } catch (e) {
+    setQZStatus('err', 'Print error');
+    alert('LP46 NEO print error:\n' + e.message +
+      '\n\nCheck:\n• LP46 NEO is ON\n• Printer name is "' + LP46_NAME + '" in Windows');
+  }
+}
+
+/* ── SAMSUNG / BROWSER PRINT ── */
+function printBrowser(entries) {
+  const mount = document.getElementById('printMount');
+  let html = '';
+  entries.forEach(({ product: p, qty }) => {
+    const code = mkCode(p);
+    for (let i = 0; i < qty; i++)
+      html += `<div class="lbl-wrap">${labelHTML(p, code)}</div>`;
+  });
+  mount.innerHTML = html;
+  genBarcodes(mount);
+  requestAnimationFrame(() => {
+    window.print();
+    window.addEventListener('afterprint', () => { mount.innerHTML = ''; }, { once: true });
+  });
+}
+
+/* ── PRINT DISPATCH ── */
+async function printSelected() {
+  const entries = [...selected.values()];
+  if (!entries.length) { alert('Select at least one product.'); return; }
+  dispatch(entries);
+}
+
+async function printAll() {
+  if (!allProducts.length) { alert('No products loaded.'); return; }
+  dispatch(allProducts.map(p => ({ product: p, qty: 1 })));
+}
+
+function dispatch(entries) {
+  entries = sortEntriesByBoxName(entries);
+  if (document.getElementById('printerSel').value === 'lp46neo') printLP46(entries);
+  else printBrowser(entries);
+}
+
+function onPrinterChange() {
+  const p   = document.getElementById('printerSel').value;
+  const tip = document.getElementById('printerTip');
+  if (p === 'lp46neo') {
+    tip.innerHTML = 'QZ Tray must be running. <strong>Allow Unsigned</strong> in QZ Tray → Preferences.';
+  } else {
+    tip.innerHTML = 'Chrome → <strong>More settings</strong> → Paper: <strong>100×15mm</strong> → Margins: <strong>None</strong>';
+  }
+}
+
+/* ── UTILITY ── */
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── BOOT ── */
+document.getElementById('loginScreen').style.display = 'none';
+applyDesignCSS();
+loadProducts();
+initQZ();
+</script>
+</body>
+</html>
