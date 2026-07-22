@@ -1,4 +1,5 @@
 {
+  "cleanUrls": false,
   "rewrites": [
     { "source": "/barcode", "destination": "/barcode.html" },
     { "source": "**", "destination": "/index.html" }
