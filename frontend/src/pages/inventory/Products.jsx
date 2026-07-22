@@ -1519,6 +1519,221 @@ bBQusfbKqlGg61r07k8bA4M=
 
 const PER_PAGE = 35
 
+// ── Bulk Edit ─────────────────────────────────────────────────────────
+// Columns shown in the bulk-edit grid. `type` drives both the input and how
+// values are normalised for change-detection.
+const BULK_FIELDS = [
+  { key: 'name',           label: 'Name',    type: 'text',     w: 'min-w-[170px]' },
+  { key: 'category_id',    label: 'Category',type: 'category', w: 'min-w-[140px]' },
+  { key: 'purchase_price', label: 'Cost',    type: 'number',   w: 'w-24' },
+  { key: 'mrp',            label: 'MRP',     type: 'number',   w: 'w-24' },
+  { key: 'sale_price',     label: 'Sell',    type: 'number',   w: 'w-24' },
+  { key: 'discount_per',   label: 'Disc %',  type: 'number',   w: 'w-20' },
+  { key: 'tax_rate',       label: 'Tax %',   type: 'number',   w: 'w-20' },
+  { key: 'sku',            label: 'SKU',     type: 'text',     w: 'w-28' },
+  { key: 'barcode',        label: 'Barcode', type: 'text',     w: 'w-28' },
+  { key: 'stock',          label: 'Stock',   type: 'number',   w: 'w-20' },
+  { key: 'min_stock',      label: 'Min',     type: 'number',   w: 'w-20' },
+]
+
+const bulkFieldFrom = (p) => {
+  const row = { id: p.id }
+  for (const f of BULK_FIELDS) {
+    if (f.key === 'category_id') row[f.key] = p.category_id ?? p.category?.id ?? p.Category?.id ?? ''
+    else row[f.key] = p[f.key] == null ? '' : String(p[f.key])
+  }
+  return row
+}
+
+// Normalise a cell value so "3" and "3.00" (etc.) compare equal.
+const normBulk = (type, v) => {
+  if (type === 'number') return String(parseFloat(v) || 0)
+  return (v ?? '').toString().trim()
+}
+
+function BulkEditModal({ products, selectedIds, categories, onClose, onSuccess }) {
+  const initial = useMemo(
+    () => products.filter((p) => selectedIds.includes(p.id)).map(bulkFieldFrom),
+    [products, selectedIds]
+  )
+  const [rows, setRows] = useState(initial)
+  const [quickField, setQuickField] = useState('discount_per')
+  const [quickValue, setQuickValue] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [progress, setProgress] = useState(0)
+
+  const setCell = (id, key, value) =>
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, [key]: value } : r)))
+
+  const applyToAll = () => {
+    setRows((rs) => rs.map((r) => ({ ...r, [quickField]: quickValue })))
+    const f = BULK_FIELDS.find((x) => x.key === quickField)
+    toast.success(`Set ${f?.label || quickField} on all ${rows.length} rows`)
+  }
+
+  const handleSave = async () => {
+    // Validate: name can't be blanked
+    if (rows.some((r) => !normBulk('text', r.name))) {
+      return toast.error('Product name cannot be empty')
+    }
+    // Build a per-row payload of only the fields that actually changed
+    const orig = Object.fromEntries(initial.map((r) => [r.id, r]))
+    const jobs = []
+    for (const r of rows) {
+      const o = orig[r.id]
+      const payload = {}
+      for (const f of BULK_FIELDS) {
+        if (normBulk(f.type, r[f.key]) !== normBulk(f.type, o[f.key])) {
+          if (f.type === 'number') payload[f.key] = parseFloat(r[f.key]) || 0
+          else if (f.key === 'category_id') payload[f.key] = r[f.key] || null
+          else payload[f.key] = (r[f.key] ?? '').toString().trim()
+        }
+      }
+      if (Object.keys(payload).length) jobs.push({ id: r.id, payload })
+    }
+    if (!jobs.length) return toast('No changes to save', { icon: 'ℹ️' })
+
+    setSaving(true)
+    setProgress(0)
+    let ok = 0
+    let fail = 0
+    for (const job of jobs) {
+      try {
+        await productAPI.update(job.id, job.payload)
+        ok++
+      } catch {
+        fail++
+      }
+      setProgress(Math.round(((ok + fail) / jobs.length) * 100))
+    }
+    setSaving(false)
+    if (fail) toast.error(`${ok} updated, ${fail} failed`)
+    else toast.success(`${ok} product${ok !== 1 ? 's' : ''} updated`)
+    onSuccess()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+          <div>
+            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+              <Edit2 className="h-4 w-4 text-amber-600" /> Bulk Edit Products
+            </h3>
+            <p className="text-xs text-slate-500">{rows.length} product{rows.length !== 1 ? 's' : ''} selected — edit inline, then Save All</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Quick fill */}
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border-b border-amber-100 flex-wrap">
+          <span className="text-xs font-medium text-amber-700">Quick fill:</span>
+          <select
+            value={quickField}
+            onChange={(e) => setQuickField(e.target.value)}
+            className="border border-amber-200 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+          >
+            {BULK_FIELDS.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+          </select>
+          {quickField === 'category_id' ? (
+            <select
+              value={quickValue}
+              onChange={(e) => setQuickValue(e.target.value)}
+              className="border border-amber-200 rounded-lg px-2 py-1.5 text-sm bg-white min-w-[150px] focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+            >
+              <option value="">— none —</option>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          ) : (
+            <input
+              type={BULK_FIELDS.find((f) => f.key === quickField)?.type === 'number' ? 'number' : 'text'}
+              value={quickValue}
+              onChange={(e) => setQuickValue(e.target.value)}
+              placeholder="Value for all rows"
+              className="border border-amber-200 rounded-lg px-2 py-1.5 text-sm bg-white w-44 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+            />
+          )}
+          <button
+            onClick={applyToAll}
+            className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+          >
+            Apply to all
+          </button>
+        </div>
+
+        {/* Grid */}
+        <div className="overflow-auto flex-1">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs text-slate-500 uppercase sticky top-0 z-10">
+              <tr>
+                <th className="px-2 py-2 text-center w-10">Sr.</th>
+                {BULK_FIELDS.map((f) => (
+                  <th key={f.key} className="px-2 py-2 text-left whitespace-nowrap">{f.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
+                  <td className="px-2 py-1.5 text-center text-xs text-slate-400">{i + 1}</td>
+                  {BULK_FIELDS.map((f) => (
+                    <td key={f.key} className="px-2 py-1.5">
+                      {f.type === 'category' ? (
+                        <select
+                          value={r[f.key] || ''}
+                          onChange={(e) => setCell(r.id, f.key, e.target.value)}
+                          className={`border border-slate-200 rounded px-1.5 py-1 text-sm w-full ${f.w} focus:outline-none focus:ring-2 focus:ring-amber-500/30`}
+                        >
+                          <option value="">—</option>
+                          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type={f.type === 'number' ? 'number' : 'text'}
+                          value={r[f.key]}
+                          onChange={(e) => setCell(r.id, f.key, e.target.value)}
+                          className={`border border-slate-200 rounded px-1.5 py-1 text-sm ${f.w} ${f.type === 'number' ? 'text-right' : ''} focus:outline-none focus:ring-2 focus:ring-amber-500/30`}
+                        />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
+          <span className="text-xs text-slate-400">
+            {saving ? `Saving… ${progress}%` : 'Only changed rows are sent to the server.'}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              disabled={saving}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-60"
+            >
+              {saving ? <LoadingSpinner size="sm" /> : <CheckCircle className="h-4 w-4" />}
+              {saving ? 'Saving…' : 'Save All'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Products() {
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
@@ -1537,6 +1752,7 @@ export default function Products() {
   const [deleteId, setDeleteId] = useState(null)
   const [showBulkDelete, setShowBulkDelete] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [showBulkEdit, setShowBulkEdit] = useState(false)
   const [showDeleteAll, setShowDeleteAll] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
   const [showImport,        setShowImport]        = useState(false)
@@ -1887,6 +2103,12 @@ export default function Products() {
               Deselect All
             </button>
             <button
+              onClick={() => setShowBulkEdit(true)}
+              className="px-3 py-1.5 rounded-lg bg-white text-amber-700 hover:bg-amber-50 text-sm flex items-center gap-1.5 font-medium"
+            >
+              <Edit2 className="h-4 w-4" /> Bulk Edit ({selected.length})
+            </button>
+            <button
               onClick={() => setShowBulkDelete(true)}
               className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-sm flex items-center gap-1.5 font-medium"
             >
@@ -2150,6 +2372,17 @@ export default function Products() {
         />
       )}
 
+
+      {/* Bulk Edit Modal */}
+      {showBulkEdit && (
+        <BulkEditModal
+          products={products}
+          selectedIds={selected}
+          categories={categories}
+          onClose={() => setShowBulkEdit(false)}
+          onSuccess={() => { setShowBulkEdit(false); fetchProducts() }}
+        />
+      )}
 
       {/* Import Modal */}
       {showImport && (
