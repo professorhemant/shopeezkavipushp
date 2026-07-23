@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react'
-import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2, CheckSquare } from 'lucide-react'
+import { useEffect, useState, useRef, useMemo } from 'react'
+import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2, CheckCircle } from 'lucide-react'
 import Papa from 'papaparse'
 import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
@@ -38,7 +38,6 @@ export default function BridalInventory() {
   const [nameSearch, setNameSearch] = useState('')
 
   // Bulk edit state
-  const [bulkMode, setBulkMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [showBulkEdit, setShowBulkEdit] = useState(false)
 
@@ -124,9 +123,21 @@ export default function BridalInventory() {
     }
   }
 
-  const exitBulkMode = () => { setBulkMode(false); setSelectedIds(new Set()) }
+  const deleteSelected = async () => {
+    const n = selectedIds.size
+    if (!window.confirm(`Delete ${n} selected item${n !== 1 ? 's' : ''}? This cannot be undone.`)) return
+    let ok = 0, fail = 0
+    for (const id of selectedIds) {
+      try { await bridalAPI.deleteInventory(id); ok++ }
+      catch { fail++ }
+    }
+    if (fail) toast.error(`${ok} deleted, ${fail} failed`)
+    else toast.success(`${ok} item${ok !== 1 ? 's' : ''} deleted`)
+    setSelectedIds(new Set())
+    load()
+  }
 
-  const colSpan = bulkMode ? 8 : 7
+  const selectedItems = rows.filter(r => selectedIds.has(r.id))
 
   return (
     <div className="space-y-5">
@@ -150,17 +161,6 @@ export default function BridalInventory() {
             className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <ImagePlus className="h-4 w-4" /> Upload Images
           </button>
-          {bulkMode ? (
-            <button onClick={exitBulkMode}
-              className="border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-              <X className="h-4 w-4" /> Exit Bulk Edit
-            </button>
-          ) : (
-            <button onClick={() => setBulkMode(true)}
-              className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-              <CheckSquare className="h-4 w-4" /> Bulk Edit
-            </button>
-          )}
           <button onClick={openAdd}
             className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <Plus className="h-4 w-4" /> Add Item
@@ -168,24 +168,18 @@ export default function BridalInventory() {
         </div>
       </div>
 
-      {/* Bulk selection action bar */}
-      {bulkMode && (
-        <div className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border text-sm transition-all ${someSelected ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-          {someSelected ? (
-            <>
-              <span className="font-medium">{selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected</span>
-              <button onClick={() => setShowBulkEdit(true)}
-                className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-md text-xs font-semibold">
-                Edit Selected
-              </button>
-              <button onClick={() => setSelectedIds(new Set())}
-                className="text-amber-600 hover:text-amber-800 text-xs font-medium">
-                Deselect All
-              </button>
-            </>
-          ) : (
-            <span>Check rows below to select items for bulk editing</span>
-          )}
+      {someSelected && (
+        <div className="flex items-center justify-between bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm">
+          <span className="font-medium">{selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setSelectedIds(new Set())} className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-sm">Deselect All</button>
+            <button onClick={() => setShowBulkEdit(true)} className="px-3 py-1.5 rounded-lg bg-white text-amber-700 hover:bg-amber-50 text-sm flex items-center gap-1.5 font-medium">
+              <Edit2 className="h-4 w-4" /> Bulk Edit ({selectedIds.size})
+            </button>
+            <button onClick={deleteSelected} className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-sm flex items-center gap-1.5 font-medium">
+              <Trash2 className="h-4 w-4" /> Delete Selected ({selectedIds.size})
+            </button>
+          </div>
         </div>
       )}
 
@@ -228,19 +222,17 @@ export default function BridalInventory() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-800 text-xs text-slate-200 uppercase">
+              <thead className="bg-slate-800 text-xs text-slate-200 uppercase sticky top-0 z-10">
                 <tr>
-                  {bulkMode && (
-                    <th className="px-3 py-3 w-10">
-                      <input
-                        type="checkbox"
-                        checked={allVisibleSelected}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 accent-amber-500 cursor-pointer"
-                        title={allVisibleSelected ? 'Deselect all' : 'Select all visible'}
-                      />
-                    </th>
-                  )}
+                  <th className="px-3 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 accent-amber-400 cursor-pointer"
+                      title={allVisibleSelected ? 'Deselect all' : 'Select all visible'}
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left">Code</th>
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Type</th>
@@ -252,21 +244,19 @@ export default function BridalInventory() {
               </thead>
               <tbody>
                 {visible.length === 0 ? (
-                  <tr><td colSpan={colSpan} className="text-center py-12 text-slate-400">No items. Add one or import a CSV.</td></tr>
+                  <tr><td colSpan={8} className="text-center py-12 text-slate-400">No items. Add one or import a CSV.</td></tr>
                 ) : visible.map(r => {
                   const isChecked = selectedIds.has(r.id)
                   return (
                     <tr key={r.id} className={`border-b hover:bg-slate-50 ${isChecked ? 'bg-amber-50' : ''}`}>
-                      {bulkMode && (
-                        <td className="px-3 py-3">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => toggleSelect(r.id)}
-                            className="h-4 w-4 accent-amber-600 cursor-pointer"
-                          />
-                        </td>
-                      )}
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSelect(r.id)}
+                          className="h-4 w-4 accent-amber-600 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-3 font-semibold text-amber-600">{r.code || '—'}</td>
                       <td className="px-4 py-3 text-slate-700">
                         <div className="flex items-center gap-2">
@@ -335,9 +325,9 @@ export default function BridalInventory() {
 
       {showBulkEdit && (
         <BulkEditModal
-          selectedIds={selectedIds}
+          items={selectedItems}
           onClose={() => setShowBulkEdit(false)}
-          onDone={() => { setShowBulkEdit(false); setSelectedIds(new Set()); load() }}
+          onSuccess={() => { setShowBulkEdit(false); setSelectedIds(new Set()); load() }}
         />
       )}
     </div>
@@ -608,113 +598,173 @@ function BulkImageModal({ items, scopeLabel, onClose, onDone }) {
   )
 }
 
-// ─── Bulk Edit Modal ─────────────────────────────────────────────────
-function BulkEditModal({ selectedIds, onClose, onDone }) {
-  const [fields, setFields] = useState({
-    item_type:    { enabled: false, value: 'set' },
-    category:     { enabled: false, value: '' },
-    rental_price: { enabled: false, value: '' },
-    stock:        { enabled: false, value: '' },
-  })
+// ─── Bulk Edit Modal (Products-style: Quick fill + inline editable table) ────
+const BULK_FIELDS = [
+  { key: 'name',         label: 'Name',     type: 'text',   w: 'min-w-[160px]' },
+  { key: 'item_type',    label: 'Type',     type: 'select', w: 'min-w-[130px]' },
+  { key: 'category',     label: 'Category', type: 'text',   w: 'min-w-[120px]' },
+  { key: 'rental_price', label: 'Rent (₹)', type: 'number', w: 'min-w-[100px]' },
+  { key: 'stock',        label: 'Stock',    type: 'number', w: 'min-w-[80px]'  },
+]
+
+function BulkEditModal({ items, onClose, onSuccess }) {
+  const initial = useMemo(() => items.map(it => ({
+    id:           it.id,
+    name:         it.name            || '',
+    item_type:    it.item_type       || 'set',
+    category:     it.category        || '',
+    rental_price: it.rental_price != null ? String(it.rental_price) : '',
+    stock:        it.stock        != null ? String(it.stock)        : '',
+  })), [items])
+
+  const [rows, setRows] = useState(initial)
+  const [quickField, setQuickField] = useState('category')
+  const [quickValue, setQuickValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const [progress, setProgress] = useState(0)
 
-  const toggle = (k) => setFields(f => ({ ...f, [k]: { ...f[k], enabled: !f[k].enabled } }))
-  const setVal = (k, v) => setFields(f => ({ ...f, [k]: { ...f[k], value: v } }))
+  const setCell = (id, key, val) =>
+    setRows(prev => prev.map(r => r.id === id ? { ...r, [key]: val } : r))
 
-  const apply = async () => {
-    const updates = {}
-    if (fields.item_type.enabled)    updates.item_type    = fields.item_type.value
-    if (fields.category.enabled)     updates.category     = fields.category.value
-    if (fields.rental_price.enabled) updates.rental_price = parseFloat(fields.rental_price.value) || 0
-    if (fields.stock.enabled)        updates.stock        = parseInt(fields.stock.value, 10) || 0
-    if (!Object.keys(updates).length) { toast.error('Enable at least one field to update'); return }
-    setSaving(true)
-    try {
-      const { data } = await bridalAPI.bulkUpdateInventory([...selectedIds], updates)
-      toast.success(`Updated ${data.updated} item${data.updated !== 1 ? 's' : ''}`)
-      onDone()
-    } catch { toast.error('Bulk update failed') }
-    finally { setSaving(false) }
+  const applyToAll = () => {
+    setRows(prev => prev.map(r => ({ ...r, [quickField]: quickValue })))
+    const f = BULK_FIELDS.find(x => x.key === quickField)
+    toast.success(`Set ${f?.label || quickField} on all ${rows.length} rows`)
   }
 
-  const row = "flex items-center gap-3"
-  const labelCls = "text-sm font-medium text-slate-700 w-28 shrink-0"
+  const saveAll = async () => {
+    const orig = Object.fromEntries(initial.map(r => [r.id, r]))
+    const jobs = []
+    for (const r of rows) {
+      const o = orig[r.id]
+      const payload = {}
+      for (const f of BULK_FIELDS) {
+        const rv = f.type === 'number' ? String(parseFloat(r[f.key]) || 0) : (r[f.key] ?? '').toString().trim()
+        const ov = f.type === 'number' ? String(parseFloat(o[f.key]) || 0) : (o[f.key] ?? '').toString().trim()
+        if (rv !== ov) {
+          if (f.type === 'number') payload[f.key] = parseFloat(r[f.key]) || 0
+          else payload[f.key] = r[f.key]
+        }
+      }
+      if (Object.keys(payload).length) jobs.push({ id: r.id, payload })
+    }
+    if (!jobs.length) { toast('No changes to save'); return }
+    setSaving(true); setProgress(0)
+    let ok = 0, fail = 0
+    for (const job of jobs) {
+      try { await bridalAPI.updateInventory(job.id, job.payload); ok++ }
+      catch { fail++ }
+      setProgress(Math.round(((ok + fail) / jobs.length) * 100))
+    }
+    setSaving(false)
+    if (fail) toast.error(`${ok} updated, ${fail} failed`)
+    else toast.success(`${ok} item${ok !== 1 ? 's' : ''} updated`)
+    onSuccess()
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-bold text-slate-800">Bulk Edit</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
-        </div>
-        <p className="text-xs text-slate-500 mb-4">
-          {selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected. Check each field you want to change — unchecked fields are left untouched.
-        </p>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
 
-        <div className="space-y-3">
-          {/* Type */}
-          <div className={row}>
-            <input type="checkbox" id="be-type" checked={fields.item_type.enabled} onChange={() => toggle('item_type')} className="h-4 w-4 accent-amber-600 cursor-pointer shrink-0" />
-            <label htmlFor="be-type" className={labelCls}>Type</label>
-            <select
-              disabled={!fields.item_type.enabled}
-              value={fields.item_type.value}
-              onChange={e => setVal('item_type', e.target.value)}
-              className={inp + (!fields.item_type.enabled ? ' opacity-40' : '')}
-            >
-              {ITEM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+          <div>
+            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+              <Edit2 className="h-4 w-4 text-amber-600" /> Bulk Edit Items
+            </h3>
+            <p className="text-xs text-slate-500">
+              {rows.length} item{rows.length !== 1 ? 's' : ''} selected — edit inline, then Save All
+            </p>
           </div>
-
-          {/* Category */}
-          <div className={row}>
-            <input type="checkbox" id="be-cat" checked={fields.category.enabled} onChange={() => toggle('category')} className="h-4 w-4 accent-amber-600 cursor-pointer shrink-0" />
-            <label htmlFor="be-cat" className={labelCls}>Category</label>
-            <input
-              disabled={!fields.category.enabled}
-              value={fields.category.value}
-              onChange={e => setVal('category', e.target.value)}
-              placeholder="e.g. Kundan"
-              className={inp + (!fields.category.enabled ? ' opacity-40' : '')}
-            />
-          </div>
-
-          {/* Rental Price */}
-          <div className={row}>
-            <input type="checkbox" id="be-price" checked={fields.rental_price.enabled} onChange={() => toggle('rental_price')} className="h-4 w-4 accent-amber-600 cursor-pointer shrink-0" />
-            <label htmlFor="be-price" className={labelCls}>Rental Price</label>
-            <input
-              type="number" min="0" step="0.01"
-              disabled={!fields.rental_price.enabled}
-              value={fields.rental_price.value}
-              onChange={e => setVal('rental_price', e.target.value)}
-              placeholder="0.00"
-              className={inp + (!fields.rental_price.enabled ? ' opacity-40' : '')}
-            />
-          </div>
-
-          {/* Stock */}
-          <div className={row}>
-            <input type="checkbox" id="be-stock" checked={fields.stock.enabled} onChange={() => toggle('stock')} className="h-4 w-4 accent-amber-600 cursor-pointer shrink-0" />
-            <label htmlFor="be-stock" className={labelCls}>Stock</label>
-            <input
-              type="number" min="0"
-              disabled={!fields.stock.enabled}
-              value={fields.stock.value}
-              onChange={e => setVal('stock', e.target.value)}
-              placeholder="1"
-              className={inp + (!fields.stock.enabled ? ' opacity-40' : '')}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onClose} className="border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm">Cancel</button>
-          <button onClick={apply} disabled={saving}
-            className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-semibold">
-            {saving ? 'Saving…' : 'Apply Changes'}
+          <button onClick={onClose} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600">
+            <X className="h-5 w-5" />
           </button>
         </div>
+
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border-b border-amber-100 flex-wrap">
+          <span className="text-xs font-medium text-amber-700">Quick fill:</span>
+          <select
+            value={quickField}
+            onChange={e => { setQuickField(e.target.value); setQuickValue('') }}
+            className="border border-amber-200 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+          >
+            {BULK_FIELDS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+          </select>
+          {quickField === 'item_type' ? (
+            <select
+              value={quickValue}
+              onChange={e => setQuickValue(e.target.value)}
+              className="border border-amber-200 rounded-lg px-2 py-1.5 text-sm bg-white min-w-[150px] focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+            >
+              <option value="">— select —</option>
+              {ITEM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          ) : (
+            <input
+              type={BULK_FIELDS.find(f => f.key === quickField)?.type === 'number' ? 'number' : 'text'}
+              value={quickValue}
+              onChange={e => setQuickValue(e.target.value)}
+              placeholder="Value for all rows"
+              className="border border-amber-200 rounded-lg px-2 py-1.5 text-sm bg-white w-44 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+            />
+          )}
+          <button onClick={applyToAll} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium">
+            Apply to all
+          </button>
+        </div>
+
+        <div className="overflow-auto flex-1">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs text-slate-500 uppercase sticky top-0 z-10">
+              <tr>
+                <th className="px-2 py-2 text-center w-10">Sr.</th>
+                {BULK_FIELDS.map(f => (
+                  <th key={f.key} className="px-2 py-2 text-left whitespace-nowrap">{f.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50/60">
+                  <td className="px-2 py-1.5 text-center text-xs text-slate-400">{i + 1}</td>
+                  {BULK_FIELDS.map(f => (
+                    <td key={f.key} className="px-2 py-1.5">
+                      {f.type === 'select' ? (
+                        <select
+                          value={r[f.key] || ''}
+                          onChange={e => setCell(r.id, f.key, e.target.value)}
+                          className={`border border-slate-200 rounded px-1.5 py-1 text-sm w-full ${f.w} focus:outline-none focus:ring-2 focus:ring-amber-500/30`}
+                        >
+                          {ITEM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type={f.type === 'number' ? 'number' : 'text'}
+                          value={r[f.key]}
+                          onChange={e => setCell(r.id, f.key, e.target.value)}
+                          className={`border border-slate-200 rounded px-1.5 py-1 text-sm ${f.w} ${f.type === 'number' ? 'text-right' : ''} focus:outline-none focus:ring-2 focus:ring-amber-500/30`}
+                        />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
+          <span className="text-xs text-slate-400">
+            {saving ? `Saving… ${progress}%` : 'Only changed rows are sent to the server.'}
+          </span>
+          <div className="flex gap-2">
+            <button onClick={onClose} disabled={saving} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm disabled:opacity-60">Cancel</button>
+            <button onClick={saveAll} disabled={saving} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-60">
+              {saving ? <LoadingSpinner size="sm" /> : <CheckCircle className="h-4 w-4" />}
+              {saving ? 'Saving…' : 'Save All'}
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   )
