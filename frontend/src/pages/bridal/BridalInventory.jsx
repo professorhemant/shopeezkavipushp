@@ -220,7 +220,7 @@ export default function BridalInventory() {
         {loading ? (
           <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
             <table className="w-full text-sm">
               <thead className="bg-slate-800 text-xs text-slate-200 uppercase sticky top-0 z-10">
                 <tr>
