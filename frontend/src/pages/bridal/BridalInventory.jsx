@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2, CheckSquare } from 'lucide-react'
 import Papa from 'papaparse'
 import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
@@ -37,6 +37,11 @@ export default function BridalInventory() {
   const [showImgBulk, setShowImgBulk] = useState(false)
   const [nameSearch, setNameSearch] = useState('')
 
+  // Bulk edit state
+  const [bulkMode, setBulkMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [showBulkEdit, setShowBulkEdit] = useState(false)
+
   const load = async () => {
     setLoading(true)
     try { const { data } = await bridalAPI.listInventory(); setRows(data.data || []) }
@@ -44,6 +49,9 @@ export default function BridalInventory() {
     finally { setLoading(false) }
   }
   useEffect(() => { load() }, [])
+
+  // Clear selection when filter or search changes
+  useEffect(() => { setSelectedIds(new Set()) }, [filter, nameSearch])
 
   const openAdd = () => { setForm(EMPTY); setEditId(null); setShowForm(true) }
   const openEdit = (r) => {
@@ -96,6 +104,30 @@ export default function BridalInventory() {
     } catch { toast.error('Failed to delete all') }
   }
 
+  // Checkbox helpers
+  const allVisibleSelected = visible.length > 0 && visible.every(r => selectedIds.has(r.id))
+  const someSelected = selectedIds.size > 0
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(visible.map(r => r.id)))
+    }
+  }
+
+  const exitBulkMode = () => { setBulkMode(false); setSelectedIds(new Set()) }
+
+  const colSpan = bulkMode ? 8 : 7
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -118,12 +150,44 @@ export default function BridalInventory() {
             className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <ImagePlus className="h-4 w-4" /> Upload Images
           </button>
+          {bulkMode ? (
+            <button onClick={exitBulkMode}
+              className="border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <X className="h-4 w-4" /> Exit Bulk Edit
+            </button>
+          ) : (
+            <button onClick={() => setBulkMode(true)}
+              className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <CheckSquare className="h-4 w-4" /> Bulk Edit
+            </button>
+          )}
           <button onClick={openAdd}
             className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <Plus className="h-4 w-4" /> Add Item
           </button>
         </div>
       </div>
+
+      {/* Bulk selection action bar */}
+      {bulkMode && (
+        <div className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border text-sm transition-all ${someSelected ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+          {someSelected ? (
+            <>
+              <span className="font-medium">{selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected</span>
+              <button onClick={() => setShowBulkEdit(true)}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-md text-xs font-semibold">
+                Edit Selected
+              </button>
+              <button onClick={() => setSelectedIds(new Set())}
+                className="text-amber-600 hover:text-amber-800 text-xs font-medium">
+                Deselect All
+              </button>
+            </>
+          ) : (
+            <span>Check rows below to select items for bulk editing</span>
+          )}
+        </div>
+      )}
 
       {/* Type filter */}
       <div className="flex flex-wrap gap-1.5">
@@ -166,6 +230,17 @@ export default function BridalInventory() {
             <table className="w-full text-sm">
               <thead className="bg-slate-800 text-xs text-slate-200 uppercase">
                 <tr>
+                  {bulkMode && (
+                    <th className="px-3 py-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 accent-amber-500 cursor-pointer"
+                        title={allVisibleSelected ? 'Deselect all' : 'Select all visible'}
+                      />
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-left">Code</th>
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Type</th>
@@ -177,30 +252,43 @@ export default function BridalInventory() {
               </thead>
               <tbody>
                 {visible.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-12 text-slate-400">No items. Add one or import a CSV.</td></tr>
-                ) : visible.map(r => (
-                  <tr key={r.id} className="border-b hover:bg-slate-50">
-                    <td className="px-4 py-3 font-semibold text-amber-600">{r.code || '—'}</td>
-                    <td className="px-4 py-3 text-slate-700">
-                      <div className="flex items-center gap-2">
-                        {r.image
-                          ? <img src={r.image} alt="" className="h-8 w-8 rounded object-cover border border-slate-200 shrink-0" />
-                          : <span className="h-8 w-8 rounded bg-slate-100 border border-slate-200 shrink-0" />}
-                        {r.name}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3"><span className="text-xs bg-slate-100 text-slate-600 rounded px-2 py-0.5">{typeLabel(r.item_type)}</span></td>
-                    <td className="px-4 py-3 text-slate-600">{r.category || '—'}</td>
-                    <td className="px-4 py-3 text-right text-slate-700">{parseFloat(r.rental_price) > 0 ? formatCurrency(r.rental_price) : '—'}</td>
-                    <td className="px-4 py-3 text-right text-slate-600">{r.stock}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button onClick={() => openEdit(r)} className="p-1.5 rounded hover:bg-amber-50 text-slate-400 hover:text-amber-600" title="Edit"><Edit2 className="h-4 w-4" /></button>
-                        <button onClick={() => remove(r)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600" title="Delete"><Trash2 className="h-4 w-4" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                  <tr><td colSpan={colSpan} className="text-center py-12 text-slate-400">No items. Add one or import a CSV.</td></tr>
+                ) : visible.map(r => {
+                  const isChecked = selectedIds.has(r.id)
+                  return (
+                    <tr key={r.id} className={`border-b hover:bg-slate-50 ${isChecked ? 'bg-amber-50' : ''}`}>
+                      {bulkMode && (
+                        <td className="px-3 py-3">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleSelect(r.id)}
+                            className="h-4 w-4 accent-amber-600 cursor-pointer"
+                          />
+                        </td>
+                      )}
+                      <td className="px-4 py-3 font-semibold text-amber-600">{r.code || '—'}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        <div className="flex items-center gap-2">
+                          {r.image
+                            ? <img src={r.image} alt="" className="h-8 w-8 rounded object-cover border border-slate-200 shrink-0" />
+                            : <span className="h-8 w-8 rounded bg-slate-100 border border-slate-200 shrink-0" />}
+                          {r.name}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3"><span className="text-xs bg-slate-100 text-slate-600 rounded px-2 py-0.5">{typeLabel(r.item_type)}</span></td>
+                      <td className="px-4 py-3 text-slate-600">{r.category || '—'}</td>
+                      <td className="px-4 py-3 text-right text-slate-700">{parseFloat(r.rental_price) > 0 ? formatCurrency(r.rental_price) : '—'}</td>
+                      <td className="px-4 py-3 text-right text-slate-600">{r.stock}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button onClick={() => openEdit(r)} className="p-1.5 rounded hover:bg-amber-50 text-slate-400 hover:text-amber-600" title="Edit"><Edit2 className="h-4 w-4" /></button>
+                          <button onClick={() => remove(r)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -244,6 +332,14 @@ export default function BridalInventory() {
         scopeLabel={filter === 'all' ? 'all items' : `${typeLabel(filter)} items`}
         onClose={() => setShowImgBulk(false)}
         onDone={() => { setShowImgBulk(false); load() }} />}
+
+      {showBulkEdit && (
+        <BulkEditModal
+          selectedIds={selectedIds}
+          onClose={() => setShowBulkEdit(false)}
+          onDone={() => { setShowBulkEdit(false); setSelectedIds(new Set()); load() }}
+        />
+      )}
     </div>
   )
 }
@@ -271,8 +367,6 @@ function ImportModal({ onClose, onSuccess }) {
     .map(r => ({
       code: r.code || '',
       name: r.name || '',
-      // Keep the raw value (may be blank or a label like "Maang Teeka"); the
-      // server normalizes it and falls back to the chosen importType.
       item_type: (r.item_type || r.type || '').trim(),
       category: r.category || '',
       rental_price: r.rental_price || r.rent || '',
@@ -350,9 +444,6 @@ function ImportModal({ onClose, onSuccess }) {
           <Download className="h-3.5 w-3.5" /> Download sample CSV
         </button>
 
-        {/* Trigger the hidden input via a real click handler. Safari won't open
-            the picker from a <label htmlFor> when the input is display:none, but
-            a programmatic .click() inside this user gesture works everywhere. */}
         <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
           onChange={(e) => parseFile(e.target.files?.[0])} />
         <div className="flex items-center gap-3">
@@ -363,7 +454,6 @@ function ImportModal({ onClose, onSuccess }) {
           <span className="text-sm text-slate-500 truncate">{fileName || 'No file chosen'}</span>
         </div>
 
-        {/* Fallback that needs no file dialog: paste CSV text directly */}
         <div className="mt-4 pt-4 border-t border-slate-100">
           <p className="text-xs font-medium text-slate-600 mb-1">…or paste CSV text (open your CSV in Excel/Numbers/Notes, select all, copy, paste here):</p>
           <textarea
@@ -401,16 +491,12 @@ function ImportModal({ onClose, onSuccess }) {
 }
 
 // ─── Bulk Image Upload by Code ───────────────────────────────────────
-// Attaches images to EXISTING inventory rows by matching each file's name
-// (minus extension) to an item `code`, e.g. B01.jpg → the item coded B01.
-// Reuses the existing upload + update endpoints and never creates or deletes
-// rows, so previously imported data is never disturbed.
 function BulkImageModal({ items, scopeLabel, onClose, onDone }) {
   const fileRef = useRef()
-  const [plan, setPlan] = useState(null)      // { matched, unmatched, ambiguous, oversize }
+  const [plan, setPlan] = useState(null)
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [result, setResult] = useState(null)  // { updated, failed }
+  const [result, setResult] = useState(null)
 
   const MAX_BYTES = 5 * 1024 * 1024
   const norm = (s) => String(s || '').trim().toUpperCase()
@@ -420,8 +506,6 @@ function BulkImageModal({ items, scopeLabel, onClose, onDone }) {
     const files = Array.from(fileList || [])
     if (!files.length) return
     setResult(null)
-    // Map code → item within the current scope; flag repeated codes as ambiguous
-    // so an image is never attached to the wrong item.
     const byCode = new Map(); const dupes = new Set()
     items.forEach((it) => {
       const c = norm(it.code)
@@ -518,6 +602,118 @@ function BulkImageModal({ items, scopeLabel, onClose, onDone }) {
               {busy ? 'Uploading…' : `Attach ${plan?.matched.length || ''}`}
             </button>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Bulk Edit Modal ─────────────────────────────────────────────────
+function BulkEditModal({ selectedIds, onClose, onDone }) {
+  const [fields, setFields] = useState({
+    item_type:    { enabled: false, value: 'set' },
+    category:     { enabled: false, value: '' },
+    rental_price: { enabled: false, value: '' },
+    stock:        { enabled: false, value: '' },
+  })
+  const [saving, setSaving] = useState(false)
+
+  const toggle = (k) => setFields(f => ({ ...f, [k]: { ...f[k], enabled: !f[k].enabled } }))
+  const setVal = (k, v) => setFields(f => ({ ...f, [k]: { ...f[k], value: v } }))
+
+  const apply = async () => {
+    const updates = {}
+    if (fields.item_type.enabled)    updates.item_type    = fields.item_type.value
+    if (fields.category.enabled)     updates.category     = fields.category.value
+    if (fields.rental_price.enabled) updates.rental_price = parseFloat(fields.rental_price.value) || 0
+    if (fields.stock.enabled)        updates.stock        = parseInt(fields.stock.value, 10) || 0
+    if (!Object.keys(updates).length) { toast.error('Enable at least one field to update'); return }
+    setSaving(true)
+    try {
+      const { data } = await bridalAPI.bulkUpdateInventory([...selectedIds], updates)
+      toast.success(`Updated ${data.updated} item${data.updated !== 1 ? 's' : ''}`)
+      onDone()
+    } catch { toast.error('Bulk update failed') }
+    finally { setSaving(false) }
+  }
+
+  const row = "flex items-center gap-3"
+  const labelCls = "text-sm font-medium text-slate-700 w-28 shrink-0"
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-bold text-slate-800">Bulk Edit</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
+        </div>
+        <p className="text-xs text-slate-500 mb-4">
+          {selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected. Check each field you want to change — unchecked fields are left untouched.
+        </p>
+
+        <div className="space-y-3">
+          {/* Type */}
+          <div className={row}>
+            <input type="checkbox" id="be-type" checked={fields.item_type.enabled} onChange={() => toggle('item_type')} className="h-4 w-4 accent-amber-600 cursor-pointer shrink-0" />
+            <label htmlFor="be-type" className={labelCls}>Type</label>
+            <select
+              disabled={!fields.item_type.enabled}
+              value={fields.item_type.value}
+              onChange={e => setVal('item_type', e.target.value)}
+              className={inp + (!fields.item_type.enabled ? ' opacity-40' : '')}
+            >
+              {ITEM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+
+          {/* Category */}
+          <div className={row}>
+            <input type="checkbox" id="be-cat" checked={fields.category.enabled} onChange={() => toggle('category')} className="h-4 w-4 accent-amber-600 cursor-pointer shrink-0" />
+            <label htmlFor="be-cat" className={labelCls}>Category</label>
+            <input
+              disabled={!fields.category.enabled}
+              value={fields.category.value}
+              onChange={e => setVal('category', e.target.value)}
+              placeholder="e.g. Kundan"
+              className={inp + (!fields.category.enabled ? ' opacity-40' : '')}
+            />
+          </div>
+
+          {/* Rental Price */}
+          <div className={row}>
+            <input type="checkbox" id="be-price" checked={fields.rental_price.enabled} onChange={() => toggle('rental_price')} className="h-4 w-4 accent-amber-600 cursor-pointer shrink-0" />
+            <label htmlFor="be-price" className={labelCls}>Rental Price</label>
+            <input
+              type="number" min="0" step="0.01"
+              disabled={!fields.rental_price.enabled}
+              value={fields.rental_price.value}
+              onChange={e => setVal('rental_price', e.target.value)}
+              placeholder="0.00"
+              className={inp + (!fields.rental_price.enabled ? ' opacity-40' : '')}
+            />
+          </div>
+
+          {/* Stock */}
+          <div className={row}>
+            <input type="checkbox" id="be-stock" checked={fields.stock.enabled} onChange={() => toggle('stock')} className="h-4 w-4 accent-amber-600 cursor-pointer shrink-0" />
+            <label htmlFor="be-stock" className={labelCls}>Stock</label>
+            <input
+              type="number" min="0"
+              disabled={!fields.stock.enabled}
+              value={fields.stock.value}
+              onChange={e => setVal('stock', e.target.value)}
+              placeholder="1"
+              className={inp + (!fields.stock.enabled ? ' opacity-40' : '')}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm">Cancel</button>
+          <button onClick={apply} disabled={saving}
+            className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-semibold">
+            {saving ? 'Saving…' : 'Apply Changes'}
+          </button>
         </div>
       </div>
     </div>

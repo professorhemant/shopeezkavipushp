@@ -145,6 +145,28 @@ const bulkImportInventory = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// PUT /bridal/inventory/bulk-update — update shared fields across multiple items
+const bulkUpdateInventory = async (req, res, next) => {
+  try {
+    const { ids, updates } = req.body;
+    if (!Array.isArray(ids) || !ids.length) {
+      return res.status(400).json({ success: false, message: 'ids array is required' });
+    }
+    const allowed = ['item_type', 'category', 'rental_price', 'stock'];
+    const patch = {};
+    for (const k of allowed) {
+      if (updates[k] !== undefined) patch[k] = updates[k];
+    }
+    if (!Object.keys(patch).length) {
+      return res.status(400).json({ success: false, message: 'No valid fields to update' });
+    }
+    const [count] = await BridalInventory.update(patch, {
+      where: { id: { [Op.in]: ids }, firm_id: req.firmId },
+    });
+    res.json({ success: true, updated: count });
+  } catch (err) { next(err); }
+};
+
 // ─── Bridal Bookings ─────────────────────────────────────────────────
 
 const listBookings = async (req, res, next) => {
@@ -338,6 +360,7 @@ module.exports = {
   deleteAllInventory,
   deleteInventory,
   bulkImportInventory,
+  bulkUpdateInventory,
   listBookings,
   createBooking,
   updateBooking,

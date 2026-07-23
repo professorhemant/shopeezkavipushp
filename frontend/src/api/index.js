@@ -294,6 +294,7 @@ export const bridalAPI = {
   deleteInventory: (id) => api.delete(`/bridal/inventory/${id}`),
   deleteAllInventory: (type) => api.delete('/bridal/inventory', { params: type && type !== 'all' ? { type } : {} }),
   bulkImportInventory: (items) => api.post('/bridal/inventory/bulk-import', { items }),
+  bulkUpdateInventory: (ids, updates) => api.put('/bridal/inventory/bulk-update', { ids, updates }),
   // Bookings
   listBookings: () => api.get('/bridal/bookings'),
   createBooking: (data) => api.post('/bridal/bookings', data),
