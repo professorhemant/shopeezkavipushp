@@ -1,0 +1,310 @@
+import { useEffect, useState, useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  Plus, Search, Download, Printer, Edit2, XCircle, Trash2,
+  FileText, ChevronLeft, ChevronRight, Filter, Eye, MessageCircle
+} from 'lucide-react'
+import toast from 'react-hot-toast'
+import { saleAPI, whatsappAPI } from '../../api'
+import { formatCurrency, formatDate, getPaymentStatusColor } from '../../utils/formatters'
+import LoadingSpinner from '../../components/common/LoadingSpinner'
+import EditOtpModal from '../../components/common/EditOtpModal'
+
+const STATUS_OPTIONS = ['', 'paid', 'partial', 'unpaid', 'cancelled']
+
+export default function Invoices() {
+  const navigate = useNavigate()
+  const [invoices, setInvoices] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [summary, setSummary] = useState({ count: 0, total: 0, received: 0, balance: 0 })
+  const [otpModal, setOtpModal] = useState({ open: false, action: null, invoiceId: null })
+
+  const fetchInvoices = useCallback(async () => {
+    setLoading(true)
+    try {
+      const { data } = await saleAPI.getAll({
+        search, from_date: startDate, to_date: endDate,
+        status: statusFilter, page, limit: 20, include_items: true, include_payments: true,
+      })
+      const items = data.data || data.sales || data.results || []
+      setInvoices(items)
+      setTotalPages(data.pagination?.pages || data.total_pages || 1)
+      const active = items.filter((i) => i.status !== 'cancelled')
+      const modeAgg = { cash: 0, card: 0, upi: 0, cheque: 0, other: 0 }
+      active.forEach((inv) => {
+        const payments = inv.payments || []
+        if (payments.length > 0) {
+          payments.forEach((p) => {
+            const m = p.payment_mode || 'other'
+            if (m === 'cash') modeAgg.cash += parseFloat(p.amount || 0)
+            else if (m === 'card') modeAgg.card += parseFloat(p.amount || 0)
+            else if (m === 'upi' || m === 'online') modeAgg.upi += parseFloat(p.amount || 0)
+            else if (m === 'cheque') modeAgg.cheque += parseFloat(p.amount || 0)
+            else modeAgg.other += parseFloat(p.amount || 0)
+          })
+        } else if (parseFloat(inv.paid_amount) > 0) {
+          const m = inv.payment_mode || 'other'
+          if (m === 'cash') modeAgg.cash += parseFloat(inv.paid_amount || 0)
+          else if (m === 'card') modeAgg.card += parseFloat(inv.paid_amount || 0)
+          else if (m === 'upi' || m === 'online') modeAgg.upi += parseFloat(inv.paid_amount || 0)
+          else if (m === 'cheque') modeAgg.cheque += parseFloat(inv.paid_amount || 0)
+          else modeAgg.other += parseFloat(inv.paid_amount || 0)
+        }
+      })
+      setSummary({
+        count: data.pagination?.total || data.count || items.length,
+        total:    active.reduce((s, i) => s + parseFloat(i.total        || 0), 0),
+        received: active.reduce((s, i) => s + parseFloat(i.paid_amount  || 0), 0),
+        balance:  active.reduce((s, i) => s + parseFloat(i.balance      || 0), 0),
+        modeAgg,
+      })
+    } catch {
+      toast.error('Failed to load invoices')
+    } finally {
+      setLoading(false)
+    }
+  }, [search, startDate, endDate, statusFilter, page])
+
+  useEffect(() => { fetchInvoices() }, [fetchInvoices])
+
+  const handleDownloadPDF = async (id) => {
+    try {
+      const { data } = await saleAPI.generatePDF(id)
+      const url = URL.createObjectURL(new Blob([data], { type: 'application/pdf' }))
+      const a = document.createElement('a'); a.href = url; a.download = `invoice-${id}.pdf`; a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Failed to generate PDF')
+    }
+  }
+
+  /**
+   * Hand the invoice to WhatsApp for the customer on it.
+   *
+   * The server builds the message text (items, total, balance, payment details)
+   * and we open wa.me pre-filled with it. WhatsApp cannot be handed a file
+   * through a link, so this sends the invoice as a formatted message, not as
+   * the PDF itself — use Download alongside it if the customer wants the file.
+   *
+   * Invoices raised without a mobile number are common, so rather than failing
+   * we ask for one and pass it through for this send.
+   */
+  const handleSendWhatsApp = async (inv) => {
+    let phone = inv.customer?.phone || inv.customer_phone || ''
+    if (!phone) {
+      phone = window.prompt(`No mobile number on ${inv.invoice_no}.\nEnter the customer's WhatsApp number to send it:`, '')
+      if (!phone) return
+    }
+    try {
+      const { data } = await whatsappAPI.sendInvoice(inv.id, { phone })
+      const text = data?.message_text
+      const to   = data?.phone || phone
+      if (!text || !to) { toast.error('Could not build the WhatsApp message'); return }
+      // Normalise to an international number: wa.me rejects local formats.
+      const digits = String(to).replace(/\D/g, '')
+      const intl   = digits.startsWith('91') ? digits : `91${digits.replace(/^0/, '')}`
+      window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to send on WhatsApp')
+    }
+  }
+
+  const handleCancel = async (id) => {
+    if (!window.confirm('Cancel this invoice?')) return
+    try {
+      await saleAPI.cancel(id)
+      toast.success('Invoice cancelled')
+      fetchInvoices()
+    } catch {
+      toast.error('Failed to cancel invoice')
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await saleAPI.delete(id)
+      toast.success('Invoice deleted')
+      fetchInvoices()
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to delete invoice')
+    }
+  }
+
+  return (
+    <>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Sales Invoices</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{summary.count} invoices</p>
+        </div>
+        <Link to="/billing/invoices/create" className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+          <Plus className="h-4 w-4" /> New Invoice
+        </Link>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+        <div className="flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input type="text" placeholder="Search invoice no, customer..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+          </div>
+          <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1) }}
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+          <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1) }}
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
+            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
+            <option value="">All Status</option>
+            <option value="paid">Paid</option>
+            <option value="partial">Partial</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          {(search || startDate || endDate || statusFilter) && (
+            <button onClick={() => { setSearch(''); setStartDate(''); setEndDate(''); setStatusFilter(''); setPage(1) }}
+              className="text-sm text-slate-500 hover:text-slate-700 px-3 py-2">Clear</button>
+          )}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-16"><LoadingSpinner size="lg" /></div>
+        ) : invoices.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+            <FileText className="h-12 w-12 mb-3 text-gray-300" />
+            <p className="text-base font-medium text-slate-500">No invoices found</p>
+            <Link to="/billing/invoices/create" className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Create First Invoice</Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
+                <tr>
+                  <th className="px-4 py-3 text-left">Invoice No</th>
+                  <th className="px-4 py-3 text-left">Date</th>
+                  <th className="px-4 py-3 text-left">Customer</th>
+                  <th className="px-4 py-3 text-right">Items</th>
+                  <th className="px-4 py-3 text-right">Total</th>
+                  <th className="px-4 py-3 text-right">Paid</th>
+                  <th className="px-4 py-3 text-right">Balance</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => {
+                  const isCancelled = inv.status === 'cancelled'
+                  return (
+                  <tr key={inv.id} className={`border-b ${isCancelled ? 'bg-red-50' : 'hover:bg-slate-50'}`}>
+                    <td className="px-4 py-3">
+                      <Link to={`/billing/invoices/${inv.id}`} className={`font-medium hover:underline ${isCancelled ? 'text-red-500 line-through' : 'text-amber-600'}`}>
+                        {inv.invoice_no || inv.invoice_number}
+                      </Link>
+                    </td>
+                    <td className={`px-4 py-3 ${isCancelled ? 'text-red-400 line-through' : 'text-gray-600'}`}>{formatDate(inv.invoice_date || inv.date)}</td>
+                    <td className={`px-4 py-3 ${isCancelled ? 'text-red-500' : 'text-slate-800'}`}>{inv.customer_name || inv.customer?.name || 'Walk-in'}</td>
+                    <td className={`px-4 py-3 text-xs ${isCancelled ? 'text-red-400' : 'text-slate-600'}`}>
+                      {(inv.items || []).length === 0 ? '-' : (inv.items || []).map((it) => it.barcode || it.product?.barcode || it.product?.sku || it.product_name || '-').join(', ')}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-500 line-through' : 'text-slate-800'}`}>{formatCurrency(inv.total)}</td>
+                    <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-400 line-through' : 'text-green-700'}`}>{formatCurrency(inv.paid_amount)}</td>
+                    <td className={`px-4 py-3 text-right font-medium ${isCancelled ? 'text-red-400 line-through' : 'text-red-600'}`}>{formatCurrency(inv.balance)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPaymentStatusColor(isCancelled ? 'cancelled' : (inv.payment_status || inv.status))}`}>
+                        {isCancelled ? 'cancelled' : (inv.payment_status || inv.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button onClick={() => navigate(`/billing/invoices/${inv.id}`)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="View Invoice">
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleDownloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="Print PDF">
+                          <Printer className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleDownloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600" title="Download">
+                          <Download className="h-4 w-4" />
+                        </button>
+                        {!isCancelled && (
+                          <button onClick={() => handleSendWhatsApp(inv)} className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600" title="Send on WhatsApp">
+                            <MessageCircle className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button onClick={() => setOtpModal({ open: true, action: 'edit', invoiceId: inv.id })} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600" title="Edit">
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        {inv.status !== 'cancelled' && (
+                          <button onClick={() => handleCancel(inv.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600" title="Cancel">
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button onClick={() => setOtpModal({ open: true, action: 'delete', invoiceId: inv.id })} className="p-1.5 rounded-lg hover:bg-red-100 text-red-400 hover:text-red-700" title="Delete permanently">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  )})}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Summary */}
+        {!loading && invoices.length > 0 && (
+          <div className="border-t border-slate-100 px-4 py-3 bg-slate-50">
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div><span className="text-slate-500">Total Invoices:</span> <span className="font-semibold text-slate-800">{summary.count}</span></div>
+              <div><span className="text-slate-500">Total Amount:</span> <span className="font-semibold text-slate-800">{formatCurrency(summary.total)}</span></div>
+              <div className="border-l border-slate-200 pl-4 flex flex-wrap gap-3">
+                <span className="text-slate-500">Received <span className="font-semibold text-green-700">{formatCurrency(summary.received)}</span> —</span>
+                {summary.modeAgg?.cash  > 0 && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Cash: {formatCurrency(summary.modeAgg.cash)}</span>}
+                {summary.modeAgg?.card  > 0 && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Card: {formatCurrency(summary.modeAgg.card)}</span>}
+                {summary.modeAgg?.upi   > 0 && <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">Online: {formatCurrency(summary.modeAgg.upi)}</span>}
+                {summary.modeAgg?.cheque > 0 && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Cheque: {formatCurrency(summary.modeAgg.cheque)}</span>}
+                {summary.modeAgg?.other  > 0 && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">Other: {formatCurrency(summary.modeAgg.other)}</span>}
+              </div>
+              <div><span className="text-slate-500">Balance:</span> <span className="font-semibold text-red-600">{formatCurrency(summary.balance)}</span></div>
+            </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+            <p className="text-sm text-slate-500">Page {page} of {totalPages}</p>
+            <div className="flex gap-2">
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronLeft className="h-4 w-4" /></button>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronRight className="h-4 w-4" /></button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {otpModal.open && (
+      <EditOtpModal
+        actionLabel={otpModal.action === 'delete' ? 'Delete' : 'Edit'}
+        onVerified={() => {
+          const { action, invoiceId } = otpModal
+          setOtpModal({ open: false, action: null, invoiceId: null })
+          if (action === 'delete') handleDelete(invoiceId)
+          else navigate(`/billing/invoices/${invoiceId}/edit`)
+        }}
+        onClose={() => setOtpModal({ open: false, action: null, invoiceId: null })}
+      />
+    )}
+    </>
+  )
+}

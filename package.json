@@ -1,0 +1,16 @@
+{
+  "name": "shopeezkavipushp",
+  "version": "1.0.0",
+  "description": "Complete Billing & ERP Software for Indian MSMEs",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev": "npx concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "start": "cd backend && npm start",
+    "setup:db": "mysql -u root -p < database/schema.sql",
+    "seed": "cd backend && npm run seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,0 +1,785 @@
+'use strict';
+
+const { Op, fn, col, literal } = require('sequelize');
+const { Sale, SaleItem, Customer, Product, Payment, Firm, sequelize } = require('../models');
+const { generateInvoiceNumber, generatePDF } = require('../utils/invoiceUtils');
+const { calculateGST } = require('../utils/gstUtils');
+
+const paginate = (q) => {
+  const page = Math.max(1, parseInt(q.page) || 1);
+  const limit = Math.min(500, parseInt(q.limit) || 20);
+  return { limit, offset: (page - 1) * limit, page };
+};
+
+/**
+ * GET /sales
+ */
+const getAll = async (req, res, next) => {
+  try {
+    const { limit, offset, page } = paginate(req.query);
+    const { search, customer_id, status, from_date, to_date, include_items, include_payments } = req.query;
+
+    const where = { firm_id: req.firmId };
+    if (customer_id) where.customer_id = customer_id;
+    if (status) where.status = status;
+    if (from_date && to_date) where.invoice_date = { [Op.between]: [new Date(from_date), new Date(to_date)] };
+    if (search) {
+      where[Op.or] = [
+        { invoice_no: { [Op.like]: `%${search}%` } },
+        { customer_name: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const includes = [{ model: Customer, as: 'customer', attributes: ['id', 'name', 'phone', 'email'] }];
+    if (include_items === 'true') {
+      includes.push({
+        model: SaleItem,
+        as: 'items',
+        attributes: ['id', 'product_name', 'barcode'],
+        include: [{ model: Product, as: 'product', attributes: ['barcode', 'sku'] }],
+      });
+    }
+    if (include_payments === 'true') {
+      includes.push({
+        model: Payment,
+        as: 'payments',
+        attributes: ['id', 'payment_mode', 'amount'],
+      });
+    }
+
+    const { count, rows } = await Sale.findAndCountAll({
+      where,
+      include: includes,
+      order: [['invoice_date', 'DESC'], ['createdAt', 'DESC']],
+      limit,
+      offset,
+      distinct: true,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: rows,
+      pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /sales/:id
+ */
+const getOne = async (req, res, next) => {
+  try {
+    const sale = await Sale.findOne({
+      where: { id: req.params.id, firm_id: req.firmId },
+      include: [
+        { model: Customer, as: 'customer' },
+        { model: SaleItem, as: 'items' },
+        { model: Payment, as: 'payments' },
+      ],
+    });
+    if (!sale) return res.status(404).json({ success: false, message: 'Sale not found.' });
+    return res.status(200).json({ success: true, data: sale });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /sales/next-invoice-no
+ */
+const getNextInvoiceNo = async (req, res, next) => {
+  try {
+    const firm = await Firm.findByPk(req.firmId);
+    const counter = (parseInt(firm.invoice_counter) || 0) + 1;
+    const prefix = firm.invoice_prefix || 'INV';
+    const year = new Date().getFullYear();
+    const invoiceNo = generateInvoiceNumber(prefix, counter, year);
+    return res.status(200).json({ success: true, data: { invoice_no: invoiceNo, counter } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /sales
+ * Sale model fields: total, balance, subtotal, discount_amount, cgst, sgst, igst
+ * SaleItem model fields: unit_price, total, discount_amount, taxable_amount, cgst, sgst, igst
+ * Product model uses: sale_price, stock
+ */
+const create = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const firmId = req.firmId;
+    const { customer_id, invoice_date, items, discount_amount, is_interstate, notes, payment, payments: paymentsArr } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'items are required.' });
+    }
+
+    // Generate invoice number atomically
+    const firm = await Firm.findByPk(firmId, { transaction: t, lock: true });
+    const counter = (parseInt(firm.invoice_counter) || 0) + 1;
+    const prefix = firm.invoice_prefix || 'INV';
+    const year = new Date().getFullYear();
+    const invoiceNo = generateInvoiceNumber(prefix, counter, year);
+    await firm.update({ invoice_counter: counter }, { transaction: t });
+
+    let subtotal = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
+    const processedItems = [];
+
+    for (const item of items) {
+      let product = null;
+      if (item.product_id) {
+        product = await Product.findOne({ where: { id: item.product_id, firm_id: firmId }, transaction: t });
+        if (!product) throw new Error(`Product ${item.product_id} not found.`);
+      }
+
+      const qty = parseFloat(item.quantity);
+      const rate = parseFloat(item.rate || item.unit_price || product?.sale_price || 0);
+      const itemDiscount = parseFloat(item.discount_amount || 0);
+      const taxRate = parseFloat(item.tax_rate || product?.tax_rate || 0);
+      // Prices are GST-inclusive: an item marked 2150 is what the customer pays,
+      // and CGST/SGST are back-calculated out of it. All three billing screens
+      // (POS, CreateInvoice, CreateInvoiceManual) price this way and none send
+      // the flag, so inclusive is the default; pass false to opt out.
+      const isInclusive = item.is_tax_inclusive !== false;
+
+      const baseAmount = qty * rate - itemDiscount;
+      const gst = calculateGST(baseAmount, taxRate, isInclusive, is_interstate || false);
+
+      subtotal += gst.taxableAmount;
+      totalCGST += gst.cgst;
+      totalSGST += gst.sgst;
+      totalIGST += gst.igst;
+
+      processedItems.push({
+        product_id: product?.id || null,
+        product_name: item.product_name || product?.name || 'Item',
+        hsn_code: item.hsn_code || product?.hsn_code || null,
+        barcode: item.barcode || product?.barcode || null,
+        quantity: qty,
+        unit_price: rate,
+        discount_amount: itemDiscount,
+        taxable_amount: gst.taxableAmount,
+        tax_rate: taxRate,
+        cgst_rate: is_interstate ? 0 : taxRate / 2,
+        sgst_rate: is_interstate ? 0 : taxRate / 2,
+        igst_rate: is_interstate ? taxRate : 0,
+        cgst: gst.cgst,
+        sgst: gst.sgst,
+        igst: gst.igst,
+        total: gst.total,
+      });
+
+      // Deduct stock only for linked products
+      if (product && product.track_inventory) {
+        const newStock = parseFloat(product.stock || 0) - qty;
+        if (newStock < 0) throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+        const stockUpdates = { stock: newStock };
+        if (newStock <= 0) stockUpdates.is_active = false; // auto-archive when sold out
+        await product.update(stockUpdates, { transaction: t });
+      }
+    }
+
+    const discountAmt = parseFloat(discount_amount || 0);
+    const taxTotal = totalCGST + totalSGST + totalIGST;
+    const grandTotal = subtotal + taxTotal - discountAmt;
+
+    // Support split payments (paymentsArr) or single payment
+    let paymentRecords = [];
+    if (Array.isArray(paymentsArr) && paymentsArr.length > 0) {
+      paymentRecords = paymentsArr.filter(p => parseFloat(p.amount || 0) > 0);
+    } else if (payment && parseFloat(payment.amount || 0) > 0) {
+      paymentRecords = [payment];
+    }
+    const paidAmount = paymentRecords.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+    const primaryMode = paymentRecords.length > 1 ? 'split' : (paymentRecords[0]?.mode || 'cash');
+
+    const directPayment = Math.min(paidAmount, grandTotal);
+    const excessPayment = Math.max(0, paidAmount - grandTotal);
+    const balance = Math.max(0, grandTotal - directPayment);
+
+    // Fetch customer snapshot
+    let customerName = null;
+    let customerPhone = null;
+    let customerGstin = null;
+    let previousBalance = 0;
+    let customer = null;
+    let linkedCustomerId = customer_id || null;
+
+    const typedName  = (req.body.customer_name || '').trim();
+    const typedPhone = String(req.body.mobile || req.body.customer_phone || '').trim();
+
+    // A bill typed at the counter carries a number but no customer record, so
+    // the sale was never tied to anyone: no purchase history, and previous
+    // balance always read zero. Attach it to a customer keyed on the phone —
+    // the closest thing to a natural key for a walk-in — creating the record
+    // the first time we see that number.
+    if (!linkedCustomerId && typedPhone) {
+      customer = await Customer.findOne({
+        where: { firm_id: firmId, phone: typedPhone },
+        transaction: t,
+      });
+      if (!customer) {
+        customer = await Customer.create({
+          firm_id: firmId,
+          name: typedName || 'Walk-in',
+          phone: typedPhone,
+        }, { transaction: t });
+      } else if (typedName && customer.name === 'Walk-in') {
+        // Same number seen before without a name — take the real one now.
+        await customer.update({ name: typedName }, { transaction: t });
+      }
+      linkedCustomerId = customer.id;
+    }
+
+    if (linkedCustomerId) {
+      if (!customer) customer = await Customer.findByPk(linkedCustomerId, { transaction: t });
+      if (customer) {
+        customerName = customer.name;
+        customerPhone = customer.phone;
+        customerGstin = customer.gstin;
+        // Outstanding = opening balance + all previous unpaid invoice balances
+        const prevSalesBalance = await Sale.sum('balance', {
+          where: {
+            customer_id: customer.id,
+            firm_id: firmId,
+            status: { [Op.notIn]: ['cancelled', 'returned'] },
+          },
+          transaction: t,
+        }) || 0;
+        previousBalance = parseFloat(customer.opening_balance || 0) + parseFloat(prevSalesBalance || 0);
+      }
+    }
+
+    const sale = await Sale.create({
+      firm_id: firmId,
+      customer_id: linkedCustomerId,
+      customer_name: customerName || req.body.customer_name || 'Walk-in',
+      // Fall back to the number typed on the bill. Walk-in sales have no linked
+      // Customer row, so without this the mobile entered on the invoice screen
+      // was dropped — leaving the PDF's "Mobile:" blank and WhatsApp sending
+      // impossible for exactly the invoices raised at the counter.
+      customer_phone: customerPhone || req.body.mobile || req.body.customer_phone || null,
+      customer_gstin: customerGstin || null,
+      invoice_no: invoiceNo,
+      invoice_date: invoice_date || new Date(),
+      subtotal,
+      discount_amount: discountAmt,
+      taxable_amount: subtotal,
+      cgst: totalCGST,
+      sgst: totalSGST,
+      igst: totalIGST,
+      total: grandTotal,
+      paid_amount: directPayment,
+      balance,
+      previous_balance: previousBalance,
+      is_interstate: is_interstate || false,
+      payment_mode: primaryMode,
+      payment_status: directPayment >= grandTotal ? 'paid' : directPayment > 0 ? 'partial' : 'unpaid',
+      status: 'confirmed',
+      notes: notes || null,
+      created_by: req.userId,
+    }, { transaction: t });
+
+    // Create sale items
+    for (const item of processedItems) {
+      await SaleItem.create({ sale_id: sale.id, ...item }, { transaction: t });
+    }
+
+    // Create payment records (one per mode for split payments)
+    for (const p of paymentRecords) {
+      await Payment.create({
+        firm_id: firmId,
+        reference_type: 'sale',
+        sale_id: sale.id,
+        customer_id: linkedCustomerId,
+        payment_date: invoice_date || new Date(),
+        amount: parseFloat(p.amount),
+        payment_mode: p.mode || 'cash',
+        reference_no: p.reference_no || null,
+        bank_name: p.bank_name || null,
+        cheque_date: p.cheque_date || null,
+        notes: p.notes || null,
+        created_by: req.userId,
+      }, { transaction: t });
+    }
+
+    // Apply excess payment to previous balances (opening_balance + old unpaid invoices)
+    if (excessPayment > 0 && linkedCustomerId && customer) {
+      let remaining = excessPayment;
+
+      // 1. Clear oldest unpaid/partial previous invoices first
+      const oldSales = await Sale.findAll({
+        where: {
+          customer_id: linkedCustomerId,
+          firm_id: firmId,
+          balance: { [Op.gt]: 0 },
+          status: { [Op.notIn]: ['cancelled', 'returned'] },
+        },
+        order: [['invoice_date', 'ASC']],
+        transaction: t,
+      });
+      for (const oldSale of oldSales) {
+        if (remaining <= 0) break;
+        const oldBal = parseFloat(oldSale.balance);
+        const apply = Math.min(remaining, oldBal);
+        const newBal = parseFloat((oldBal - apply).toFixed(2));
+        await oldSale.update({
+          balance: newBal,
+          paid_amount: parseFloat((parseFloat(oldSale.paid_amount) + apply).toFixed(2)),
+          payment_status: newBal <= 0 ? 'paid' : 'partial',
+        }, { transaction: t });
+        remaining -= apply;
+      }
+
+      // 2. Reduce opening_balance with any remaining excess
+      if (remaining > 0) {
+        const openingBal = parseFloat(customer.opening_balance || 0);
+        const newOpeningBal = Math.max(0, parseFloat((openingBal - remaining).toFixed(2)));
+        await customer.update({ opening_balance: newOpeningBal }, { transaction: t });
+      }
+    }
+
+    await t.commit();
+
+    const created = await Sale.findByPk(sale.id, {
+      include: [
+        { model: Customer, as: 'customer' },
+        { model: SaleItem, as: 'items' },
+      ],
+    });
+
+    return res.status(201).json({ success: true, message: 'Sale created.', data: created });
+  } catch (err) {
+    console.error('Sale create ERROR:', err.message, '|', err.parent?.message, '|', err.sql?.substring(0, 200));
+    await t.rollback();
+    next(err);
+  }
+};
+
+/**
+ * PUT /sales/:id  (edit an existing invoice)
+ *
+ * Re-runs the same pipeline as create(): stock from the old line items is
+ * restored, the incoming items are re-priced and re-taxed, and stock is
+ * deducted again from the new quantities. A shallow field copy is not enough —
+ * `items` is not a Sale column, and the client sends `grand_total` where the
+ * column is `total`, so a plain update would leave the invoice internally
+ * inconsistent.
+ *
+ * Deliberately left alone:
+ *  - `invoice_no` / `invoice_date` are immutable, so an edit cannot re-date an
+ *    invoice or break the firm's invoice sequence.
+ *  - Payment rows. They may have been recorded later via addPayment on their own
+ *    dates, and the Day Book computes off live Payment data — destroying and
+ *    recreating them here would silently rewrite past days. paid_amount is
+ *    therefore recomputed from the payments that already exist; to change what
+ *    was paid, use POST /sales/:id/payment.
+ */
+const update = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const sale = await Sale.findOne({
+      where: { id: req.params.id, firm_id: req.firmId },
+      include: [{ model: SaleItem, as: 'items' }],
+      transaction: t,
+    });
+    if (!sale) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Sale not found.' });
+    }
+    // Cancelled/returned invoices have already had their stock restored;
+    // re-editing them would double-count inventory.
+    if (['cancelled', 'returned'].includes(sale.status)) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: `Cannot edit a ${sale.status} invoice.` });
+    }
+
+    const { items, discount_amount, customer_id, notes } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'At least one item is required.' });
+    }
+
+    // The client omits is_interstate on edit; keep whatever the invoice was
+    // raised under so GST does not silently flip between IGST and CGST/SGST.
+    const isInterstate = typeof req.body.is_interstate === 'boolean'
+      ? req.body.is_interstate
+      : Boolean(sale.is_interstate);
+
+    // 1. Give back the stock the current line items are holding. A product that
+    //    was auto-archived on sell-out comes back on sale once it has stock again.
+    for (const oldItem of (sale.items || [])) {
+      if (!oldItem.product_id) continue;
+      const product = await Product.findByPk(oldItem.product_id, { transaction: t });
+      if (product && product.track_inventory) {
+        const restoredStock = parseFloat(product.stock || 0) + parseFloat(oldItem.quantity);
+        const stockUpdates = { stock: restoredStock };
+        if (restoredStock > 0) stockUpdates.is_active = true; // un-archive: back in stock
+        await product.update(stockUpdates, { transaction: t });
+      }
+    }
+
+    // 2. Re-price the incoming items and take stock for the new quantities.
+    //    Mirrors the loop in create() — worth factoring into a shared helper.
+    let subtotal = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
+    const processedItems = [];
+
+    for (const item of items) {
+      let product = null;
+      if (item.product_id) {
+        product = await Product.findOne({ where: { id: item.product_id, firm_id: req.firmId }, transaction: t });
+        if (!product) throw new Error(`Product ${item.product_id} not found.`);
+      }
+
+      const qty = parseFloat(item.quantity);
+      const rate = parseFloat(item.rate || item.unit_price || product?.sale_price || 0);
+      const itemDiscount = parseFloat(item.discount_amount || 0);
+      const taxRate = parseFloat(item.tax_rate || product?.tax_rate || 0);
+      const isInclusive = item.is_tax_inclusive !== false; // GST-inclusive, as in create()
+
+      const baseAmount = qty * rate - itemDiscount;
+      const gst = calculateGST(baseAmount, taxRate, isInclusive, isInterstate);
+
+      subtotal += gst.taxableAmount;
+      totalCGST += gst.cgst;
+      totalSGST += gst.sgst;
+      totalIGST += gst.igst;
+
+      processedItems.push({
+        product_id: product?.id || null,
+        product_name: item.product_name || product?.name || 'Item',
+        hsn_code: item.hsn_code || product?.hsn_code || null,
+        barcode: item.barcode || product?.barcode || null,
+        quantity: qty,
+        unit_price: rate,
+        discount_amount: itemDiscount,
+        taxable_amount: gst.taxableAmount,
+        tax_rate: taxRate,
+        cgst_rate: isInterstate ? 0 : taxRate / 2,
+        sgst_rate: isInterstate ? 0 : taxRate / 2,
+        igst_rate: isInterstate ? taxRate : 0,
+        cgst: gst.cgst,
+        sgst: gst.sgst,
+        igst: gst.igst,
+        total: gst.total,
+      });
+
+      if (product && product.track_inventory) {
+        const newStock = parseFloat(product.stock || 0) - qty;
+        if (newStock < 0) throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+        const stockUpdates = { stock: newStock };
+        if (newStock <= 0) stockUpdates.is_active = false; // auto-archive when sold out
+        await product.update(stockUpdates, { transaction: t });
+      }
+    }
+
+    // 3. Swap the line items wholesale — row ids are not stable across an edit.
+    await SaleItem.destroy({ where: { sale_id: sale.id }, transaction: t });
+    for (const item of processedItems) {
+      await SaleItem.create({ sale_id: sale.id, ...item }, { transaction: t });
+    }
+
+    const discountAmt = parseFloat(discount_amount || 0);
+    const taxTotal = totalCGST + totalSGST + totalIGST;
+    const grandTotal = subtotal + taxTotal - discountAmt;
+
+    // 4. paid_amount comes from the payments on record, not from the request.
+    const paidAmount = await Payment.sum('amount', {
+      where: { sale_id: sale.id, reference_type: 'sale' },
+      transaction: t,
+    }) || 0;
+    const directPayment = Math.min(parseFloat(paidAmount), grandTotal);
+    const balance = Math.max(0, parseFloat((grandTotal - directPayment).toFixed(2)));
+
+    // 5. Outstanding carried in from elsewhere, excluding this invoice.
+    const nextCustomerId = customer_id !== undefined ? (customer_id || null) : sale.customer_id;
+    let customerName = sale.customer_name;
+    let customerPhone = sale.customer_phone;
+    let customerGstin = sale.customer_gstin;
+    let previousBalance = 0;
+    if (nextCustomerId) {
+      const customer = await Customer.findByPk(nextCustomerId, { transaction: t });
+      if (customer) {
+        customerName = customer.name;
+        customerPhone = customer.phone;
+        customerGstin = customer.gstin;
+        const prevSalesBalance = await Sale.sum('balance', {
+          where: {
+            customer_id: customer.id,
+            firm_id: req.firmId,
+            id: { [Op.ne]: sale.id },
+            status: { [Op.notIn]: ['cancelled', 'returned'] },
+          },
+          transaction: t,
+        }) || 0;
+        previousBalance = parseFloat(customer.opening_balance || 0) + parseFloat(prevSalesBalance || 0);
+      }
+    } else {
+      customerName = req.body.customer_name || 'Walk-in';
+      // Keep the number typed on the bill, and don't wipe an existing one when
+      // the edit screen submits without it.
+      customerPhone = req.body.mobile || req.body.customer_phone || sale.customer_phone || null;
+      customerGstin = null;
+    }
+
+    await sale.update({
+      customer_id: nextCustomerId,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      customer_gstin: customerGstin,
+      subtotal,
+      discount_amount: discountAmt,
+      taxable_amount: subtotal,
+      cgst: totalCGST,
+      sgst: totalSGST,
+      igst: totalIGST,
+      total: grandTotal,
+      paid_amount: directPayment,
+      balance,
+      previous_balance: previousBalance,
+      is_interstate: isInterstate,
+      payment_status: directPayment >= grandTotal ? 'paid' : directPayment > 0 ? 'partial' : 'unpaid',
+      notes: notes !== undefined ? notes : sale.notes,
+    }, { transaction: t });
+
+    await t.commit();
+
+    const updated = await Sale.findByPk(sale.id, {
+      include: [
+        { model: Customer, as: 'customer' },
+        { model: SaleItem, as: 'items' },
+      ],
+    });
+
+    return res.status(200).json({ success: true, message: 'Invoice updated.', data: updated });
+  } catch (err) {
+    await t.rollback();
+    console.error('Sale update ERROR:', err.message, '|', err.parent?.message);
+    return res.status(400).json({ success: false, message: err.message || 'Could not update invoice.' });
+  }
+};
+
+/**
+ * PUT /sales/:id/cancel
+ */
+const cancel = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const sale = await Sale.findOne({
+      where: { id: req.params.id, firm_id: req.firmId },
+      include: [{ model: SaleItem, as: 'items' }],
+      transaction: t,
+    });
+    if (!sale) { await t.rollback(); return res.status(404).json({ success: false, message: 'Sale not found.' }); }
+    if (sale.status === 'cancelled') { await t.rollback(); return res.status(400).json({ success: false, message: 'Sale already cancelled.' }); }
+
+    // Restore stock
+    for (const item of (sale.items || [])) {
+      const product = await Product.findByPk(item.product_id, { transaction: t });
+      if (product && product.track_inventory) {
+        await product.update({ stock: parseFloat(product.stock || 0) + parseFloat(item.quantity) }, { transaction: t });
+      }
+    }
+
+    await sale.update({ status: 'cancelled', notes: req.body.reason ? `${sale.notes || ''}\nCancelled: ${req.body.reason}` : sale.notes }, { transaction: t });
+    await t.commit();
+    return res.status(200).json({ success: true, message: 'Sale cancelled.' });
+  } catch (err) {
+    await t.rollback();
+    next(err);
+  }
+};
+
+/**
+ * POST /sales/:id/return
+ * Creates a return record by marking sale as returned and restoring stock
+ */
+const createReturn = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const sale = await Sale.findOne({
+      where: { id: req.params.id, firm_id: req.firmId },
+      include: [{ model: SaleItem, as: 'items' }],
+      transaction: t,
+    });
+    if (!sale) { await t.rollback(); return res.status(404).json({ success: false, message: 'Sale not found.' }); }
+    if (['cancelled', 'returned'].includes(sale.status)) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: `Cannot return a ${sale.status} sale.` });
+    }
+
+    const { items = sale.items, reason } = req.body;
+    let returnTotal = 0;
+
+    for (const ri of items) {
+      const saleItem = sale.items.find((i) => i.id === ri.sale_item_id || i.product_id === ri.product_id);
+      if (!saleItem) continue;
+      const returnQty = parseFloat(ri.quantity || saleItem.quantity);
+      const itemTotal = parseFloat(saleItem.unit_price) * returnQty;
+      returnTotal += itemTotal;
+
+      // Restore stock
+      const product = await Product.findByPk(saleItem.product_id, { transaction: t });
+      if (product && product.track_inventory) {
+        await product.update({ stock: parseFloat(product.stock || 0) + returnQty }, { transaction: t });
+      }
+    }
+
+    await sale.update({
+      status: 'returned',
+      notes: `${sale.notes || ''}\nReturn: ${reason || 'Customer return'}`.trim(),
+    }, { transaction: t });
+
+    await t.commit();
+    return res.status(201).json({
+      success: true,
+      message: 'Return processed.',
+      data: { sale_id: sale.id, return_amount: returnTotal, reason: reason || null },
+    });
+  } catch (err) {
+    await t.rollback();
+    next(err);
+  }
+};
+
+/**
+ * POST /sales/:id/payment
+ */
+const addPayment = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const sale = await Sale.findOne({ where: { id: req.params.id, firm_id: req.firmId }, transaction: t });
+    if (!sale) { await t.rollback(); return res.status(404).json({ success: false, message: 'Sale not found.' }); }
+
+    const { amount, payment_mode, reference_no, payment_date, notes } = req.body;
+    const payAmt = parseFloat(amount);
+    if (!payAmt || payAmt <= 0) { await t.rollback(); return res.status(400).json({ success: false, message: 'Valid amount is required.' }); }
+
+    const payment = await Payment.create({
+      firm_id: req.firmId,
+      reference_type: 'sale',
+      sale_id: sale.id,
+      customer_id: sale.customer_id,
+      payment_date: payment_date || new Date(),
+      amount: payAmt,
+      payment_mode: payment_mode || 'cash',
+      reference_no: reference_no || null,
+      notes: notes || null,
+      created_by: req.userId,
+    }, { transaction: t });
+
+    const newPaid = parseFloat(sale.paid_amount || 0) + payAmt;
+    const newBalance = Math.max(0, parseFloat(sale.total) - newPaid);
+    const paymentStatus = newBalance <= 0 ? 'paid' : newPaid > 0 ? 'partial' : 'unpaid';
+
+    await sale.update({ paid_amount: newPaid, balance: newBalance, payment_status: paymentStatus }, { transaction: t });
+    await t.commit();
+    return res.status(201).json({ success: true, message: 'Payment added.', data: payment });
+  } catch (err) {
+    await t.rollback();
+    next(err);
+  }
+};
+
+/**
+ * GET /sales/:id/pdf
+ */
+const generatePDFRoute = async (req, res, next) => {
+  try {
+    const sale = await Sale.findOne({
+      where: { id: req.params.id, firm_id: req.firmId },
+      include: [
+        { model: Customer, as: 'customer' },
+        { model: SaleItem, as: 'items' },
+        { model: Payment, as: 'payments' },
+      ],
+    });
+    if (!sale) return res.status(404).json({ success: false, message: 'Sale not found.' });
+
+    const firm = await Firm.findByPk(req.firmId);
+    const payment = sale.payments?.[0] || null;
+
+    // Map model fields to PDF generator expected shape
+    const saleForPDF = {
+      ...sale.toJSON(),
+      grand_total: sale.total,
+      balance_due: sale.balance,
+      previous_balance: parseFloat(sale.previous_balance || 0),
+      payment_reference_no: payment?.reference_no || null,
+      payment_bank_name: payment?.bank_name || null,
+      payment_cheque_date: payment?.cheque_date || null,
+      payment_notes: payment?.notes || null,
+    };
+    const itemsForPDF = (sale.items || []).map((i) => ({
+      ...i.toJSON(),
+      rate: i.unit_price,
+      name: i.product_name,
+    }));
+
+    const pdfBuffer = await generatePDF(saleForPDF, firm, itemsForPDF);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=invoice-${sale.invoice_no}.pdf`);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * DELETE /sales/:id  — only allowed for cancelled invoices
+ */
+const deleteSale = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const sale = await Sale.findOne({ where: { id: req.params.id, firm_id: req.firmId }, transaction: t });
+    if (!sale) { await t.rollback(); return res.status(404).json({ success: false, message: 'Sale not found.' }); }
+    await SaleItem.destroy({ where: { sale_id: sale.id }, transaction: t });
+    await Payment.destroy({ where: { sale_id: sale.id }, transaction: t });
+    await sale.destroy({ transaction: t });
+    await t.commit();
+    return res.status(200).json({ success: true, message: 'Invoice deleted.' });
+  } catch (err) {
+    await t.rollback();
+    next(err);
+  }
+};
+
+const uploadImages = async (req, res, next) => {
+  try {
+    const sale = await Sale.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
+    if (!sale) return res.status(404).json({ success: false, message: 'Sale not found.' });
+    const newFiles = (req.files || []).map(f => `/uploads/sales/${f.filename}`);
+    let kept = [];
+    try { kept = JSON.parse(req.body.keep_images || '[]'); } catch {}
+    const all = [...kept, ...newFiles];
+    await sale.update({ images_json: JSON.stringify(all) });
+    return res.json({ success: true, data: { images_json: JSON.stringify(all) } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  getAll,
+  getOne,
+  create,
+  update,
+  cancel,
+  return: createReturn,
+  addPayment,
+  generatePDF: generatePDFRoute,
+  getNextInvoiceNo,
+  delete: deleteSale,
+  uploadImages,
+};
