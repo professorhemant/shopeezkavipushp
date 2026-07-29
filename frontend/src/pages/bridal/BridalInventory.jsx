@@ -237,6 +237,7 @@ export default function BridalInventory() {
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Type</th>
                   <th className="px-4 py-3 text-left">Category</th>
+                  <th className="px-4 py-3 text-left">Location</th>
                   <th className="px-4 py-3 text-right">Rent (₹)</th>
                   <th className="px-4 py-3 text-right">Stock</th>
                   <th className="px-4 py-3 text-center">Actions</th>
@@ -244,7 +245,7 @@ export default function BridalInventory() {
               </thead>
               <tbody>
                 {visible.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center py-12 text-slate-400">No items. Add one or import a CSV.</td></tr>
+                  <tr><td colSpan={9} className="text-center py-12 text-slate-400">No items. Add one or import a CSV.</td></tr>
                 ) : visible.map(r => {
                   const isChecked = selectedIds.has(r.id)
                   return (
@@ -268,6 +269,7 @@ export default function BridalInventory() {
                       </td>
                       <td className="px-4 py-3"><span className="text-xs bg-slate-100 text-slate-600 rounded px-2 py-0.5">{typeLabel(r.item_type)}</span></td>
                       <td className="px-4 py-3 text-slate-600">{r.category || '—'}</td>
+                      <td className="px-4 py-3 text-slate-500 text-xs">{r.location || '—'}</td>
                       <td className="px-4 py-3 text-right text-slate-700">{parseFloat(r.rental_price) > 0 ? formatCurrency(r.rental_price) : '—'}</td>
                       <td className="px-4 py-3 text-right text-slate-600">{r.stock}</td>
                       <td className="px-4 py-3">
