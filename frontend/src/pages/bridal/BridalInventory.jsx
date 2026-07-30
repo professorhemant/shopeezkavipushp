@@ -155,7 +155,17 @@ export default function BridalInventory() {
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Bridal Inventory')
     const scope = filter === 'all' ? 'all' : typeLabel(filter).replace(/\s+/g, '-').toLowerCase()
-    XLSX.writeFile(wb, `bridal-inventory-${scope}.xlsx`)
+    const filename = `bridal-inventory-${scope}.xlsx`
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
     toast.success(`Exported ${visible.length} items`)
   }
 
