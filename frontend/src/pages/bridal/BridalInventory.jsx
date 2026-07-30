@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2, CheckCircle, FileSpreadsheet } from 'lucide-react'
 import Papa from 'papaparse'
 import toast from 'react-hot-toast'
-import { bridalAPI } from '../../api'
+import api, { bridalAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import BridalImageUpload from '../../components/bridal/BridalImageUpload'
@@ -139,12 +139,23 @@ export default function BridalInventory() {
 
   const selectedItems = rows.filter(r => selectedIds.has(r.id))
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (visible.length === 0) { toast.error('No items to export'); return }
-    const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token
-    const API_BASE = import.meta.env.DEV ? '/api' : 'https://backend-production-59b25.up.railway.app/api'
-    const type = filter !== 'all' ? `&type=${filter}` : ''
-    window.location.href = `${API_BASE}/bridal/inventory/export?token=${token}${type}`
+    try {
+      const params = filter !== 'all' ? { type: filter } : {}
+      const res = await api.get('/bridal/inventory/export', { params, responseType: 'arraybuffer' })
+      const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const scope = filter === 'all' ? 'all' : typeLabel(filter).replace(/\s+/g, '-').toLowerCase()
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `bridal-inventory-${scope}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 10000)
+      toast.success(`Exported ${visible.length} items`)
+    } catch { toast.error('Export failed') }
   }
 
   return (
