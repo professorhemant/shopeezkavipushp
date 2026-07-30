@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2, CheckCircle } from 'lucide-react'
+import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2, CheckCircle, FileSpreadsheet } from 'lucide-react'
 import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -139,6 +140,25 @@ export default function BridalInventory() {
 
   const selectedItems = rows.filter(r => selectedIds.has(r.id))
 
+  const exportToExcel = () => {
+    if (visible.length === 0) { toast.error('No items to export'); return }
+    const data = visible.map(r => ({
+      Code: r.code || '',
+      Name: r.name || '',
+      Type: typeLabel(r.item_type),
+      Category: r.category || '',
+      'Rental Price (₹)': parseFloat(r.rental_price) || 0,
+      Stock: r.stock ?? 0,
+      Description: r.description || '',
+    }))
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Bridal Inventory')
+    const scope = filter === 'all' ? 'all' : typeLabel(filter).replace(/\s+/g, '-').toLowerCase()
+    XLSX.writeFile(wb, `bridal-inventory-${scope}.xlsx`)
+    toast.success(`Exported ${visible.length} items`)
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -153,6 +173,10 @@ export default function BridalInventory() {
               <AlertTriangle className="h-4 w-4" /> {filter === 'all' ? 'Delete All' : `Delete All ${typeLabel(filter)}`}
             </button>
           )}
+          <button onClick={exportToExcel}
+            className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <FileSpreadsheet className="h-4 w-4" /> Export Excel
+          </button>
           <button onClick={() => setShowImport(true)}
             className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <Upload className="h-4 w-4" /> Import CSV
