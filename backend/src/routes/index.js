@@ -55,6 +55,23 @@ router.use('/gst', authenticate, gstRoutes);
 router.use('/tools', authenticate, toolsRoutes);
 router.use('/daybook', authenticate, dayBookRoutes);
 router.use('/promotions', authenticate, promotionRoutes);
+// Bridal inventory export — uses ?token= query param (no Bearer header available for direct downloads)
+const { exportInventory } = require('../controllers/bridalController');
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../config/jwt');
+const { User } = require('../models');
+const authViaQuery = async (req, res, next) => {
+  const token = req.query.token;
+  if (!token) return res.status(401).json({ error: 'Authentication required' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findByPk(decoded.id);
+    if (!user || !user.is_active) return res.status(401).json({ error: 'User not found or inactive' });
+    req.user = user; req.userId = user.id; req.firmId = user.firm_id;
+    next();
+  } catch { return res.status(401).json({ error: 'Invalid token' }); }
+};
+router.get('/bridal/inventory/export', authViaQuery, exportInventory);
 router.use('/bridal', authenticate, bridalRoutes);
 router.use('/employees', authenticate, employeeRoutes);
 

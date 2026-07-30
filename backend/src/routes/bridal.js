@@ -9,22 +9,6 @@ const upload = require('../middleware/upload');
 router.post('/upload', (req, res, next) => { req.uploadFolder = 'bridal'; next(); }, upload.single('image'), c.uploadImage);
 
 // Bridal Inventory
-const { authenticate } = require('../middleware/auth');
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../config/jwt');
-const { User } = require('../models');
-const authViaQuery = async (req, res, next) => {
-  const token = req.query.token;
-  if (!token) return res.status(401).json({ error: 'Authentication required' });
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findByPk(decoded.id);
-    if (!user || !user.is_active) return res.status(401).json({ error: 'User not found or inactive' });
-    req.user = user; req.userId = user.id; req.firmId = user.firm_id;
-    next();
-  } catch { return res.status(401).json({ error: 'Invalid token' }); }
-};
-router.get('/inventory/export', authViaQuery, c.exportInventory);
 router.get('/inventory', c.listInventory);
 router.post('/inventory', c.createInventory);
 router.post('/inventory/bulk-import', c.bulkImportInventory);
