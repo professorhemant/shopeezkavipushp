@@ -141,21 +141,10 @@ export default function BridalInventory() {
 
   const exportToExcel = () => {
     if (visible.length === 0) { toast.error('No items to export'); return }
-    const token = localStorage.getItem('auth-storage')
-      ? JSON.parse(localStorage.getItem('auth-storage'))?.state?.token
-      : null
-    const API_BASE = import.meta.env.VITE_API_URL
-      ? `${import.meta.env.VITE_API_URL}/api`
-      : (import.meta.env.DEV ? '/api' : 'https://backend-production-59b25.up.railway.app/api')
-    const type = filter === 'all' ? '' : `&type=${filter}`
-    const url = `${API_BASE}/bridal/inventory/export?token=${token}${type}`
-    const a = document.createElement('a')
-    a.href = url
-    a.style.display = 'none'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    toast.success(`Exporting ${visible.length} items…`)
+    const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token
+    const API_BASE = import.meta.env.DEV ? '/api' : 'https://backend-production-59b25.up.railway.app/api'
+    const type = filter !== 'all' ? `&type=${filter}` : ''
+    window.location.href = `${API_BASE}/bridal/inventory/export?token=${token}${type}`
   }
 
   return (
