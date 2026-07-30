@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2, CheckCircle, FileSpreadsheet } from 'lucide-react'
 import Papa from 'papaparse'
-import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 import { bridalAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -142,31 +141,21 @@ export default function BridalInventory() {
 
   const exportToExcel = () => {
     if (visible.length === 0) { toast.error('No items to export'); return }
-    const data = visible.map(r => ({
-      Code: r.code || '',
-      Name: r.name || '',
-      Type: typeLabel(r.item_type),
-      Category: r.category || '',
-      'Rental Price (₹)': parseFloat(r.rental_price) || 0,
-      Stock: r.stock ?? 0,
-      Description: r.description || '',
-    }))
-    const ws = XLSX.utils.json_to_sheet(data)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Bridal Inventory')
-    const scope = filter === 'all' ? 'all' : typeLabel(filter).replace(/\s+/g, '-').toLowerCase()
-    const filename = `bridal-inventory-${scope}.xlsx`
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = URL.createObjectURL(blob)
+    const token = localStorage.getItem('auth-storage')
+      ? JSON.parse(localStorage.getItem('auth-storage'))?.state?.token
+      : null
+    const API_BASE = import.meta.env.VITE_API_URL
+      ? `${import.meta.env.VITE_API_URL}/api`
+      : (import.meta.env.DEV ? '/api' : 'https://backend-production-59b25.up.railway.app/api')
+    const type = filter === 'all' ? '' : `&type=${filter}`
+    const url = `${API_BASE}/bridal/inventory/export?token=${token}${type}`
     const a = document.createElement('a')
     a.href = url
-    a.download = filename
+    a.style.display = 'none'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    toast.success(`Exported ${visible.length} items`)
+    toast.success(`Exporting ${visible.length} items…`)
   }
 
   return (

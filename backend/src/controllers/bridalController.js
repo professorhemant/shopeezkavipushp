@@ -1,6 +1,7 @@
 'use strict';
 
 const { Op } = require('sequelize');
+const XLSX = require('xlsx');
 const { BridalInventory, BridalBooking, BridalInvoice } = require('../models');
 
 const INVOICE_PREFIX = { booking: 'BK', pickup: 'PK', final: 'FN' };
@@ -349,12 +350,51 @@ const getUrgentAlerts = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const TYPE_LABELS = {
+  set: 'Bridal Set', nath: 'Nath', maang_teeka: 'Maang Teeka', ring: 'Ring',
+  matha_patti: 'Matha Patti', sheesh_patti: 'Sheesh Patti', hath_phool: 'Hath Phool',
+  pasa: 'Pasa', borla: 'Borla',
+};
+
+const exportInventory = async (req, res, next) => {
+  try {
+    const where = { firm_id: req.firmId, is_active: true };
+    if (req.query.type && req.query.type !== 'all') where.item_type = req.query.type;
+    const rows = await BridalInventory.findAll({ where, order: [['item_type', 'ASC'], ['code', 'ASC']] });
+
+    const data = rows.map(r => ({
+      Code: r.code || '',
+      Name: r.name || '',
+      Type: TYPE_LABELS[r.item_type] || r.item_type,
+      Category: r.category || '',
+      'Rental Price (Rs)': parseFloat(r.rental_price) || 0,
+      Stock: r.stock ?? 0,
+      Description: r.description || '',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Bridal Inventory');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+
+    const typeSlug = req.query.type && req.query.type !== 'all'
+      ? (TYPE_LABELS[req.query.type] || req.query.type).replace(/\s+/g, '-').toLowerCase()
+      : 'all';
+    const filename = `bridal-inventory-${typeSlug}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buf);
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   uploadImage,
   listInvoices,
   getInvoice,
   createInvoice,
   deleteInvoice,
+  exportInventory,
   listInventory,
   createInventory,
   updateInventory,
