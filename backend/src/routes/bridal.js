@@ -1,9 +1,13 @@
 'use strict';
 
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const c = require('../controllers/bridalController');
 const upload = require('../middleware/upload');
+
+// Memory-based multer for xlsx imports (process in-memory, don't save to disk)
+const xlsxUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Image upload (bridal set photo) → { url }
 router.post('/upload', (req, res, next) => { req.uploadFolder = 'bridal'; next(); }, upload.single('image'), c.uploadImage);
@@ -12,6 +16,7 @@ router.post('/upload', (req, res, next) => { req.uploadFolder = 'bridal'; next()
 router.get('/inventory', c.listInventory);
 router.post('/inventory', c.createInventory);
 router.post('/inventory/bulk-import', c.bulkImportInventory);
+router.post('/inventory/import-xlsx', xlsxUpload.single('xlsx'), c.importXlsx);
 router.delete('/inventory', c.deleteAllInventory);
 router.put('/inventory/bulk-update', c.bulkUpdateInventory);
 router.put('/inventory/:id', c.updateInventory);

@@ -308,6 +308,8 @@ export const bridalAPI = {
   deleteInvoice: (id) => api.delete(`/bridal/invoices/${id}`),
   // Image upload — expects a FormData with field "image", returns { url }
   uploadImage: (formData) => api.post('/bridal/upload', formData, multipartConfig),
+  // xlsx import — expects a FormData with field "xlsx", parses rows + embedded images
+  importXlsx: (formData) => api.post('/bridal/inventory/import-xlsx', formData, multipartConfig),
 
   getUrgentAlerts: () => api.get('/bridal/bookings/urgent-alerts'),
   markBookingReturned: (id) => api.put(`/bridal/bookings/${id}/return`),

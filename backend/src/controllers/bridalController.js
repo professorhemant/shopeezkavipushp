@@ -2,7 +2,11 @@
 
 const { Op } = require('sequelize');
 const XLSX = require('xlsx');
+const unzipper = require('unzipper');
+const fs = require('fs');
+const path = require('path');
 const { BridalInventory, BridalBooking, BridalInvoice } = require('../models');
+const { UPLOAD_ROOT } = require('../middleware/upload');
 
 const INVOICE_PREFIX = { booking: 'BK', pickup: 'PK', final: 'FN' };
 
@@ -388,6 +392,114 @@ const exportInventory = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// POST /bridal/inventory/import-xlsx — upload xlsx file, parse rows + extract embedded images
+const importXlsx = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No xlsx file uploaded' });
+
+    const buf = req.file.buffer;
+
+    // Parse data rows
+    const wb = XLSX.read(buf, { type: 'buffer' });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+    if (!rows.length) return res.status(400).json({ success: false, message: 'No rows found in xlsx' });
+
+    // Extract zip contents (drawings + media)
+    const zipFiles = {};
+    const dir = await unzipper.Open.buffer(buf);
+    for (const file of dir.files) {
+      if (file.path.startsWith('xl/media/') || file.path.startsWith('xl/drawings/')) {
+        zipFiles[file.path] = await file.buffer();
+      }
+    }
+
+    // Parse drawing XML → row (1-based) → media filename
+    const rowToUrl = {};
+    const drawKey = Object.keys(zipFiles).find(k => /xl\/drawings\/drawing\d+\.xml$/.test(k) && !k.includes('_rels'));
+    const relsKey = Object.keys(zipFiles).find(k => /xl\/drawings\/_rels\/drawing\d+\.xml\.rels$/.test(k));
+
+    if (drawKey && relsKey) {
+      const drawXml = zipFiles[drawKey].toString('utf8');
+      const relsXml = zipFiles[relsKey].toString('utf8');
+
+      // rId → media filename
+      const rIdToFile = {};
+      const re = /Id="(rId\d+)"[^>]*Target="([^"]+)"/g;
+      let m;
+      while ((m = re.exec(relsXml)) !== null) rIdToFile[m[1]] = path.basename(m[2]);
+
+      // row → media filename
+      const anchorRe = /<xdr:(?:twoCellAnchor|oneCellAnchor)[^>]*>([\s\S]*?)<\/xdr:(?:twoCellAnchor|oneCellAnchor)>/g;
+      let am;
+      while ((am = anchorRe.exec(drawXml)) !== null) {
+        const block = am[1];
+        const rowM = /<xdr:from>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/m.exec(block);
+        const ridM = /r:embed="(rId\d+)"/m.exec(block);
+        if (rowM && ridM) {
+          const excelRow = parseInt(rowM[1]) + 1; // 0-based → 1-based (row 2 = first data row)
+          const mediaName = rIdToFile[ridM[1]];
+          if (!mediaName) continue;
+          const imgBuf = zipFiles[`xl/media/${mediaName}`];
+          if (!imgBuf) continue;
+
+          // Save image to uploads/bridal/
+          const uploadDir = path.join(UPLOAD_ROOT, 'bridal');
+          if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+          const ext = path.extname(mediaName) || '.jpg';
+          const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+          fs.writeFileSync(path.join(uploadDir, filename), imgBuf);
+
+          const base = process.env.BACKEND_URL
+            || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `${req.protocol}://${req.get('host')}`);
+          rowToUrl[excelRow] = `${base}/uploads/bridal/${filename}`;
+        }
+      }
+    }
+
+    // Import rows
+    let created = 0, updated = 0, failed = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const excelRow = i + 2; // row 1 = header
+      const imageUrl = rowToUrl[excelRow] || null;
+      const name = String(r.name || '').trim();
+      if (!name) { failed++; continue; }
+
+      const item = {
+        firm_id: req.firmId,
+        code: r.code ? String(r.code).trim() : null,
+        name,
+        item_type: normalizeItemType(r.item_type) || 'set',
+        category: r.category ? String(r.category).trim() : null,
+        rental_price: parseFloat(r.rental_price) || 0,
+        stock: r.stock != null && r.stock !== '' ? parseInt(r.stock, 10) : 1,
+        location: r.location ? String(r.location).trim() : null,
+        description: r.description ? String(r.description).trim() : null,
+        ...(imageUrl ? { image: imageUrl } : {}),
+      };
+
+      try {
+        if (item.code) {
+          const existing = await BridalInventory.findOne({ where: { firm_id: req.firmId, code: item.code } });
+          if (existing) { await existing.update(item); updated++; continue; }
+        }
+        await BridalInventory.create(item);
+        created++;
+      } catch (err) {
+        console.error('[importXlsx] row error:', err.message);
+        failed++;
+      }
+    }
+
+    const images = Object.keys(rowToUrl).length;
+    res.json({
+      success: true,
+      message: `${created + updated} items imported (${created} new, ${updated} updated)${images ? `, ${images} images attached` : ''}.`,
+      data: { created, updated, failed, images, total: rows.length },
+    });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   uploadImage,
   listInvoices,
@@ -401,6 +513,7 @@ module.exports = {
   deleteAllInventory,
   deleteInventory,
   bulkImportInventory,
+  importXlsx,
   bulkUpdateInventory,
   listBookings,
   createBooking,

@@ -34,6 +34,7 @@ export default function BridalInventory() {
   const [editId, setEditId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [showImportXlsx, setShowImportXlsx] = useState(false)
   const [showImgBulk, setShowImgBulk] = useState(false)
   const [nameSearch, setNameSearch] = useState('')
 
@@ -175,6 +176,10 @@ export default function BridalInventory() {
           <button onClick={exportToExcel}
             className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
             <FileSpreadsheet className="h-4 w-4" /> Export Excel
+          </button>
+          <button onClick={() => setShowImportXlsx(true)}
+            className="border border-green-300 hover:bg-green-50 text-green-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+            <FileSpreadsheet className="h-4 w-4" /> Import Excel
           </button>
           <button onClick={() => setShowImport(true)}
             className="border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
@@ -341,6 +346,7 @@ export default function BridalInventory() {
         </div>
       )}
 
+      {showImportXlsx && <ImportXlsxModal onClose={() => setShowImportXlsx(false)} onSuccess={() => { setShowImportXlsx(false); load() }} />}
       {showImport && <ImportModal defaultType={filter === 'all' ? 'set' : filter} onClose={() => setShowImport(false)} onSuccess={() => { setShowImport(false); load() }} />}
 
       {showImgBulk && <BulkImageModal
@@ -356,6 +362,83 @@ export default function BridalInventory() {
           onSuccess={() => { setShowBulkEdit(false); setSelectedIds(new Set()); load() }}
         />
       )}
+    </div>
+  )
+}
+
+// ─── Excel (XLSX) Import — data rows + embedded images ───────────────
+function ImportXlsxModal({ onClose, onSuccess }) {
+  const fileRef = useRef()
+  const [file, setFile] = useState(null)
+  const [importing, setImporting] = useState(false)
+  const [result, setResult] = useState(null)
+
+  const doImport = async () => {
+    if (!file) return
+    setImporting(true)
+    try {
+      const fd = new FormData()
+      fd.append('xlsx', file)
+      const { data } = await bridalAPI.importXlsx(fd)
+      setResult(data)
+      toast.success(data.message || 'Import complete')
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Import failed')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-green-600" /> Import Excel (.xlsx)
+          </h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
+        </div>
+
+        <p className="text-xs text-slate-500 mb-4">
+          Columns: <code className="bg-slate-100 px-1 rounded">code · name · item_type · category · rental_price · stock · location · description · image</code>
+          <br />Images embedded in the <strong>image</strong> column are automatically extracted and uploaded.
+        </p>
+
+        <input ref={fileRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          className="hidden" onChange={e => { setFile(e.target.files?.[0] || null); setResult(null) }} />
+
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => fileRef.current?.click()}
+            className="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-4 py-2 rounded-lg text-sm font-medium">
+            Choose .xlsx file
+          </button>
+          <span className="text-sm text-slate-500 truncate">{file ? file.name : 'No file chosen'}</span>
+        </div>
+
+        {result && (
+          <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3 text-sm space-y-1">
+            <p className="flex items-center gap-1.5 text-green-700 font-medium">
+              <CheckCircle className="h-4 w-4" /> {result.message}
+            </p>
+            <p className="text-xs text-slate-500">
+              {result.data?.created} new · {result.data?.updated} updated · {result.data?.images} images · {result.data?.failed} failed
+            </p>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={result ? onSuccess : onClose}
+            className="border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm">
+            {result ? 'Close' : 'Cancel'}
+          </button>
+          {!result && (
+            <button onClick={doImport} disabled={!file || importing}
+              className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+              {importing ? <><Loader2 className="h-4 w-4 animate-spin" /> Importing…</> : 'Import'}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
