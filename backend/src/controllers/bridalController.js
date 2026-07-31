@@ -456,25 +456,49 @@ const importXlsx = async (req, res, next) => {
       }
     }
 
+    // Flexible column picker — matches any reasonable column name variant
+    const colKey = (rowKeys, ...candidates) => {
+      for (const c of candidates) {
+        const norm = c.toLowerCase().replace(/[\s_\-\.]+/g, '');
+        const hit = rowKeys.find(k => k.toLowerCase().replace(/[\s_\-\.]+/g, '') === norm);
+        if (hit) return hit;
+      }
+      return null;
+    };
+    const rowKeys = Object.keys(rows[0] || {});
+    const K = {
+      name:         colKey(rowKeys, 'name', 'product name', 'productname', 'item name', 'itemname', 'set name', 'title'),
+      code:         colKey(rowKeys, 'code', 'set code', 'item code', 'sku', 'id'),
+      item_type:    colKey(rowKeys, 'item_type', 'type', 'item type', 'category type'),
+      category:     colKey(rowKeys, 'category', 'cat', 'group'),
+      rental_price: colKey(rowKeys, 'rental_price', 'rent', 'price', 'rental price', 'rental', 'rate'),
+      stock:        colKey(rowKeys, 'stock', 'qty', 'quantity'),
+      location:     colKey(rowKeys, 'location', 'box', 'box no', 'box number', 'shelf', 'rack'),
+      description:  colKey(rowKeys, 'description', 'desc', 'details', 'note', 'notes'),
+    };
+
+    const getVal = (r, key) => key ? String(r[key] ?? '').trim() : '';
+
     // Import rows
     let created = 0, updated = 0, failed = 0;
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const excelRow = i + 2; // row 1 = header
       const imageUrl = rowToUrl[excelRow] || null;
-      const name = String(r.name || '').trim();
+      const name = getVal(r, K.name);
       if (!name) { failed++; continue; }
 
+      const stockVal = K.stock ? r[K.stock] : '';
       const item = {
         firm_id: req.firmId,
-        code: r.code ? String(r.code).trim() : null,
+        code: getVal(r, K.code) || null,
         name,
-        item_type: normalizeItemType(r.item_type) || 'set',
-        category: r.category ? String(r.category).trim() : null,
-        rental_price: parseFloat(r.rental_price) || 0,
-        stock: r.stock != null && r.stock !== '' ? parseInt(r.stock, 10) : 1,
-        location: r.location ? String(r.location).trim() : null,
-        description: r.description ? String(r.description).trim() : null,
+        item_type: normalizeItemType(getVal(r, K.item_type)) || 'set',
+        category: getVal(r, K.category) || null,
+        rental_price: parseFloat(getVal(r, K.rental_price)) || 0,
+        stock: stockVal != null && stockVal !== '' ? parseInt(stockVal, 10) : 1,
+        location: getVal(r, K.location) || null,
+        description: getVal(r, K.description) || null,
         ...(imageUrl ? { image: imageUrl } : {}),
       };
 
