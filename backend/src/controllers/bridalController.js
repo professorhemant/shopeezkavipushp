@@ -399,10 +399,14 @@ const importXlsx = async (req, res, next) => {
 
     const buf = req.file.buffer;
 
-    // Parse data rows
+    // Parse data rows — pick the sheet matching the filename, else first non-empty sheet
     const wb = XLSX.read(buf, { type: 'buffer' });
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
-    if (!rows.length) return res.status(400).json({ success: false, message: 'No rows found in xlsx' });
+    const fileBase = (req.file.originalname || '').replace(/\.[^.]+$/, '').toUpperCase();
+    const sheetName = wb.SheetNames.find(s => s.toUpperCase() === fileBase)
+      || wb.SheetNames.find(s => XLSX.utils.sheet_to_json(wb.Sheets[s], { defval: '' }).length > 0)
+      || wb.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+    if (!rows.length) return res.status(400).json({ success: false, message: `No rows found in sheet "${sheetName}"` });
 
     // Extract zip contents (drawings + media)
     const zipFiles = {};
@@ -518,8 +522,8 @@ const importXlsx = async (req, res, next) => {
     const images = Object.keys(rowToUrl).length;
     res.json({
       success: true,
-      message: `${created + updated} items imported (${created} new, ${updated} updated)${images ? `, ${images} images attached` : ''}.`,
-      data: { created, updated, failed, images, total: rows.length },
+      message: `Sheet "${sheetName}": ${created + updated} items imported (${created} new, ${updated} updated)${images ? `, ${images} images attached` : ''}.`,
+      data: { created, updated, failed, images, total: rows.length, sheet: sheetName },
     });
   } catch (err) { next(err); }
 };
