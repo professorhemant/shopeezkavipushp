@@ -3,6 +3,7 @@
 const { Op } = require('sequelize');
 const XLSX = require('xlsx');
 const ExcelJS = require('exceljs');
+const sharp = require('sharp');
 const axios = require('axios');
 const unzipper = require('unzipper');
 const fs = require('fs');
@@ -364,9 +365,13 @@ const TYPE_LABELS = {
 
 const SUPPORTED_IMG_EXT = new Set(['jpeg', 'jpg', 'png', 'gif']);
 
+const THUMB_W = 120;
+const THUMB_H = 80;
+
 const resolveImageBuffer = async (url) => {
   if (!url) return null;
   try {
+    let rawBuf;
     // Read from local filesystem when the URL points to our own uploads
     const idx = url.indexOf('/uploads/');
     if (idx !== -1) {
@@ -374,14 +379,20 @@ const resolveImageBuffer = async (url) => {
       if (fs.existsSync(localPath)) {
         const ext = path.extname(localPath).replace('.', '').toLowerCase();
         if (!SUPPORTED_IMG_EXT.has(ext)) return null;
-        return { buffer: fs.readFileSync(localPath), extension: ext === 'jpg' ? 'jpeg' : ext };
+        rawBuf = fs.readFileSync(localPath);
       }
     }
-    // Fallback: HTTP download (external URLs or local file not found)
-    const resp = await axios.get(url, { responseType: 'arraybuffer', timeout: 8000 });
-    const ct = (resp.headers['content-type'] || '').toLowerCase();
-    const ext = ct.includes('png') ? 'png' : ct.includes('gif') ? 'gif' : 'jpeg';
-    return { buffer: Buffer.from(resp.data), extension: ext };
+    // Fallback: HTTP download
+    if (!rawBuf) {
+      const resp = await axios.get(url, { responseType: 'arraybuffer', timeout: 8000 });
+      rawBuf = Buffer.from(resp.data);
+    }
+    // Resize to thumbnail so the exported file stays small
+    const thumbBuf = await sharp(rawBuf)
+      .resize(THUMB_W, THUMB_H, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 75 })
+      .toBuffer();
+    return { buffer: thumbBuf, extension: 'jpeg' };
   } catch { return null; }
 };
 
