@@ -552,12 +552,23 @@ const importXlsx = async (req, res, next) => {
 
     const getVal = (r, key) => key ? String(r[key] ?? '').trim() : '';
 
+    // Tolerance-aware image lookup: exact match first, then ±1/±2 rows.
+    // Tracks used rows so each image is assigned to at most one item.
+    const usedImgRows = new Set();
+    const pickImage = (excelRow) => {
+      for (const delta of [0, -1, 1, -2, 2]) {
+        const r = excelRow + delta;
+        if (rowToUrl[r] && !usedImgRows.has(r)) { usedImgRows.add(r); return rowToUrl[r]; }
+      }
+      return null;
+    };
+
     // Import rows
-    let created = 0, updated = 0, failed = 0;
+    let created = 0, updated = 0, failed = 0, imagesLinked = 0;
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const excelRow = i + 2; // row 1 = header
-      const imageUrl = rowToUrl[excelRow] || null;
+      const imageUrl = pickImage(excelRow);
       const name = getVal(r, K.name);
       if (!name) { failed++; continue; }
 
@@ -578,17 +589,18 @@ const importXlsx = async (req, res, next) => {
       try {
         if (item.code) {
           const existing = await BridalInventory.findOne({ where: { firm_id: req.firmId, code: item.code } });
-          if (existing) { await existing.update(item); updated++; continue; }
+          if (existing) { await existing.update(item); updated++; if (imageUrl) imagesLinked++; continue; }
         }
         await BridalInventory.create(item);
         created++;
+        if (imageUrl) imagesLinked++;
       } catch (err) {
         console.error('[importXlsx] row error:', err.message);
         failed++;
       }
     }
 
-    const images = Object.keys(rowToUrl).length;
+    const images = imagesLinked;
     res.json({
       success: true,
       message: `Sheet "${sheetName}": ${created + updated} items imported (${created} new, ${updated} updated)${images ? `, ${images} images attached` : ''}.`,
