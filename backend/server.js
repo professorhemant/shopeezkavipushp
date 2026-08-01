@@ -77,7 +77,7 @@ async function startServer() {
       // Set all existing products with tax_rate = 0 to 3% (jewellery GST default).
       "UPDATE products SET tax_rate = 3 WHERE tax_rate = 0 OR tax_rate IS NULL",
       // Strip accidental "Code " prefix from bridal inventory names (one-time cleanup).
-      "UPDATE bridal_inventories SET name = SUBSTRING(name, 6) WHERE name LIKE 'Code %'",
+      "UPDATE bridal_inventory SET name = SUBSTRING(name, 6) WHERE name LIKE 'Code %'",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
