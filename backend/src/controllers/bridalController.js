@@ -2,6 +2,8 @@
 
 const { Op } = require('sequelize');
 const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
+const axios = require('axios');
 const unzipper = require('unzipper');
 const fs = require('fs');
 const path = require('path');
@@ -360,26 +362,82 @@ const TYPE_LABELS = {
   pasa: 'Pasa', borla: 'Borla',
 };
 
+const SUPPORTED_IMG_EXT = new Set(['jpeg', 'jpg', 'png', 'gif']);
+
+const resolveImageBuffer = async (url) => {
+  if (!url) return null;
+  try {
+    // Read from local filesystem when the URL points to our own uploads
+    const idx = url.indexOf('/uploads/');
+    if (idx !== -1) {
+      const localPath = path.join(UPLOAD_ROOT, url.slice(idx + '/uploads/'.length));
+      if (fs.existsSync(localPath)) {
+        const ext = path.extname(localPath).replace('.', '').toLowerCase();
+        if (!SUPPORTED_IMG_EXT.has(ext)) return null;
+        return { buffer: fs.readFileSync(localPath), extension: ext === 'jpg' ? 'jpeg' : ext };
+      }
+    }
+    // Fallback: HTTP download (external URLs or local file not found)
+    const resp = await axios.get(url, { responseType: 'arraybuffer', timeout: 8000 });
+    const ct = (resp.headers['content-type'] || '').toLowerCase();
+    const ext = ct.includes('png') ? 'png' : ct.includes('gif') ? 'gif' : 'jpeg';
+    return { buffer: Buffer.from(resp.data), extension: ext };
+  } catch { return null; }
+};
+
 const exportInventory = async (req, res, next) => {
   try {
     const where = { firm_id: req.firmId, is_active: true };
     if (req.query.type && req.query.type !== 'all') where.item_type = req.query.type;
     const rows = await BridalInventory.findAll({ where, order: [['item_type', 'ASC'], ['code', 'ASC']] });
 
-    const data = rows.map(r => ({
-      Code: r.code || '',
-      Name: r.name || '',
-      Type: TYPE_LABELS[r.item_type] || r.item_type,
-      Category: r.category || '',
-      'Rental Price (Rs)': parseFloat(r.rental_price) || 0,
-      Stock: r.stock ?? 0,
-      Description: r.description || '',
-    }));
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Bridal Inventory');
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Bridal Inventory');
-    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    ws.columns = [
+      { header: 'Image',             key: 'img',   width: 14 },
+      { header: 'Code',              key: 'code',  width: 12 },
+      { header: 'Name',              key: 'name',  width: 30 },
+      { header: 'Type',              key: 'type',  width: 16 },
+      { header: 'Category',          key: 'cat',   width: 15 },
+      { header: 'Rental Price (Rs)', key: 'rent',  width: 18 },
+      { header: 'Stock',             key: 'stock', width: 8  },
+      { header: 'Location',          key: 'loc',   width: 18 },
+      { header: 'Description',       key: 'desc',  width: 30 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).height = 20;
+
+    const ROW_H = 65; // row height in points — fits a thumbnail
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const excelRow = i + 2; // row 1 = header
+
+      ws.addRow({
+        img: '',
+        code: r.code || '',
+        name: r.name || '',
+        type: TYPE_LABELS[r.item_type] || r.item_type,
+        cat: r.category || '',
+        rent: parseFloat(r.rental_price) || 0,
+        stock: r.stock ?? 0,
+        loc: r.location || '',
+        desc: r.description || '',
+      });
+      ws.getRow(excelRow).height = ROW_H;
+
+      if (r.image) {
+        const img = await resolveImageBuffer(r.image);
+        if (img) {
+          const imgId = wb.addImage({ buffer: img.buffer, extension: img.extension });
+          ws.addImage(imgId, {
+            tl: { col: 0, row: excelRow - 1 },
+            br: { col: 1, row: excelRow },
+          });
+        }
+      }
+    }
 
     const typeSlug = req.query.type && req.query.type !== 'all'
       ? (TYPE_LABELS[req.query.type] || req.query.type).replace(/\s+/g, '-').toLowerCase()
@@ -388,7 +446,7 @@ const exportInventory = async (req, res, next) => {
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(buf);
+    res.send(await wb.xlsx.writeBuffer());
   } catch (err) { next(err); }
 };
 
