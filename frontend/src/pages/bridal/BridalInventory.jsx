@@ -37,6 +37,7 @@ export default function BridalInventory() {
   const [showImportXlsx, setShowImportXlsx] = useState(false)
   const [showImgBulk, setShowImgBulk] = useState(false)
   const [nameSearch, setNameSearch] = useState('')
+  const [hoveredImg, setHoveredImg] = useState(null)
 
   // Bulk edit state
   const [selectedIds, setSelectedIds] = useState(new Set())
@@ -161,6 +162,17 @@ export default function BridalInventory() {
 
   return (
     <div className="space-y-5">
+      {hoveredImg && (
+        <div
+          className="fixed z-[9999] pointer-events-none"
+          style={{ left: hoveredImg.x, top: hoveredImg.y, transform: 'translateY(-50%)' }}
+        >
+          <img
+            src={hoveredImg.src} alt=""
+            className="w-52 h-52 object-contain rounded-xl shadow-2xl border-2 border-white bg-white"
+          />
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Bridal Inventory</h1>
@@ -290,7 +302,15 @@ export default function BridalInventory() {
                       <td className="px-4 py-3 text-slate-700">
                         <div className="flex items-center gap-2">
                           {r.image
-                            ? <img src={r.image} alt="" className="h-8 w-8 rounded object-cover border border-slate-200 shrink-0" />
+                            ? <img
+                                src={r.image} alt=""
+                                className="h-8 w-8 rounded object-cover border border-slate-200 shrink-0 cursor-zoom-in"
+                                onMouseEnter={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect()
+                                  setHoveredImg({ src: r.image, x: rect.right + 10, y: rect.top })
+                                }}
+                                onMouseLeave={() => setHoveredImg(null)}
+                              />
                             : <span className="h-8 w-8 rounded bg-slate-100 border border-slate-200 shrink-0" />}
                           {r.name}
                         </div>
