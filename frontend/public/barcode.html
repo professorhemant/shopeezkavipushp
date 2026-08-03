@@ -729,10 +729,16 @@ function lockDesign() {
   setTimeout(() => { s.style.display = 'none'; }, 2200);
 }
 
+/* ── Name truncated to 12 chars (= 12 × 16 dots = 192 dots, fits 200-dot text zone at font "2" 1×) ── */
+function truncName(p) {
+  const n = (p.name && p.name.trim()) ? p.name.trim() : (p.sku || p.barcode || '').trim();
+  return n.length > 12 ? n.substring(0, 12) : n;
+}
+
 /* ── LABEL HTML ── */
 function labelHTML(p, code) {
   const price = '&#8377;' + Number(p.sale_price||0).toLocaleString('en-IN');
-  const name  = (p.name && p.name.trim()) ? p.name.trim() : code;
+  const name  = truncName(p);
   return `
     <div class="label">
       <div class="lbl-blank"></div>
@@ -824,7 +830,7 @@ function buildTSPL(entries) {
   let tspl = '';
   entries.forEach(({ product: p, qty }) => {
     const code   = mkCode(p);
-    const name   = p.name.length > 11 ? p.name.substring(0, 10) + '.' : p.name;
+    const name   = truncName(p);
     const price  = 'Rs.' + Math.round(p.sale_price || 0);
     const nY     = Math.floor((LBL_H - twoLines) / 2) + offTY;
     const pY     = nY + LINE_H + GAP_Y;
