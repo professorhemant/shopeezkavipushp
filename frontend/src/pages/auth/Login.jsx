@@ -53,9 +53,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-white text-2xl font-bold">S</span>
-          </div>
+          <img src="/favicon.svg" alt="Kavipushp" className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-lg" />
           <h1 className="text-2xl font-bold text-slate-800">Kavipushp Billing Software</h1>
           <p className="text-slate-500 text-sm mt-1">Complete Billing & ERP Software</p>
         </div>
