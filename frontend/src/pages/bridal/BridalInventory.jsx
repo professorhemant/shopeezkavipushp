@@ -87,10 +87,17 @@ export default function BridalInventory() {
     catch { toast.error('Failed to delete') }
   }
 
-  const byType = filter === 'all' ? rows : rows.filter(r => r.item_type === filter)
-  const visible = nameSearch.trim()
-    ? byType.filter(r => r.name.toLowerCase().includes(nameSearch.trim().toLowerCase()))
-    : byType
+  const visible = useMemo(() => {
+    const byType = filter === 'all' ? rows : rows.filter(r => r.item_type === filter)
+    const q = nameSearch.trim().toLowerCase()
+    if (!q) return byType
+    const tokens = q.split(/\s+/).filter(Boolean)
+    return byType.filter(r => {
+      const haystack = [r.code, r.name, r.category, r.description, r.location]
+        .filter(Boolean).join(' ').toLowerCase()
+      return tokens.every(t => haystack.includes(t))
+    })
+  }, [rows, filter, nameSearch])
 
   const removeAll = async () => {
     const n = visible.length
@@ -245,7 +252,7 @@ export default function BridalInventory() {
         <input
           value={nameSearch}
           onChange={e => setNameSearch(e.target.value)}
-          placeholder="Search by name to find code…"
+          placeholder="Search by code, name, category, keywords…"
           className={inp}
         />
         {nameSearch && (
