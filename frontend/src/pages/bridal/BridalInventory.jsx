@@ -92,10 +92,12 @@ export default function BridalInventory() {
     const q = nameSearch.trim().toLowerCase()
     if (!q) return byType
     const tokens = q.split(/\s+/).filter(Boolean)
+    const strip = s => s.replace(/[\s\-_.]+/g, '')
     return byType.filter(r => {
-      const haystack = [r.code, r.name, r.category, r.description, r.location]
+      const raw = [r.code, r.name, r.category, r.description, r.location]
         .filter(Boolean).join(' ').toLowerCase()
-      return tokens.every(t => haystack.includes(t))
+      const stripped = strip(raw)
+      return tokens.every(t => raw.includes(t) || stripped.includes(strip(t)))
     })
   }, [rows, filter, nameSearch])
 
