@@ -13,8 +13,9 @@ const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
  * @param {string|null} value   current image URL (or data URL)
  * @param {(url:string|null)=>void} onChange
  * @param {string} [label]
+ * @param {(fd:FormData)=>Promise} [uploadFn]  override the endpoint (e.g. lehengaAPI.uploadImage)
  */
-export default function BridalImageUpload({ value, onChange, label = 'Bridal Set Image' }) {
+export default function BridalImageUpload({ value, onChange, label = 'Bridal Set Image', uploadFn }) {
   const inputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
 
@@ -26,7 +27,7 @@ export default function BridalImageUpload({ value, onChange, label = 'Bridal Set
     try {
       const fd = new FormData()
       fd.append('image', file)
-      const { data } = await bridalAPI.uploadImage(fd)
+      const { data } = await (uploadFn || bridalAPI.uploadImage)(fd)
       if (data?.url) { onChange(data.url); toast.success('Image uploaded') }
       else toast.error('Upload failed')
     } catch { toast.error('Could not upload image') }

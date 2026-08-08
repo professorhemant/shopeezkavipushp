@@ -39,6 +39,10 @@ const Promotion = require('./Promotion');
 const BridalInventory = require('./BridalInventory');
 const BridalBooking = require('./BridalBooking');
 const BridalInvoice = require('./BridalInvoice');
+const LehengaInventory = require('./LehengaInventory');
+const LehengaRental = require('./LehengaRental');
+const LehengaRentalInvoice = require('./LehengaRentalInvoice');
+const LehengaSale = require('./LehengaSale');
 const Employee = require('./Employee');
 const PayrollEntry = require('./PayrollEntry');
 const EmployeeLeave = require('./EmployeeLeave');
@@ -149,6 +153,10 @@ module.exports = {
   BridalInventory,
   BridalBooking,
   BridalInvoice,
+  LehengaInventory,
+  LehengaRental,
+  LehengaRentalInvoice,
+  LehengaSale,
   Employee,
   PayrollEntry,
   EmployeeLeave,

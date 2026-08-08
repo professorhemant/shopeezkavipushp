@@ -315,6 +315,47 @@ export const bridalAPI = {
   markBookingReturned: (id) => api.put(`/bridal/bookings/${id}/return`),
 }
 
+// ─── Lehenga (Inventory + Rental + Sale) ────────────────────────────
+export const lehengaAPI = {
+  // Inventory
+  listInventory: (available_for) => api.get('/lehenga/inventory', { params: available_for ? { available_for } : {} }),
+  createInventory: (data) => api.post('/lehenga/inventory', data),
+  updateInventory: (id, data) => api.put(`/lehenga/inventory/${id}`, data),
+  deleteInventory: (id) => api.delete(`/lehenga/inventory/${id}`),
+  deleteAllInventory: (category) => api.delete('/lehenga/inventory', { params: category && category !== 'all' ? { category } : {} }),
+  bulkImportInventory: (items) => api.post('/lehenga/inventory/bulk-import', { items }),
+  bulkUpdateInventory: (ids, updates) => api.put('/lehenga/inventory/bulk-update', { ids, updates }),
+  exportInventory: (category) => api.get('/lehenga/inventory/export', {
+    params: category && category !== 'all' ? { category } : {}, responseType: 'arraybuffer',
+  }),
+  // Image upload — expects a FormData with field "image", returns { url }
+  uploadImage: (formData) => api.post('/lehenga/upload', formData, multipartConfig),
+  // xlsx import — expects a FormData with field "xlsx", parses rows + embedded images
+  importXlsx: (formData) => api.post('/lehenga/inventory/import-xlsx', formData, multipartConfig),
+
+  // Rentals
+  listRentals: (status) => api.get('/lehenga/rentals', { params: status ? { status } : {} }),
+  createRental: (data) => api.post('/lehenga/rentals', data),
+  updateRental: (id, data) => api.put(`/lehenga/rentals/${id}`, data),
+  deleteRental: (id) => api.delete(`/lehenga/rentals/${id}`),
+  markRentalReturned: (id, data) => api.put(`/lehenga/rentals/${id}/return`, data || {}),
+  checkAvailability: (code, function_date, exclude_id) =>
+    api.get('/lehenga/rentals/availability', { params: { code, function_date, exclude_id } }),
+
+  // Rental invoices (saved)
+  listRentalInvoices: () => api.get('/lehenga/rental-invoices'),
+  getRentalInvoice: (id) => api.get(`/lehenga/rental-invoices/${id}`),
+  createRentalInvoice: (data) => api.post('/lehenga/rental-invoices', data),
+  deleteRentalInvoice: (id) => api.delete(`/lehenga/rental-invoices/${id}`),
+
+  // Sales (GST bill)
+  listSales: () => api.get('/lehenga/sales'),
+  getSale: (id) => api.get(`/lehenga/sales/${id}`),
+  createSale: (data) => api.post('/lehenga/sales', data),
+  updateSale: (id, data) => api.put(`/lehenga/sales/${id}`, data),
+  deleteSale: (id) => api.delete(`/lehenga/sales/${id}`),
+}
+
 // ─── Tools ──────────────────────────────────────────────────────────
 export const toolsAPI = {
   generateBarcode: (data) => api.get('/tools/barcode', { params: data }),

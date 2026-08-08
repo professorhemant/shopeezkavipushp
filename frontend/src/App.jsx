@@ -82,6 +82,16 @@ const BridalInvoicesList = lazy(() => import('./pages/bridal/BridalInvoicesList'
 const BridalInvoiceView = lazy(() => import('./pages/bridal/BridalInvoiceView'))
 const UrgentAlerts = lazy(() => import('./pages/bridal/UrgentAlerts'))
 
+const LehengaInventory = lazy(() => import('./pages/lehenga/LehengaInventory'))
+const LehengaRental = lazy(() => import('./pages/lehenga/LehengaRental'))
+const LehengaRentals = lazy(() => import('./pages/lehenga/LehengaRentals'))
+const LehengaRentalInvoice = lazy(() => import('./pages/lehenga/LehengaRentalInvoice'))
+const LehengaRentalInvoicesList = lazy(() => import('./pages/lehenga/LehengaRentalInvoicesList'))
+const LehengaRentalInvoiceView = lazy(() => import('./pages/lehenga/LehengaRentalInvoiceView'))
+const LehengaSale = lazy(() => import('./pages/lehenga/LehengaSale'))
+const LehengaSalesList = lazy(() => import('./pages/lehenga/LehengaSalesList'))
+const LehengaSaleView = lazy(() => import('./pages/lehenga/LehengaSaleView'))
+
 const Firms = lazy(() => import('./pages/firms/Firms'))
 const Settings = lazy(() => import('./pages/settings/Settings'))
 const Profile = lazy(() => import('./pages/settings/Profile'))
@@ -220,6 +230,17 @@ function App() {
           <Route path="bridal/invoice/view/:id" element={<BridalInvoiceView />} />
           <Route path="bridal/invoices" element={<BridalInvoicesList />} />
           <Route path="bridal/urgent-alerts" element={<UrgentAlerts />} />
+
+          {/* Bridal Lehenga — Rental & Sale */}
+          <Route path="lehenga/inventory" element={<LehengaInventory />} />
+          <Route path="lehenga/rental" element={<LehengaRental />} />
+          <Route path="lehenga/rentals" element={<LehengaRentals />} />
+          <Route path="lehenga/rental-invoice" element={<LehengaRentalInvoice />} />
+          <Route path="lehenga/rental-invoice/view/:id" element={<LehengaRentalInvoiceView />} />
+          <Route path="lehenga/rental-invoices" element={<LehengaRentalInvoicesList />} />
+          <Route path="lehenga/sale" element={<LehengaSale />} />
+          <Route path="lehenga/sale/view/:id" element={<LehengaSaleView />} />
+          <Route path="lehenga/sales" element={<LehengaSalesList />} />
 
           {/* Firms & Settings */}
           <Route path="firms" element={<Firms />} />

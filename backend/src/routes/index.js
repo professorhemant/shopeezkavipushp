@@ -27,6 +27,7 @@ const toolsRoutes = require('./tools');
 const dayBookRoutes = require('./daybook');
 const promotionRoutes = require('./promotions');
 const bridalRoutes = require('./bridal');
+const lehengaRoutes = require('./lehenga');
 const employeeRoutes = require('./employees');
 const upload = require('../middleware/upload');
 const path = require('path');
@@ -57,6 +58,8 @@ router.use('/daybook', authenticate, dayBookRoutes);
 router.use('/promotions', authenticate, promotionRoutes);
 router.get('/bridal/inventory/export', authenticate, require('../controllers/bridalController').exportInventory);
 router.use('/bridal', authenticate, bridalRoutes);
+router.get('/lehenga/inventory/export', authenticate, require('../controllers/lehengaController').exportInventory);
+router.use('/lehenga', authenticate, lehengaRoutes);
 router.use('/employees', authenticate, employeeRoutes);
 
 // Image upload endpoint

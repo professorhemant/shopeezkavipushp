@@ -3,28 +3,17 @@
 const { Op } = require('sequelize');
 const XLSX = require('xlsx');
 const ExcelJS = require('exceljs');
-const sharp = require('sharp');
-const axios = require('axios');
-const unzipper = require('unzipper');
-const fs = require('fs');
-const path = require('path');
 const { BridalInventory, BridalBooking, BridalInvoice } = require('../models');
-const { UPLOAD_ROOT } = require('../middleware/upload');
+const {
+  publicBaseUrl, extractRowImages, resolveThumbnail, makeColKey, makeImagePicker,
+} = require('../utils/excelImages');
 
 const INVOICE_PREFIX = { booking: 'BK', pickup: 'PK', final: 'FN' };
-
-// Absolute URL for an uploaded file. Prefers an explicit/Railway public host so
-// the URL is https and reachable from the separate frontend origin.
-const uploadUrl = (req, folder, filename) => {
-  const base = process.env.BACKEND_URL
-    || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `${req.protocol}://${req.get('host')}`);
-  return `${base}/uploads/${folder}/${filename}`;
-};
 
 // POST /bridal/upload — single bridal set image (multipart field "image")
 const uploadImage = (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
-  res.json({ success: true, url: uploadUrl(req, 'bridal', req.file.filename) });
+  res.json({ success: true, url: `${publicBaseUrl(req)}/uploads/bridal/${req.file.filename}` });
 };
 
 const shiftDate = (dateStr, days) => {
@@ -363,38 +352,8 @@ const TYPE_LABELS = {
   pasa: 'Pasa', borla: 'Borla',
 };
 
-const SUPPORTED_IMG_EXT = new Set(['jpeg', 'jpg', 'png', 'gif']);
-
 const THUMB_W = 120;
 const THUMB_H = 80;
-
-const resolveImageBuffer = async (url) => {
-  if (!url) return null;
-  try {
-    let rawBuf;
-    // Read from local filesystem when the URL points to our own uploads
-    const idx = url.indexOf('/uploads/');
-    if (idx !== -1) {
-      const localPath = path.join(UPLOAD_ROOT, url.slice(idx + '/uploads/'.length));
-      if (fs.existsSync(localPath)) {
-        const ext = path.extname(localPath).replace('.', '').toLowerCase();
-        if (!SUPPORTED_IMG_EXT.has(ext)) return null;
-        rawBuf = fs.readFileSync(localPath);
-      }
-    }
-    // Fallback: HTTP download
-    if (!rawBuf) {
-      const resp = await axios.get(url, { responseType: 'arraybuffer', timeout: 8000 });
-      rawBuf = Buffer.from(resp.data);
-    }
-    // Resize to thumbnail so the exported file stays small
-    const thumbBuf = await sharp(rawBuf)
-      .resize(THUMB_W, THUMB_H, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 75 })
-      .toBuffer();
-    return { buffer: thumbBuf, extension: 'jpeg' };
-  } catch { return null; }
-};
 
 const exportInventory = async (req, res, next) => {
   try {
@@ -439,7 +398,7 @@ const exportInventory = async (req, res, next) => {
       ws.getRow(excelRow).height = ROW_H;
 
       if (r.image) {
-        const img = await resolveImageBuffer(r.image);
+        const img = await resolveThumbnail(r.image, THUMB_W, THUMB_H);
         if (img) {
           const imgId = wb.addImage({ buffer: img.buffer, extension: img.extension });
           ws.addImage(imgId, {
@@ -477,91 +436,24 @@ const importXlsx = async (req, res, next) => {
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
     if (!rows.length) return res.status(400).json({ success: false, message: `No rows found in sheet "${sheetName}"` });
 
-    // Extract zip contents (drawings + media)
-    const zipFiles = {};
-    const dir = await unzipper.Open.buffer(buf);
-    for (const file of dir.files) {
-      if (file.path.startsWith('xl/media/') || file.path.startsWith('xl/drawings/')) {
-        zipFiles[file.path] = await file.buffer();
-      }
-    }
-
-    // Parse drawing XML → row (1-based) → media filename
-    const rowToUrl = {};
-    const drawKey = Object.keys(zipFiles).find(k => /xl\/drawings\/drawing\d+\.xml$/.test(k) && !k.includes('_rels'));
-    const relsKey = Object.keys(zipFiles).find(k => /xl\/drawings\/_rels\/drawing\d+\.xml\.rels$/.test(k));
-
-    if (drawKey && relsKey) {
-      const drawXml = zipFiles[drawKey].toString('utf8');
-      const relsXml = zipFiles[relsKey].toString('utf8');
-
-      // rId → media filename
-      const rIdToFile = {};
-      const re = /Id="(rId\d+)"[^>]*Target="([^"]+)"/g;
-      let m;
-      while ((m = re.exec(relsXml)) !== null) rIdToFile[m[1]] = path.basename(m[2]);
-
-      // row → media filename
-      const anchorRe = /<xdr:(?:twoCellAnchor|oneCellAnchor)[^>]*>([\s\S]*?)<\/xdr:(?:twoCellAnchor|oneCellAnchor)>/g;
-      let am;
-      while ((am = anchorRe.exec(drawXml)) !== null) {
-        const block = am[1];
-        const rowM = /<xdr:from>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/m.exec(block);
-        const ridM = /r:embed="(rId\d+)"/m.exec(block);
-        if (rowM && ridM) {
-          const excelRow = parseInt(rowM[1]) + 1; // 0-based → 1-based (row 2 = first data row)
-          const mediaName = rIdToFile[ridM[1]];
-          if (!mediaName) continue;
-          const imgBuf = zipFiles[`xl/media/${mediaName}`];
-          if (!imgBuf) continue;
-
-          // Save image to uploads/bridal/
-          const uploadDir = path.join(UPLOAD_ROOT, 'bridal');
-          if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-          const ext = path.extname(mediaName) || '.jpg';
-          const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-          fs.writeFileSync(path.join(uploadDir, filename), imgBuf);
-
-          const base = process.env.BACKEND_URL
-            || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `${req.protocol}://${req.get('host')}`);
-          rowToUrl[excelRow] = `${base}/uploads/bridal/${filename}`;
-        }
-      }
-    }
+    // Extract images embedded in the sheet → 1-based row → uploaded image URL
+    const rowToUrl = await extractRowImages(buf, publicBaseUrl(req), 'bridal');
+    const pickImage = makeImagePicker(rowToUrl);
 
     // Flexible column picker — matches any reasonable column name variant
-    const colKey = (rowKeys, ...candidates) => {
-      for (const c of candidates) {
-        const norm = c.toLowerCase().replace(/[\s_\-\.]+/g, '');
-        const hit = rowKeys.find(k => k.toLowerCase().replace(/[\s_\-\.]+/g, '') === norm);
-        if (hit) return hit;
-      }
-      return null;
-    };
-    const rowKeys = Object.keys(rows[0] || {});
+    const colKey = makeColKey(Object.keys(rows[0] || {}));
     const K = {
-      name:         colKey(rowKeys, 'name', 'product name', 'productname', 'item name', 'itemname', 'set name', 'title'),
-      code:         colKey(rowKeys, 'code', 'set code', 'item code', 'sku', 'id'),
-      item_type:    colKey(rowKeys, 'item_type', 'type', 'item type', 'category type'),
-      category:     colKey(rowKeys, 'category', 'cat', 'group'),
-      rental_price: colKey(rowKeys, 'rental_price', 'rent', 'price', 'rental price', 'rental', 'rate'),
-      stock:        colKey(rowKeys, 'stock', 'qty', 'quantity'),
-      location:     colKey(rowKeys, 'location', 'box', 'box no', 'box number', 'shelf', 'rack'),
-      description:  colKey(rowKeys, 'description', 'desc', 'details', 'note', 'notes'),
+      name:         colKey('name', 'product name', 'productname', 'item name', 'itemname', 'set name', 'title'),
+      code:         colKey('code', 'set code', 'item code', 'sku', 'id'),
+      item_type:    colKey('item_type', 'type', 'item type', 'category type'),
+      category:     colKey('category', 'cat', 'group'),
+      rental_price: colKey('rental_price', 'rent', 'price', 'rental price', 'rental', 'rate'),
+      stock:        colKey('stock', 'qty', 'quantity'),
+      location:     colKey('location', 'box', 'box no', 'box number', 'shelf', 'rack'),
+      description:  colKey('description', 'desc', 'details', 'note', 'notes'),
     };
 
     const getVal = (r, key) => key ? String(r[key] ?? '').trim() : '';
-
-    // Tolerance-aware image lookup: exact match first, then ±1/±2 rows.
-    // Tracks used rows so each image is assigned to at most one item.
-    const usedImgRows = new Set();
-    const pickImage = (excelRow) => {
-      for (const delta of [0, -1, 1, -2, 2]) {
-        const r = excelRow + delta;
-        if (rowToUrl[r] && !usedImgRows.has(r)) { usedImgRows.add(r); return rowToUrl[r]; }
-      }
-      return null;
-    };
 
     // Import rows
     let created = 0, updated = 0, failed = 0, imagesLinked = 0;

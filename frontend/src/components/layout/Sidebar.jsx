@@ -9,7 +9,8 @@ import {
   Calculator, FileSpreadsheet, Zap, User, DollarSign,
   Landmark, Wrench, Store, Hammer, Warehouse, BookOpen,
   ClipboardList, Factory, MessageSquare, Calendar,
-  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone, Bell, BadgeIndianRupee
+  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone, Bell, BadgeIndianRupee,
+  Shirt, ShoppingBag
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { bridalAPI } from '../../api'
@@ -78,6 +79,17 @@ const MENU = [
       { label: 'Appointments',        path: '/appointments',       icon: Calendar },
       { label: 'Sent for Promotions', path: '/promotions',         icon: Megaphone },
       { label: 'WhatsApp',            path: '/whatsapp/campaigns', icon: MessageSquare },
+    ],
+  },
+  {
+    id: 'lehenga', label: 'Bridal Lehenga', icon: Shirt,
+    children: [
+      { label: 'Lehenga Rental',        path: '/lehenga/rental',           icon: Shirt },
+      { label: 'Lehenga Rentals',       path: '/lehenga/rentals',          icon: Bookmark },
+      { label: 'Rental Invoices',       path: '/lehenga/rental-invoices',  icon: Receipt },
+      { label: 'Lehenga Sale',          path: '/lehenga/sale',             icon: ShoppingBag },
+      { label: 'Lehenga Sales',         path: '/lehenga/sales',            icon: FileText },
+      { label: 'Lehenga Inventory',     path: '/lehenga/inventory',        icon: Boxes },
     ],
   },
   { id: 'urgent-alerts', label: 'Urgent Alerts', icon: Bell, path: '/bridal/urgent-alerts', urgent: true },
