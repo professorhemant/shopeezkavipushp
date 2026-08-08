@@ -1,7 +1,7 @@
 import { forwardRef } from 'react'
 import { formatCurrency } from '../../utils/formatters'
 import InvoiceLetterhead from '../../components/InvoiceLetterhead'
-import { LEHENGA_BRAND } from './brand'
+import { LEHENGA_BRAND } from '../../utils/brand'
 
 export const fmtDate = (d) => {
   if (!d) return '—'
