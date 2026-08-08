@@ -32,6 +32,10 @@ npm run lint            # see caveat below
 
 There are no automated tests, and `vite build` / `node --check` pass on code that still breaks at runtime against real MySQL. Close-out SOP for any frontend-affecting change: build → `git push` to `master` → confirm Railway auto-deploy reaches `SUCCESS` (Railway MCP `list_deployments`) → drive the **deployed** app with the Playwright MCP browser tools and confirm actual behavior (network status codes + rendered DOM), not just that it compiles.
 
+**Confirming a deploy without the Railway MCP** (its auth expires often):
+- **Frontend** — the static server has SPA fallback, so *any* unmatched path returns `200` with `text/html`. Polling `/assets/<new-chunk>.js` is therefore a false positive. Compare the entry hash instead: `curl -s <frontend>/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'` against the same grep over `frontend/dist/index.html`.
+- **Backend** — probing a route path works: `404` = not deployed yet, `502` = restarting, `401` = live and auth-protected.
+
 ## Architecture
 
 ### Schema is managed by `sequelize.sync()`, not migrations
@@ -53,6 +57,16 @@ There are no automated tests, and `vite build` / `node --check` pass on code tha
 - Auth/session lives in `frontend/src/store/authStore.js` (Zustand + `persist` to `localStorage` key `auth-storage`). `checkAuth()` runs on app mount to refresh the user from `/auth/profile`.
 - Routing in `App.jsx` (lazy-loaded pages under `src/pages/<module>/`); navigation/menu structure in `components/layout/Sidebar.jsx`. Adding a page = lazy import + `<Route>` in `App.jsx` + a sidebar entry.
 - Multi-firm: data is scoped by `firm_id`; users belong to a firm, and seeding/auth attach the firm.
+
+### Bridal Lehenga module (separate from Bridal jewellery)
+`pages/lehenga/*` + `controllers/lehengaController.js` + `routes/lehenga.js`, on tables `lehenga_inventory`, `lehenga_rentals`, `lehenga_rental_invoices`, `lehenga_sales`. Deliberately **not** folded into `bridal_inventory`: a lehenga carries garment attributes (size/colour/fabric/work) and has both a rental and a sale price, and mixing it in would pollute the Bridal Bookings accessory dropdowns.
+
+- `available_for` (`rental|sale|both`) gates which flow a piece appears in — `GET /lehenga/inventory?available_for=rental` returns `rental` + `both`.
+- **Rental** mirrors the bridal booking flow, including the date-overlap availability check and Booking/Pickup/Final invoices (`LBK`/`LPK`/`LFN`).
+- **Sale** is a GST tax invoice (`LS-…`): the row *is* the invoice. `computeSaleTotals` exists twice on purpose — once in `lehengaController` (authoritative; whatever the client sends for the derived fields is discarded) and once in `LehengaSaleInvoiceDocument.jsx` for the live preview. **Keep the two in sync.**
+- Saving a sale decrements stock in a transaction; deleting restores it; editing settles the delta (quantity change, item swap, or cancel). Stock is clamped at zero.
+- Invoice numbers come from the highest existing suffix, not a row count, so deleting an invoice can't reissue a number.
+- `utils/excelImages.js` holds the xlsx image extraction / thumbnailing / column matching shared by the bridal and lehenga import-export paths.
 
 ### Day Book module (worth knowing)
 `pages/daybook/*` + `controllers/dayBookController.js`. The "Sales" figures and the Total Received summary are computed from **live `Payment`/sale data**, not the `daybook_sales` table. `computeSummary(date)` is the shared core; "Save Day Book" freezes it into a `daybook_snapshots` row, and an in-process scheduler (`jobs/autoSaveDayBook.js`, dependency-free, IST-aware) auto-saves at 23:59 IST. The "Saved Day Book" page is unlocked by re-verifying a real admin login (no password stored in code).
