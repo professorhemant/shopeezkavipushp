@@ -51,12 +51,16 @@ export default function LehengaRentalInvoice() {
   // Reset the "saved" state whenever the rental or invoice type changes
   useEffect(() => { setSavedNo('') }, [selectedId, type])
 
-  // Seed the amounts from the selected rental (until the user overrides them)
+  // Seed the amounts from the selected rental (until the user overrides them).
+  // Keyed on the resolved rental, not on selectedId: when the page is opened
+  // straight from a ?rental= link the id is set before the list has loaded, so
+  // keying on the id would seed from an undefined rental and never re-run.
   useEffect(() => {
-    setImage(rental?.lehenga_image || null)
-    setSecurity(rental?.security_amount != null ? String(rental.security_amount) : '')
-    setDamage(rental?.damage_charges != null ? String(rental.damage_charges) : '')
-  }, [selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!rental) return
+    setImage(rental.lehenga_image || null)
+    setSecurity(rental.security_amount != null ? String(rental.security_amount) : '')
+    setDamage(rental.damage_charges != null ? String(rental.damage_charges) : '')
+  }, [rental?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const rent = parseFloat(rental?.rental_amount) || 0
   const discount = parseFloat(rental?.discount) || 0
