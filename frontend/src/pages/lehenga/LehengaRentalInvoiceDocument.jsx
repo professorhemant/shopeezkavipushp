@@ -1,7 +1,7 @@
 import { forwardRef } from 'react'
 import { formatCurrency } from '../../utils/formatters'
 import InvoiceLetterhead from '../../components/InvoiceLetterhead'
-import { LEHENGA_BRAND } from '../../utils/brand'
+import { LEHENGA_BRAND, LEHENGA_FIRM } from '../../utils/brand'
 
 export const fmtDate = (d) => {
   if (!d) return '—'
@@ -60,7 +60,8 @@ const LehengaRentalInvoiceDocument = forwardRef(function LehengaRentalInvoiceDoc
 
   return (
     <div ref={ref} className="bg-white p-6 sm:p-8 text-slate-800" style={{ maxWidth: 800, margin: '0 auto' }}>
-      <InvoiceLetterhead firm={firm} name={LEHENGA_BRAND} />
+      <InvoiceLetterhead firm={firm} name={LEHENGA_BRAND}
+        legalName={LEHENGA_FIRM.legal_name} gstin={LEHENGA_FIRM.gstin} pan={LEHENGA_FIRM.pan} />
 
       <div className="text-center mt-4">
         <h3 className="font-bold tracking-wide">{meta.title}</h3>

@@ -6,15 +6,26 @@ import { Phone } from 'lucide-react'
 //
 // `name` overrides just the displayed title for a module that trades under its
 // own brand (the Lehenga invoices bill as BANNO BAZAAR); address and contact
-// details still come from the firm.
-export default function InvoiceLetterhead({ firm, name }) {
+// details still come from the firm. `legalName` and `gstin` let such a module
+// print its own registered identity — both are omitted entirely when blank.
+export default function InvoiceLetterhead({ firm, name, legalName, gstin, pan }) {
   const addr = [firm?.address, firm?.city, firm?.state].filter(Boolean).join(', ')
   const phone = firm?.phone
   const email = firm?.email
   return (
     <div className="text-center border-b-2 border-amber-600 pb-3">
       <h2 className="text-xl font-bold text-slate-900">{name || firm?.name || 'Kavipushp Jewels'}</h2>
+      {legalName && legalName !== (name || firm?.name) && (
+        <p className="text-xs text-slate-500 mt-0.5">{legalName}</p>
+      )}
       {addr && <p className="text-xs text-slate-500 mt-1">{addr}</p>}
+      {(gstin || pan) && (
+        <p className="text-xs font-medium text-slate-600 mt-0.5">
+          {gstin && <span>GSTIN: {gstin}</span>}
+          {gstin && pan && <span className="px-1">|</span>}
+          {pan && <span>PAN: {pan}</span>}
+        </p>
+      )}
       {(phone || email) && (
         <p className="text-xs text-slate-500 mt-0.5 flex items-center justify-center gap-1 flex-wrap">
           {phone && (
