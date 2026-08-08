@@ -14,7 +14,6 @@ import {
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { bridalAPI } from '../../api'
-import { brandForRoute } from '../../utils/brand'
 
 const MENU = [
   { id: 'dashboard', label: 'Dashboard',         icon: LayoutDashboard, path: '/dashboard' },
@@ -207,10 +206,7 @@ function MenuItem({ item, urgentCount = 0 }) {
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const { firm, user } = useAuthStore()
   const navigate = useNavigate()
-  const location = useLocation()
   const [urgentCount, setUrgentCount] = useState(0)
-  // Reads BANNO BAZAAR while inside the Lehenga module
-  const brand = brandForRoute(location.pathname, firm?.name)
 
   useEffect(() => {
     const fetchUrgent = async () => {
@@ -235,11 +231,11 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       <div className="flex items-center justify-between px-4 h-16 shrink-0 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-            {brand.charAt(0).toUpperCase()}
+            {(firm?.name || 'K').charAt(0).toUpperCase()}
           </div>
           <div className="overflow-hidden">
             <p className="font-bold text-white truncate text-sm leading-tight">
-              {brand}
+              {firm?.name || 'Kavipushp Jewels'}
             </p>
             <p className="text-xs text-slate-500 truncate">Admin Panel</p>
           </div>
@@ -268,7 +264,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
           <User className="h-3.5 w-3.5 text-amber-400" />
         </div>
         <div className="flex-1 overflow-hidden">
-          <p className="text-xs font-medium text-slate-200 truncate">{brandForRoute(location.pathname, firm?.name) || 'My Firm'}</p>
+          <p className="text-xs font-medium text-slate-200 truncate">{firm?.name || 'My Firm'}</p>
           <p className="text-xs text-slate-500 truncate">{user?.email || ''}</p>
         </div>
         <ChevronDown className="h-3.5 w-3.5 text-slate-500 shrink-0" />

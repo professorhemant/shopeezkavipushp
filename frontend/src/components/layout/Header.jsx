@@ -1,17 +1,13 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Menu, Bell, ChevronDown, User, Settings, LogOut, Building2 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { formatDate } from '../../utils/formatters'
-import { LEHENGA_BRAND, isLehengaRoute } from '../../utils/brand'
 
 export default function Header({ onMobileMenuClick }) {
   const { user, firm, logout } = useAuthStore()
   const [profileOpen, setProfileOpen] = useState(false)
   const navigate = useNavigate()
-  const location = useLocation()
-  // Reads BANNO BAZAAR inside the Lehenga module; unchanged everywhere else.
-  const brand = isLehengaRoute(location.pathname) ? LEHENGA_BRAND : 'KAVIPUSHP JEWELS'
 
   const handleLogout = () => {
     logout()
@@ -29,7 +25,7 @@ export default function Header({ onMobileMenuClick }) {
           <Menu className="h-5 w-5" />
         </button>
         <span className="text-base font-extrabold tracking-widest uppercase select-none text-amber-600">
-          {brand}
+          KAVIPUSHP JEWELS
         </span>
       </div>
 

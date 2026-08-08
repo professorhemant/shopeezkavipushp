@@ -1,6 +1,6 @@
-// The Lehenga side of the business trades as BANNO BAZAAR. Anywhere the user is
-// inside the Lehenga module — the top banner, the sidebar, and the rental/sale
-// invoices — the firm name reads BANNO BAZAAR instead of the firm's own name.
+// The Lehenga side of the business trades as BANNO BAZAAR. This applies to the
+// Lehenga module's own documents only — its rental and sale invoices. The app
+// chrome (top banner, sidebar) always shows the firm, Kavipushp Jewels.
 // Address, phone and email are unchanged: it's the same premises.
 export const LEHENGA_BRAND = 'BANNO BAZAAR'
 
@@ -20,13 +20,3 @@ export const LEHENGA_FIRM = {
   state: '',       // e.g. 'Madhya Pradesh'
   state_code: '',  // e.g. '23'
 }
-
-// True while the given path is anywhere inside the Lehenga module.
-export const isLehengaRoute = (pathname) => String(pathname || '').startsWith('/lehenga')
-
-/**
- * Firm name to display for a route: the lehenga brand inside the Lehenga
- * module, otherwise the firm's own name.
- */
-export const brandForRoute = (pathname, firmName) =>
-  isLehengaRoute(pathname) ? LEHENGA_BRAND : (firmName || 'Kavipushp Jewels')
