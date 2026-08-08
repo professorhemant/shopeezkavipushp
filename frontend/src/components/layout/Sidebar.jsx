@@ -84,11 +84,12 @@ const MENU = [
   {
     id: 'lehenga', label: 'Bridal Lehenga', icon: Shirt,
     children: [
-      { label: 'Lehenga Rental',        path: '/lehenga/rental',           icon: Shirt },
-      { label: 'Lehenga Rentals',       path: '/lehenga/rentals',          icon: Bookmark },
+      // "New …" vs "Saved …" — the form and its list must not differ by one letter
+      { label: 'New Lehenga Rental',    path: '/lehenga/rental',           icon: Shirt },
+      { label: 'Saved Rentals',         path: '/lehenga/rentals',          icon: Bookmark },
       { label: 'Rental Invoices',       path: '/lehenga/rental-invoices',  icon: Receipt },
-      { label: 'Lehenga Sale',          path: '/lehenga/sale',             icon: ShoppingBag },
-      { label: 'Lehenga Sales',         path: '/lehenga/sales',            icon: FileText },
+      { label: 'New Lehenga Sale',      path: '/lehenga/sale',             icon: ShoppingBag },
+      { label: 'Saved Sales',           path: '/lehenga/sales',            icon: FileText },
       { label: 'Lehenga Inventory',     path: '/lehenga/inventory',        icon: Boxes },
     ],
   },

@@ -68,7 +68,7 @@ export default function LehengaRentals() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Lehenga Rentals</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Saved Lehenga Rentals</h1>
           <p className="text-sm text-slate-500 mt-0.5">{rows.length} rentals · {rows.filter(r => (r.status || 'active') === 'active').length} currently out</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

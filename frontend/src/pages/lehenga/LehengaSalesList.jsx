@@ -55,7 +55,7 @@ export default function LehengaSalesList() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Lehenga Sales</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Saved Lehenga Sales</h1>
           <p className="text-sm text-slate-500 mt-0.5">{rows.length} sale invoices</p>
         </div>
         <Link to="/lehenga/sale" className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
