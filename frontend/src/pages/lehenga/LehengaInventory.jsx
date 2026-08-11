@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
+import ReactDOM from 'react-dom'
 import { Plus, Edit2, Trash2, Upload, Download, X, AlertTriangle, ImagePlus, Loader2, CheckCircle, FileSpreadsheet } from 'lucide-react'
 import Papa from 'papaparse'
 import toast from 'react-hot-toast'
@@ -181,12 +182,16 @@ export default function LehengaInventory() {
 
   return (
     <div className="space-y-5">
-      {hoveredImg && (
+      {/* Portalled to <body>: as a child of the space-y-5 wrapper it would push
+          every following sibling down by the space-y gap, moving the row out
+          from under the cursor and flip-flopping enter/leave forever. */}
+      {hoveredImg && typeof document !== 'undefined' && ReactDOM.createPortal(
         <div className="fixed z-[9999] pointer-events-none"
           style={{ left: hoveredImg.x, top: hoveredImg.y, transform: 'translateY(-50%)' }}>
           <img src={hoveredImg.src} alt=""
             className="w-52 h-52 object-contain rounded-xl shadow-2xl border-2 border-white bg-white" />
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="flex flex-wrap items-start justify-between gap-2">
