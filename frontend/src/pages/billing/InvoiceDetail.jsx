@@ -430,17 +430,30 @@ export default function InvoiceDetail() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 font-medium block mb-1">Mode</label>
-                    <select
-                      value={payForm.payment_mode}
-                      onChange={e => setPayForm(f => ({ ...f, payment_mode: e.target.value }))}
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    >
-                      <option value="cash">Cash</option>
-                      <option value="upi">UPI / Online</option>
-                      <option value="card">Card</option>
-                      <option value="cheque">Cheque</option>
-                    </select>
+                    <label className="text-xs text-gray-500 font-medium block mb-2">Payment Mode</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { key: 'cash',   label: 'Cash',   color: 'green' },
+                        { key: 'upi',    label: 'UPI / Online', color: 'violet' },
+                        { key: 'card',   label: 'Card',   color: 'blue' },
+                        { key: 'cheque', label: 'Cheque', color: 'orange' },
+                      ].map(({ key, label, color }) => (
+                        <button
+                          key={key} type="button"
+                          onClick={() => setPayForm(f => ({ ...f, payment_mode: key }))}
+                          className={`py-2 rounded-lg text-sm font-semibold border-2 transition-colors ${
+                            payForm.payment_mode === key
+                              ? color === 'green'  ? 'bg-green-600 border-green-600 text-white'
+                              : color === 'violet' ? 'bg-violet-600 border-violet-600 text-white'
+                              : color === 'blue'   ? 'bg-blue-600 border-blue-600 text-white'
+                              :                      'bg-orange-500 border-orange-500 text-white'
+                              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 font-medium block mb-1">Date</label>
