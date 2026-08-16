@@ -160,7 +160,6 @@ export default function CreateInvoice() {
         setInvoiceDate(new Date(s.invoice_date).toLocaleDateString('en-IN'))
         setCustName(s.customer_name || '')
         setMobile(s.customer_phone || s.mobile || '')
-        if (s.customer) setSelectedCust(s.customer)
         setOrderType(s.order_type || 'takeaway')
         if (s.payments && s.payments.length) {
           const split = { cash: '', card: '', upi: '', cheque: '' }
