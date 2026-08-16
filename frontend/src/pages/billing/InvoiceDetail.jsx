@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Printer, Download, Edit2, XCircle, Share2, FileText, Copy, Check, X, MessageCircle, Send, Bookmark, BookmarkCheck } from 'lucide-react'
+import { ArrowLeft, Printer, Download, Edit2, XCircle, Share2, FileText, Copy, Check, X, MessageCircle, Send, Bookmark, BookmarkCheck, PlusCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { saleAPI, whatsappAPI } from '../../api'
 import { formatCurrency, formatDate, getPaymentStatusColor } from '../../utils/formatters'
@@ -15,6 +15,9 @@ export default function InvoiceDetail() {
   const [copied, setCopied] = useState(false)
   const [sending, setSending] = useState(false)
   const [sentOk, setSentOk] = useState(false)
+  const [showPayModal, setShowPayModal] = useState(false)
+  const [payForm, setPayForm] = useState({ amount: '', payment_mode: 'cash', payment_date: new Date().toISOString().slice(0, 10), reference_no: '' })
+  const [paying, setPaying] = useState(false)
   const [saved, setSaved] = useState(() => {
     try {
       const list = JSON.parse(localStorage.getItem('saved_invoices') || '[]')
@@ -162,6 +165,30 @@ export default function InvoiceDetail() {
       toast.success('Invoice cancelled')
       setInv((prev) => ({ ...prev, status: 'cancelled' }))
     } catch { toast.error('Failed to cancel invoice') }
+  }
+
+  const handleAddPayment = async (e) => {
+    e.preventDefault()
+    const amt = parseFloat(payForm.amount)
+    if (!amt || amt <= 0) { toast.error('Enter a valid amount'); return }
+    setPaying(true)
+    try {
+      await saleAPI.addPayment(id, {
+        amount: amt,
+        payment_mode: payForm.payment_mode,
+        payment_date: payForm.payment_date,
+        reference_no: payForm.reference_no || undefined,
+      })
+      toast.success('Payment recorded')
+      setShowPayModal(false)
+      // Refresh invoice
+      const { data } = await saleAPI.getOne(id)
+      setInv(data.data || data.sale || data)
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to record payment')
+    } finally {
+      setPaying(false)
+    }
   }
 
   if (loading) return <LoadingSpinner fullscreen />
@@ -321,7 +348,17 @@ export default function InvoiceDetail() {
 
           {/* Payment info */}
           <div className="bg-white rounded-xl border border-emerald-200 p-4 shadow-sm">
-            <h3 className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-3">Payment</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Payment</h3>
+              {!isCancelled && inv.payment_status !== 'paid' && (
+                <button
+                  onClick={() => { setShowPayModal(true); setPayForm(f => ({ ...f, amount: String(balanceAmt > 0 ? balanceAmt : '') })) }}
+                  className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  <PlusCircle className="h-3.5 w-3.5" /> Add Payment
+                </button>
+              )}
+            </div>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Mode</span>
@@ -370,6 +407,70 @@ export default function InvoiceDetail() {
               })()}
             </div>
           </div>
+
+          {/* Add Payment Modal */}
+          {showPayModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowPayModal(false)}>
+              <div className="bg-white rounded-2xl shadow-2xl w-80 p-6 relative"
+                onClick={e => e.stopPropagation()}>
+                <button onClick={() => setShowPayModal(false)}
+                  className="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
+                  <X className="h-5 w-5" />
+                </button>
+                <h2 className="text-base font-bold text-slate-800 mb-4">Record Payment</h2>
+                <form onSubmit={handleAddPayment} className="space-y-3">
+                  <div>
+                    <label className="text-xs text-gray-500 font-medium block mb-1">Amount (₹)</label>
+                    <input
+                      type="number" min="0.01" step="0.01" required autoFocus
+                      value={payForm.amount}
+                      onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))}
+                      className="w-full border-2 border-emerald-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 font-medium block mb-1">Mode</label>
+                    <select
+                      value={payForm.payment_mode}
+                      onChange={e => setPayForm(f => ({ ...f, payment_mode: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="upi">UPI / Online</option>
+                      <option value="card">Card</option>
+                      <option value="cheque">Cheque</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 font-medium block mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={payForm.payment_date}
+                      onChange={e => setPayForm(f => ({ ...f, payment_date: e.target.value }))}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 font-medium block mb-1">Reference / UPI ID (optional)</label>
+                    <input
+                      type="text"
+                      value={payForm.reference_no}
+                      onChange={e => setPayForm(f => ({ ...f, reference_no: e.target.value }))}
+                      placeholder="Txn ID, cheque no, etc."
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    />
+                  </div>
+                  <button
+                    type="submit" disabled={paying}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+                  >
+                    {paying ? 'Saving…' : 'Confirm Payment'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Summary totals */}
           <div className="bg-white rounded-xl border border-green-300 shadow-sm overflow-hidden">
