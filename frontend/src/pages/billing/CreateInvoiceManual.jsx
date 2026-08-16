@@ -2,11 +2,12 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   X, Trash2, Plus, Calendar, Info, Banknote,
-  CreditCard, Smartphone, FileText, RefreshCw, Camera
+  CreditCard, Smartphone, FileText, RefreshCw, Camera, Package
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { saleAPI, customerAPI, whatsappAPI, settingsAPI, productAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
+import QuickInventoryModal from '../../components/common/QuickInventoryModal'
 
 function newRow() {
   return {
@@ -91,6 +92,7 @@ export default function CreateInvoiceManual() {
   const [showQrModal,    setShowQrModal]    = useState(false)
   const [upiIds,         setUpiIds]         = useState({ upi1: 'kavipushpjewels@oksbi', upi2: 'Kavipushpbank@okhdfcbank' })
   const [saving,         setSaving]         = useState(false)
+  const [showQuickInv,   setShowQuickInv]   = useState(false)
 
   // photos
   const [invoiceImages,  setInvoiceImages]  = useState([]) // [{file, preview}]
@@ -399,6 +401,12 @@ export default function CreateInvoiceManual() {
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded border border-gray-500 text-gray-700 hover:bg-gray-50"
           >
             <Plus className="h-3 w-3" /> ADD ITEM
+          </button>
+          <button
+            onClick={() => setShowQuickInv(true)}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded border border-amber-500 text-amber-700 hover:bg-amber-50"
+          >
+            <Package className="h-3 w-3" /> QUICK INVENTORY
           </button>
           <button
             onClick={() => { setRows([newRow()]); setCustName(''); setMobile(''); setPrevBalanceInput('') }}
@@ -1133,6 +1141,24 @@ export default function CreateInvoiceManual() {
             </div>
           </div>
         </div>
+      )}
+
+      {showQuickInv && (
+        <QuickInventoryModal
+          onClose={() => setShowQuickInv(false)}
+          onProductCreated={(product) => {
+            setAllProducts((prev) => [product, ...prev])
+            setRows((prev) => {
+              const last = prev[prev.length - 1]
+              if (!last.product_id) {
+                const updated = [...prev]
+                updated[updated.length - 1] = applyProductToManualRow(last, product)
+                return updated
+              }
+              return [...prev, applyProductToManualRow(newRow(), product)]
+            })
+          }}
+        />
       )}
 
     </div>
