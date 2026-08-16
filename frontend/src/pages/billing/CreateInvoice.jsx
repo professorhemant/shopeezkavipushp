@@ -528,7 +528,7 @@ export default function CreateInvoice() {
         </div>
 
         {/* Barcode */}
-        <div className="relative flex items-center flex-1 min-w-[180px]">
+        <div className="relative flex items-center w-56">
           <ScanBarcode className="absolute left-2 h-3.5 w-3.5 text-violet-400" />
           <input
             ref={barcodeRef}
