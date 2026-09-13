@@ -10,7 +10,7 @@ import {
   Landmark, Wrench, Store, Hammer, Warehouse, BookOpen,
   ClipboardList, Factory, MessageSquare, Calendar,
   BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone, Bell, BadgeIndianRupee,
-  Shirt, ShoppingBag
+  Shirt, ShoppingBag, Bot, Instagram, GraduationCap
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { bridalAPI } from '../../api'
@@ -91,6 +91,13 @@ const MENU = [
       { label: 'New Lehenga Sale',      path: '/lehenga/sale',             icon: ShoppingBag },
       { label: 'Saved Sales',           path: '/lehenga/sales',            icon: FileText },
       { label: 'Lehenga Inventory',     path: '/lehenga/inventory',        icon: Boxes },
+    ],
+  },
+  {
+    id: 'chatbot', label: 'Chatbot', icon: Bot,
+    children: [
+      { label: 'Instagram Leads', path: '/instagram-leads', icon: Instagram },
+      { label: 'Chatbot Learning', path: '/chatbot/learning', icon: GraduationCap },
     ],
   },
   { id: 'urgent-alerts', label: 'Urgent Alerts', icon: Bell, path: '/bridal/urgent-alerts', urgent: true },

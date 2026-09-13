@@ -92,6 +92,8 @@ const LehengaSale = lazy(() => import('./pages/lehenga/LehengaSale'))
 const LehengaSalesList = lazy(() => import('./pages/lehenga/LehengaSalesList'))
 const LehengaSaleView = lazy(() => import('./pages/lehenga/LehengaSaleView'))
 
+const ChatbotLearning = lazy(() => import('./pages/chatbot/ChatbotLearning'))
+
 const Firms = lazy(() => import('./pages/firms/Firms'))
 const Settings = lazy(() => import('./pages/settings/Settings'))
 const Profile = lazy(() => import('./pages/settings/Profile'))
@@ -210,6 +212,9 @@ function App() {
 
           {/* WhatsApp */}
           <Route path="whatsapp/campaigns" element={<WhatsAppCampaigns />} />
+
+          {/* Chatbot */}
+          <Route path="chatbot/learning" element={<ChatbotLearning />} />
 
           {/* Tools */}
           <Route path="tools/qr" element={<QRGenerator />} />
