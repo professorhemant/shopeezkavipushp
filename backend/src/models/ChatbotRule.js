@@ -3,8 +3,8 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 const ChatbotRule = sequelize.define('ChatbotRule', {
-  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  firm_id: { type: DataTypes.INTEGER, allowNull: false },
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  firm_id: { type: DataTypes.UUID, allowNull: false },
   keyword: { type: DataTypes.STRING(200), allowNull: false },
   reply: { type: DataTypes.TEXT, allowNull: false },
   active: { type: DataTypes.BOOLEAN, defaultValue: true },
