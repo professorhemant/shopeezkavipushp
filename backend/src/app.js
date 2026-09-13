@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 const routes = require('./routes');
+const { verifyWebhook, handleWebhook } = require('./controllers/instagramController');
 
 const app = express();
 
@@ -59,6 +60,10 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Static files (uploads) — served from the same root multer writes to
 // (UPLOAD_DIR when set, e.g. a persistent volume; else the local folder).
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || path.join(__dirname, '../uploads')));
+
+// Instagram webhook — mounted at original URL Meta has registered
+app.get('/webhook/instagram', verifyWebhook);
+app.post('/webhook/instagram', handleWebhook);
 
 // API Routes
 app.use('/api', routes);
