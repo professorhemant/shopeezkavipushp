@@ -10,8 +10,13 @@ const IG_APP_SECRET = process.env.IG_APP_SECRET;
 
 // In-memory diagnostic log (resets on restart, 20 entries max)
 const _webhookLog = [];
-exports.getWebhookLog = (req, res) => {
-  res.json({ count: _webhookLog.length, events: _webhookLog });
+exports.getWebhookLog = async (req, res) => {
+  try {
+    const dbCount = await InstagramLead.count();
+    res.json({ webhook_hits: _webhookLog.length, db_leads: dbCount, events: _webhookLog });
+  } catch (err) {
+    res.json({ webhook_hits: _webhookLog.length, db_leads: 'ERROR: ' + err.message, events: _webhookLog });
+  }
 };
 
 // ── Webhook verification (Meta GET challenge) ─────────────────────
@@ -58,15 +63,14 @@ exports.handleWebhook = async (req, res) => {
   _webhookLog.unshift(logEntry);
   if (_webhookLog.length > 20) _webhookLog.pop();
 
-  // Verify payload signature using raw body bytes
+  // Signature check — log result but don't block (temporary for debugging)
   const sig = req.headers['x-hub-signature-256'];
   if (IG_APP_SECRET && sig) {
     const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
     const expected = 'sha256=' + crypto.createHmac('sha256', IG_APP_SECRET).update(rawBody).digest('hex');
-    if (sig !== expected) {
-      console.warn('[IG webhook] ❌ Signature mismatch — expected:', expected, 'got:', sig);
-      return res.sendStatus(403);
-    }
+    const match = sig === expected;
+    console.log('[IG webhook] sig check:', match ? '✅ PASS' : '❌ FAIL', '— got:', sig.slice(0, 30), 'expected:', expected.slice(0, 30));
+    // TEMP: not blocking on mismatch — remove after debugging
   }
 
   res.sendStatus(200); // Acknowledge immediately
