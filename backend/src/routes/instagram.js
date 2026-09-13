@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const router = express.Router();
-const { verifyWebhook, handleWebhook, getLeads, updateLead } = require('../controllers/instagramController');
+const { verifyWebhook, handleWebhook, getLeads, updateLead, getMessages } = require('../controllers/instagramController');
 const { authenticate } = require('../middleware/auth');
 
 // Public webhook routes (called by Meta)
@@ -11,5 +11,6 @@ router.post('/webhook', handleWebhook);
 // Protected leads API
 router.get('/leads', authenticate, getLeads);
 router.patch('/leads/:id', authenticate, updateLead);
+router.get('/leads/:id/messages', authenticate, getMessages);
 
 module.exports = router;

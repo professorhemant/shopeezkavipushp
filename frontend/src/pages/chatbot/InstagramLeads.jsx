@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Instagram, Phone, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react'
+import { Instagram, Phone, ChevronDown, ChevronUp } from 'lucide-react'
 import api from '../../api'
 
 const STATUS_OPTIONS = [
@@ -16,11 +16,19 @@ function statusMeta(val) {
   return STATUS_OPTIONS.find(s => s.value === val) || STATUS_OPTIONS[0]
 }
 
+function formatTime(dt) {
+  return new Date(dt).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
 export default function InstagramLeads() {
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('all')
   const [expanded, setExpanded] = useState(null)
+  const [messages, setMessages] = useState({}) // keyed by lead id
 
   useEffect(() => { fetchLeads() }, [])
 
@@ -31,6 +39,19 @@ export default function InstagramLeads() {
     } catch { } finally { setLoading(false) }
   }
 
+  const toggleExpand = async (leadId) => {
+    if (expanded === leadId) { setExpanded(null); return }
+    setExpanded(leadId)
+    if (!messages[leadId]) {
+      try {
+        const res = await api.get(`/instagram/leads/${leadId}/messages`)
+        if (res.data?.success) {
+          setMessages(prev => ({ ...prev, [leadId]: res.data.messages }))
+        }
+      } catch { }
+    }
+  }
+
   const updateStatus = async (id, status) => {
     try {
       await api.patch(`/instagram/leads/${id}`, { status })
@@ -39,9 +60,7 @@ export default function InstagramLeads() {
   }
 
   const filtered = tab === 'all' ? leads : leads.filter(l => l.status === tab)
-
   const count = (s) => s === 'all' ? leads.length : leads.filter(l => l.status === s).length
-
   const tabLabel = (s) => {
     if (s === 'all') return `All (${leads.length})`
     const m = statusMeta(s)
@@ -84,11 +103,13 @@ export default function InstagramLeads() {
           {filtered.map(lead => {
             const sm = statusMeta(lead.status)
             const isOpen = expanded === lead.id
+            const thread = messages[lead.id] || []
             return (
               <div key={lead.id} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                {/* Card header */}
                 <div
                   className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-white/5"
-                  onClick={() => setExpanded(isOpen ? null : lead.id)}
+                  onClick={() => toggleExpand(lead.id)}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -125,17 +146,37 @@ export default function InstagramLeads() {
                     </select>
 
                     <span className="text-xs text-slate-500 w-32 text-right">
-                      {new Date(lead.last_message_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {formatTime(lead.last_message_at)}
                     </span>
 
                     {isOpen ? <ChevronUp className="h-4 w-4 text-slate-500" /> : <ChevronDown className="h-4 w-4 text-slate-500" />}
                   </div>
                 </div>
 
+                {/* Chat thread */}
                 {isOpen && (
-                  <div className="border-t border-slate-700 px-5 py-4 bg-black/20">
-                    <p className="text-xs text-slate-400 mb-1">Last message</p>
-                    <p className="text-sm text-slate-200">{lead.last_message || '—'}</p>
+                  <div className="border-t border-slate-700 px-5 py-4 bg-black/20 space-y-2">
+                    {thread.length === 0 ? (
+                      <p className="text-xs text-slate-500 text-center py-2">No message history yet.</p>
+                    ) : (
+                      thread.map(msg => (
+                        <div
+                          key={msg.id}
+                          className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-2xl text-sm ${
+                            msg.direction === 'outbound'
+                              ? 'bg-amber-500/20 text-amber-100 rounded-br-sm'
+                              : 'bg-slate-700 text-slate-200 rounded-bl-sm'
+                          }`}>
+                            <p>{msg.text}</p>
+                            <p className={`text-[10px] mt-1 ${msg.direction === 'outbound' ? 'text-amber-400/60 text-right' : 'text-slate-500'}`}>
+                              {formatTime(msg.sent_at)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>

@@ -1,7 +1,7 @@
 'use strict';
 const axios = require('axios');
 const crypto = require('crypto');
-const { InstagramLead, ChatbotRule, Customer, Firm } = require('../models');
+const { InstagramLead, InstagramMessage, ChatbotRule, Customer, Firm } = require('../models');
 
 const IG_ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN;
 const IG_USER_ID = process.env.IG_USER_ID;
@@ -80,6 +80,9 @@ exports.handleWebhook = async (req, res) => {
         lead.last_message = messageText;
         lead.last_message_at = new Date();
 
+        // Save inbound message to history
+        await InstagramMessage.create({ lead_id: lead.id, text: messageText, direction: 'inbound', sent_at: new Date() });
+
         if (!lead.username) {
           lead.username = await fetchUsername(senderId);
         }
@@ -118,6 +121,7 @@ exports.handleWebhook = async (req, res) => {
           try {
             await sendReply(senderId, matched.reply);
             lead.auto_replied = true;
+            await InstagramMessage.create({ lead_id: lead.id, text: matched.reply, direction: 'outbound', sent_at: new Date() });
           } catch (err) {
             console.error('[IG webhook] auto-reply failed:', err.response?.data || err.message);
           }
@@ -136,6 +140,18 @@ exports.getLeads = async (req, res) => {
   try {
     const leads = await InstagramLead.findAll({ order: [['last_message_at', 'DESC']] });
     res.json({ success: true, leads });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.getMessages = async (req, res) => {
+  try {
+    const messages = await InstagramMessage.findAll({
+      where: { lead_id: req.params.id },
+      order: [['sent_at', 'ASC']],
+    });
+    res.json({ success: true, messages });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -48,6 +48,7 @@ const PayrollEntry = require('./PayrollEntry');
 const EmployeeLeave = require('./EmployeeLeave');
 const ChatbotRule = require('./ChatbotRule');
 const InstagramLead = require('./InstagramLead');
+const InstagramMessage = require('./InstagramMessage');
 
 // ─── Associations ────────────────────────────────────────────────
 // User <-> Role
@@ -115,6 +116,10 @@ PayrollEntry.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
 Employee.hasMany(EmployeeLeave, { foreignKey: 'employee_id', as: 'leaves' });
 EmployeeLeave.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
 
+// Instagram
+InstagramLead.hasMany(InstagramMessage, { foreignKey: 'lead_id', as: 'messages' });
+InstagramMessage.belongsTo(InstagramLead, { foreignKey: 'lead_id', as: 'lead' });
+
 module.exports = {
   sequelize,
   User,
@@ -164,4 +169,5 @@ module.exports = {
   EmployeeLeave,
   ChatbotRule,
   InstagramLead,
+  InstagramMessage,
 };
