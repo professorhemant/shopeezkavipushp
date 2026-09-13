@@ -8,6 +8,12 @@ const IG_USER_ID = process.env.IG_USER_ID;
 const IG_VERIFY_TOKEN = process.env.IG_VERIFY_TOKEN;
 const IG_APP_SECRET = process.env.IG_APP_SECRET;
 
+// In-memory diagnostic log (resets on restart, 20 entries max)
+const _webhookLog = [];
+exports.getWebhookLog = (req, res) => {
+  res.json({ count: _webhookLog.length, events: _webhookLog });
+};
+
 // ── Webhook verification (Meta GET challenge) ─────────────────────
 exports.verifyWebhook = (req, res) => {
   const mode = req.query['hub.mode'];
@@ -57,6 +63,11 @@ exports.handleWebhook = async (req, res) => {
       return res.sendStatus(403);
     }
   }
+
+  // Log every incoming event for diagnostics
+  const logEntry = { time: new Date().toISOString(), sig: req.headers['x-hub-signature-256']?.slice(0, 20) + '…', body: req.body };
+  _webhookLog.unshift(logEntry);
+  if (_webhookLog.length > 20) _webhookLog.pop();
 
   res.sendStatus(200); // Acknowledge immediately
 
