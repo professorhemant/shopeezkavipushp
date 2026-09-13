@@ -53,6 +53,11 @@ async function fetchUsername(senderId) {
 
 // ── Main webhook event handler (Meta POST) ────────────────────────
 exports.handleWebhook = async (req, res) => {
+  // Log ALL incoming hits before any check (so we see failed-signature events too)
+  const logEntry = { time: new Date().toISOString(), sig: req.headers['x-hub-signature-256']?.slice(0, 20) + '…', body: req.body };
+  _webhookLog.unshift(logEntry);
+  if (_webhookLog.length > 20) _webhookLog.pop();
+
   // Verify payload signature using raw body bytes
   const sig = req.headers['x-hub-signature-256'];
   if (IG_APP_SECRET && sig) {
@@ -63,11 +68,6 @@ exports.handleWebhook = async (req, res) => {
       return res.sendStatus(403);
     }
   }
-
-  // Log every incoming event for diagnostics
-  const logEntry = { time: new Date().toISOString(), sig: req.headers['x-hub-signature-256']?.slice(0, 20) + '…', body: req.body };
-  _webhookLog.unshift(logEntry);
-  if (_webhookLog.length > 20) _webhookLog.pop();
 
   res.sendStatus(200); // Acknowledge immediately
 
