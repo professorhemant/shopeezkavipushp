@@ -47,6 +47,7 @@ const Employee = require('./Employee');
 const PayrollEntry = require('./PayrollEntry');
 const EmployeeLeave = require('./EmployeeLeave');
 const ChatbotRule = require('./ChatbotRule');
+const InstagramLead = require('./InstagramLead');
 
 // ─── Associations ────────────────────────────────────────────────
 // User <-> Role
@@ -162,4 +163,5 @@ module.exports = {
   PayrollEntry,
   EmployeeLeave,
   ChatbotRule,
+  InstagramLead,
 };

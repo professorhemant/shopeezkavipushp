@@ -30,6 +30,7 @@ const bridalRoutes = require('./bridal');
 const lehengaRoutes = require('./lehenga');
 const employeeRoutes = require('./employees');
 const chatbotRoutes = require('./chatbot');
+const instagramRoutes = require('./instagram');
 const upload = require('../middleware/upload');
 const path = require('path');
 
@@ -63,6 +64,7 @@ router.get('/lehenga/inventory/export', authenticate, require('../controllers/le
 router.use('/lehenga', authenticate, lehengaRoutes);
 router.use('/employees', authenticate, employeeRoutes);
 router.use('/chatbot', authenticate, chatbotRoutes);
+router.use('/instagram', instagramRoutes);
 
 // Image upload endpoint
 router.post('/upload', authenticate, (req, res, next) => {

@@ -93,6 +93,7 @@ const LehengaSalesList = lazy(() => import('./pages/lehenga/LehengaSalesList'))
 const LehengaSaleView = lazy(() => import('./pages/lehenga/LehengaSaleView'))
 
 const ChatbotLearning = lazy(() => import('./pages/chatbot/ChatbotLearning'))
+const InstagramLeads = lazy(() => import('./pages/chatbot/InstagramLeads'))
 
 const Firms = lazy(() => import('./pages/firms/Firms'))
 const Settings = lazy(() => import('./pages/settings/Settings'))
@@ -214,6 +215,7 @@ function App() {
           <Route path="whatsapp/campaigns" element={<WhatsAppCampaigns />} />
 
           {/* Chatbot */}
+          <Route path="instagram-leads" element={<InstagramLeads />} />
           <Route path="chatbot/learning" element={<ChatbotLearning />} />
 
           {/* Tools */}
