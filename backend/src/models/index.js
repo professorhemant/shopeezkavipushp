@@ -46,6 +46,7 @@ const LehengaSale = require('./LehengaSale');
 const Employee = require('./Employee');
 const PayrollEntry = require('./PayrollEntry');
 const EmployeeLeave = require('./EmployeeLeave');
+const ChatbotRule = require('./ChatbotRule');
 
 // ─── Associations ────────────────────────────────────────────────
 // User <-> Role
@@ -160,4 +161,5 @@ module.exports = {
   Employee,
   PayrollEntry,
   EmployeeLeave,
+  ChatbotRule,
 };
