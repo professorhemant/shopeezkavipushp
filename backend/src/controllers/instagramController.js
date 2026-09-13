@@ -1,7 +1,7 @@
 'use strict';
 const axios = require('axios');
 const crypto = require('crypto');
-const { InstagramLead, ChatbotRule } = require('../models');
+const { InstagramLead, ChatbotRule, Customer, Firm } = require('../models');
 
 const IG_ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN;
 const IG_USER_ID = process.env.IG_USER_ID;
@@ -89,6 +89,26 @@ exports.handleWebhook = async (req, res) => {
         if (phoneMatch && !lead.phone) {
           lead.phone = phoneMatch[0];
           lead.status = 'number_collected';
+
+          // Auto-save to customers table
+          try {
+            const firm = await Firm.findOne();
+            if (firm) {
+              const customerName = lead.username ? `@${lead.username}` : `Instagram (${senderId})`;
+              await Customer.findOrCreate({
+                where: { phone: lead.phone, firm_id: firm.id },
+                defaults: {
+                  firm_id: firm.id,
+                  name: customerName,
+                  phone: lead.phone,
+                  notes: 'Instagram lead via @kavipushp DM',
+                },
+              });
+              console.log('[IG webhook] customer saved for phone:', lead.phone);
+            }
+          } catch (err) {
+            console.error('[IG webhook] customer save failed:', err.message);
+          }
         }
 
         // Match chatbot rules and auto-reply
