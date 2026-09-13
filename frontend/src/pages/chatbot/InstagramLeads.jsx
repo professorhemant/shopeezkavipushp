@@ -99,7 +99,9 @@ export default function InstagramLeads() {
                         <span className="text-[10px] bg-green-500/15 text-green-400 px-1.5 py-0.5 rounded-full">bot replied</span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">{lead.intent || 'unclear'}</p>
+                    {lead.last_message && (
+                      <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{lead.last_message}</p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
