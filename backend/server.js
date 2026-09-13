@@ -11,9 +11,6 @@ async function startServer() {
     await sequelize.authenticate();
     console.log('✅ Database connected successfully');
 
-    // Drop tables that were created with wrong/missing columns — recreated by sync()
-    try { await sequelize.query('DROP TABLE IF EXISTS chatbot_rules'); } catch (_) {}
-    try { await sequelize.query('DROP TABLE IF EXISTS instagram_leads'); } catch (_) {}
 
     // Sync models - create tables if they don't exist (no alter to avoid duplicate index buildup)
     await sequelize.sync();
