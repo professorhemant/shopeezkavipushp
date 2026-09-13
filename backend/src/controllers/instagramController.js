@@ -13,6 +13,7 @@ exports.verifyWebhook = (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
+  console.log('[IG webhook] verify attempt — mode:', mode, 'token_match:', token === IG_VERIFY_TOKEN);
   if (mode === 'subscribe' && token === IG_VERIFY_TOKEN) {
     console.log('✅ Instagram webhook verified');
     return res.status(200).send(challenge);
@@ -22,11 +23,12 @@ exports.verifyWebhook = (req, res) => {
 
 // ── Send a reply DM via Instagram Graph API ───────────────────────
 async function sendReply(recipientId, text) {
-  await axios.post(
+  const res = await axios.post(
     `https://graph.instagram.com/v21.0/${IG_USER_ID}/messages`,
     { recipient: { id: recipientId }, message: { text } },
     { headers: { Authorization: `Bearer ${IG_ACCESS_TOKEN}`, 'Content-Type': 'application/json' } }
   );
+  console.log('[IG reply] sent to', recipientId, '— response:', JSON.stringify(res.data));
 }
 
 // ── Fetch Instagram username from sender PSID ─────────────────────
@@ -37,42 +39,64 @@ async function fetchUsername(senderId) {
       { params: { fields: 'username,name', access_token: IG_ACCESS_TOKEN } }
     );
     return res.data.username || res.data.name || null;
-  } catch {
+  } catch (err) {
+    console.log('[IG username] fetch failed for', senderId, ':', err.response?.data || err.message);
     return null;
   }
 }
 
 // ── Main webhook event handler (Meta POST) ────────────────────────
 exports.handleWebhook = async (req, res) => {
-  // Verify payload signature
+  // Verify payload signature using raw body bytes
   const sig = req.headers['x-hub-signature-256'];
   if (IG_APP_SECRET && sig) {
-    const expected = 'sha256=' + crypto.createHmac('sha256', IG_APP_SECRET).update(JSON.stringify(req.body)).digest('hex');
-    if (sig !== expected) return res.sendStatus(403);
+    const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
+    const expected = 'sha256=' + crypto.createHmac('sha256', IG_APP_SECRET).update(rawBody).digest('hex');
+    if (sig !== expected) {
+      console.warn('[IG webhook] ❌ Signature mismatch — expected:', expected, 'got:', sig);
+      return res.sendStatus(403);
+    }
   }
 
   res.sendStatus(200); // Acknowledge immediately
 
   try {
     const body = req.body;
-    if (body.object !== 'instagram') return;
+    console.log('[IG webhook] received object:', body.object, '— entries:', body.entry?.length ?? 0);
+
+    if (body.object !== 'instagram') {
+      console.log('[IG webhook] ignoring non-instagram object:', body.object);
+      return;
+    }
 
     for (const entry of body.entry || []) {
-      for (const event of entry.messaging || []) {
+      const messagingEvents = entry.messaging || [];
+      console.log('[IG webhook] entry id:', entry.id, '— messaging events:', messagingEvents.length);
+
+      for (const event of messagingEvents) {
         const senderId = event.sender?.id;
         const recipientId = event.recipient?.id;
+        const messageText = event.message?.text || '';
+
+        console.log('[IG webhook] event — sender:', senderId, 'recipient:', recipientId, 'text:', messageText);
 
         // Ignore messages sent by the bot itself
-        if (senderId === IG_USER_ID || senderId === recipientId) continue;
+        if (!senderId || senderId === IG_USER_ID) {
+          console.log('[IG webhook] skipping own message');
+          continue;
+        }
 
-        const messageText = event.message?.text || '';
-        if (!messageText) continue;
+        if (!messageText) {
+          console.log('[IG webhook] skipping non-text event');
+          continue;
+        }
 
         // Upsert the lead
-        let [lead] = await InstagramLead.findOrCreate({
+        let [lead, created] = await InstagramLead.findOrCreate({
           where: { sender_id: senderId },
           defaults: { sender_id: senderId, last_message: messageText, last_message_at: new Date() },
         });
+        console.log('[IG webhook] lead', created ? 'created' : 'found', '— id:', lead.id);
 
         lead.last_message = messageText;
         lead.last_message_at = new Date();
@@ -80,6 +104,7 @@ exports.handleWebhook = async (req, res) => {
         // Fetch username if not yet known
         if (!lead.username) {
           lead.username = await fetchUsername(senderId);
+          console.log('[IG webhook] username fetched:', lead.username);
         }
 
         // Extract phone number if present in message
@@ -87,27 +112,30 @@ exports.handleWebhook = async (req, res) => {
         if (phoneMatch && !lead.phone) {
           lead.phone = phoneMatch[0];
           lead.status = 'number_collected';
+          console.log('[IG webhook] phone extracted:', lead.phone);
         }
 
-        // Match chatbot rules and auto-reply
+        // Match chatbot rules and auto-reply (every matching message gets a reply)
         const rules = await ChatbotRule.findAll({ where: { active: true } });
         const lowerMsg = messageText.toLowerCase();
         const matched = rules.find(r => lowerMsg.includes(r.keyword.toLowerCase()));
+        console.log('[IG webhook] rules loaded:', rules.length, '— matched:', matched?.keyword || 'none');
 
-        if (matched && !lead.auto_replied) {
+        if (matched) {
           try {
             await sendReply(senderId, matched.reply);
             lead.auto_replied = true;
           } catch (err) {
-            console.error('❌ Auto-reply failed:', err.response?.data || err.message);
+            console.error('[IG webhook] ❌ Auto-reply failed:', err.response?.data || err.message);
           }
         }
 
         await lead.save();
+        console.log('[IG webhook] lead saved — id:', lead.id, 'status:', lead.status);
       }
     }
   } catch (err) {
-    console.error('❌ Instagram webhook error:', err.message);
+    console.error('[IG webhook] ❌ Error:', err.message, err.stack);
   }
 };
 
@@ -119,6 +147,7 @@ exports.getLeads = async (req, res) => {
     });
     res.json({ success: true, leads });
   } catch (err) {
+    console.error('[IG leads] getLeads error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
