@@ -31,15 +31,36 @@ export default function ChatbotLearning() {
     }
   }
 
-  const addRule = () => {
+  const addRule = async () => {
     if (!newKeyword.trim() || !newReply.trim()) return
-    setRules(prev => [...prev, { id: Date.now(), keyword: newKeyword.trim(), reply: newReply.trim() }])
+    const newRule = { id: Date.now(), keyword: newKeyword.trim(), reply: newReply.trim() }
+    const updatedRules = [...rules, newRule]
+    setRules(updatedRules)
     setNewKeyword('')
     setNewReply('')
+    setSaving(true)
+    try {
+      await api.post('/chatbot/rules', { rules: updatedRules })
+      showToast('Rule added and saved!')
+    } catch {
+      showToast('Failed to save rule. Please try Save Rules manually.', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const removeRule = (id) => {
-    setRules(prev => prev.filter(r => r.id !== id))
+  const removeRule = async (id) => {
+    const updatedRules = rules.filter(r => r.id !== id)
+    setRules(updatedRules)
+    setSaving(true)
+    try {
+      await api.post('/chatbot/rules', { rules: updatedRules })
+      showToast('Rule deleted.')
+    } catch {
+      showToast('Failed to delete rule. Please try Save Rules manually.', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const saveRules = async () => {
@@ -48,7 +69,7 @@ export default function ChatbotLearning() {
       await api.post('/chatbot/rules', { rules })
       showToast('Chatbot rules saved successfully!')
     } catch {
-      showToast('Failed to save rules. Backend endpoint not set up yet.', 'error')
+      showToast('Failed to save rules.', 'error')
     } finally {
       setSaving(false)
     }
@@ -106,11 +127,11 @@ export default function ChatbotLearning() {
         </div>
         <button
           onClick={addRule}
-          disabled={!newKeyword.trim() || !newReply.trim()}
+          disabled={!newKeyword.trim() || !newReply.trim() || saving}
           className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Add Rule
+          {saving ? 'Saving...' : 'Add Rule'}
         </button>
       </div>
 
