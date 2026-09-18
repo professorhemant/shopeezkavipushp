@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Trash2, Users, Phone, ChevronLeft, ChevronRight, MessageCircle, X, Send, Clock, Loader2, Wallet } from 'lucide-react'
+import { Plus, Search, Trash2, Users, Phone, ChevronLeft, ChevronRight, MessageCircle, X, Send, Clock, Loader2, Wallet, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { customerAPI, whatsappAPI, saleAPI } from '../../api'
 import { formatCurrency } from '../../utils/formatters'
@@ -249,7 +249,8 @@ export default function Customers() {
                         {parseFloat(c.outstanding_balance || 0) > 0 && (
                           <button onClick={() => openCollect(c)} title="Collect balance payment" className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600"><Wallet className="h-4 w-4" /></button>
                         )}
-                        <button onClick={() => setDeleteId(c.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => openEdit(c)} title="Edit customer" className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600"><Pencil className="h-4 w-4" /></button>
+                        <button onClick={() => setDeleteId(c.id)} title="Delete customer" className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>
