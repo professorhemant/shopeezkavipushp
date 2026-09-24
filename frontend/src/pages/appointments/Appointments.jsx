@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, Calendar, Clock, User, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Search, Calendar, Clock, User, CheckCircle, XCircle, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { appointmentAPI } from '../../api'
 import { formatDate } from '../../utils/formatters'
@@ -12,6 +12,8 @@ const EMPTY_FORM = {
 
 const STATUS_COLORS = {
   scheduled: 'bg-amber-50 text-amber-700',
+  confirmed: 'bg-blue-50 text-blue-700',
+  in_progress: 'bg-purple-50 text-purple-700',
   completed: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
   no_show: 'bg-gray-100 text-slate-600',
@@ -36,8 +38,8 @@ export default function Appointments() {
       const items = data.data || data.appointments || []
       setAppointments(items)
       setSummary({
-        total: data.count || items.length,
-        today: data.today_count || items.filter((a) => a.appointment_date === new Date().toISOString().split('T')[0]).length,
+        total: data.pagination?.total ?? items.length,
+        today: data.today_count ?? items.filter((a) => a.appointment_date === new Date().toISOString().split('T')[0]).length,
         completed: items.filter((a) => a.status === 'completed').length,
       })
     } catch {
@@ -136,8 +138,11 @@ export default function Appointments() {
             className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500">
             <option value="">All Status</option>
             <option value="scheduled">Scheduled</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
+            <option value="no_show">No Show</option>
           </select>
         </div>
       </div>
@@ -164,14 +169,15 @@ export default function Appointments() {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="flex items-center gap-1 text-sm text-slate-600"><Calendar className="h-3.5 w-3.5" />{formatDate(a.appointment_date)}</div>
-                  <div className="flex items-center gap-1 text-sm text-slate-500 mt-0.5"><Clock className="h-3.5 w-3.5" />{a.appointment_time}</div>
+                  <div className="flex items-center gap-1 text-sm text-slate-500 mt-0.5"><Clock className="h-3.5 w-3.5" />{a.appointment_time?.slice(0, 5)}</div>
                 </div>
                 <div className="flex-shrink-0">
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[a.status] || STATUS_COLORS.scheduled}`}>{a.status || 'scheduled'}</span>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {a.status === 'scheduled' && (
+                  {!['cancelled', 'completed'].includes(a.status) && (
                     <>
+                      <button onClick={() => openEdit(a)} title="Edit" className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600"><Pencil className="h-4 w-4" /></button>
                       <button onClick={() => handleComplete(a.id)} title="Mark complete" className="p-1.5 rounded-lg hover:bg-green-50 text-slate-400 hover:text-green-600"><CheckCircle className="h-4 w-4" /></button>
                       <button onClick={() => handleCancel(a.id)} title="Cancel" className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600"><XCircle className="h-4 w-4" /></button>
                     </>

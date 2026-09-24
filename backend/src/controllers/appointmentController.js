@@ -15,15 +15,30 @@ const paginate = (q) => {
 const getAll = async (req, res, next) => {
   try {
     const { limit, offset, page } = paginate(req.query);
-    const { from_date, to_date, staff_id, status, customer_id } = req.query;
+    const { from_date, to_date, date, staff_id, status, customer_id, search } = req.query;
 
     const where = { firm_id: req.firmId };
     if (staff_id) where.staff_id = staff_id;
     if (status) where.status = status;
     if (customer_id) where.customer_id = customer_id;
-    if (from_date && to_date) {
+    if (date) {
+      where.appointment_date = date;
+    } else if (from_date && to_date) {
       where.appointment_date = { [Op.between]: [new Date(from_date), new Date(to_date)] };
     }
+    if (search) {
+      where[Op.or] = [
+        { customer_name: { [Op.like]: `%${search}%` } },
+        { customer_phone: { [Op.like]: `%${search}%` } },
+        { service: { [Op.like]: `%${search}%` } },
+        { staff_name: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const todayCount = await Appointment.count({
+      where: { firm_id: req.firmId, appointment_date: today },
+    });
 
     const { count, rows } = await Appointment.findAndCountAll({
       where,
@@ -40,6 +55,7 @@ const getAll = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       data: rows,
+      today_count: todayCount,
       pagination: { page, limit, total: count, pages: Math.ceil(count / limit) },
     });
   } catch (err) {

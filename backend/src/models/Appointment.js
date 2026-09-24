@@ -16,6 +16,8 @@ const Appointment = sequelize.define('Appointment', {
   status: { type: DataTypes.ENUM('scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'), defaultValue: 'scheduled' },
   amount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
   notes: { type: DataTypes.TEXT },
+  cancel_reason: { type: DataTypes.STRING(500) },
+  completed_at: { type: DataTypes.DATE },
   reminder_sent: { type: DataTypes.BOOLEAN, defaultValue: false },
 }, { tableName: 'appointments' });
 

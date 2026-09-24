@@ -82,6 +82,8 @@ async function startServer() {
       // Appointments: add staff_name for walk-in (non-linked) staff; allow null time.
       "ALTER TABLE appointments ADD COLUMN staff_name VARCHAR(100) NULL",
       "ALTER TABLE appointments MODIFY COLUMN appointment_time TIME NULL",
+      "ALTER TABLE appointments ADD COLUMN cancel_reason VARCHAR(500) NULL",
+      "ALTER TABLE appointments ADD COLUMN completed_at DATETIME NULL",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
