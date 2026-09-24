@@ -144,7 +144,7 @@ const getStats = async (req, res, next) => {
       data: {
         to_collect: toCollect,
         to_pay: toPay,
-        expiring_count: 0,
+        expiring_count: lowStockCount,
         today_orders: todayOrders,
         today_sales_amount: todaySalesAmount,
         today_cash: todayCash,
@@ -188,7 +188,8 @@ const getSalesChart = async (req, res, next) => {
     } else if (period === 'last_week') {
       groupBy = [fn('DATE', col('invoice_date'))];
       labelFn = (r) => {
-        const d = new Date(r.label);
+        const parts = String(r.label).split('-').map(Number);
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
         return d.toLocaleDateString('en-IN', { weekday: 'short' });
       };
     } else {
@@ -203,6 +204,10 @@ const getSalesChart = async (req, res, next) => {
       : period === 'last_week'         ? fn('DATE', col('invoice_date'))
       :                                  fn('MONTH', col('invoice_date'));
 
+    const orderBy = (period === 'today' || period === 'last_week')
+      ? [[attrKey, 'ASC']]
+      : [[fn('YEAR', col('invoice_date')), 'ASC'], [attrKey, 'ASC']];
+
     const raw = await Sale.findAll({
       where: { firm_id: firmId, status: 'confirmed', invoice_date: { [Op.between]: [start, end] } },
       attributes: [
@@ -211,7 +216,7 @@ const getSalesChart = async (req, res, next) => {
         [fn('SUM', col('total')), 'revenue'],
       ],
       group: groupBy,
-      order: [[attrKey, 'ASC']],
+      order: orderBy,
       raw: true,
     });
 

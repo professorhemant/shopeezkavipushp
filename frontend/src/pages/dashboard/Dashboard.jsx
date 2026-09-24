@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import {
   TrendingUp, TrendingDown, AlertTriangle,
   RefreshCw, ArrowUp, ArrowDown, Users, FileText, ReceiptText
@@ -28,11 +29,11 @@ const CHART_COLORS = ['#d97706', '#0f172a', '#64748b']
 function PayBadge({ status }) {
   const s = (status || '').toUpperCase()
   const cls =
-    s === 'CASH' || s === 'PAID'   ? 'bg-emerald-50 text-emerald-700' :
-    s === 'UPI'  || s === 'ONLINE' ? 'bg-amber-50 text-amber-700'     :
-    s === 'DUE'  || s === 'UNPAID' ? 'bg-red-50 text-red-700'         :
-    s === 'PARTIAL'                 ? 'bg-amber-50 text-amber-700'     :
-                                     'bg-slate-100 text-slate-600'
+    s === 'CASH' || s === 'PAID' || s === 'CARD' ? 'bg-emerald-50 text-emerald-700' :
+    s === 'UPI'  || s === 'ONLINE'               ? 'bg-amber-50 text-amber-700'     :
+    s === 'DUE'  || s === 'UNPAID'               ? 'bg-red-50 text-red-700'         :
+    s === 'PARTIAL' || s === 'SPLIT'             ? 'bg-amber-50 text-amber-700'     :
+                                                   'bg-slate-100 text-slate-600'
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{s || '—'}</span>
   )
@@ -140,7 +141,7 @@ export default function Dashboard() {
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-medium">Expiring (30 days)</p>
+            <p className="text-xs text-slate-500 font-medium">Low Stock Items</p>
             <p className="text-lg font-bold text-slate-800">{s.expiring_count ?? 0} Items</p>
           </div>
         </Link>
@@ -161,7 +162,7 @@ export default function Dashboard() {
             <div>
               <p className="text-xs text-slate-400">Total Sales</p>
               <p className="text-2xl font-bold text-amber-600">
-                {(s.today_sales_amount ?? 0).toLocaleString('en-IN')}
+                {formatCurrency(s.today_sales_amount ?? 0)}
               </p>
             </div>
           </div>
@@ -169,23 +170,23 @@ export default function Dashboard() {
           <div className="grid grid-cols-3 gap-2 text-center border-t border-slate-100 pt-3">
             <div>
               <p className="text-xs text-slate-400">Cash</p>
-              <p className="text-sm font-bold text-slate-700">{(s.today_cash ?? 0).toLocaleString('en-IN')}</p>
+              <p className="text-sm font-bold text-slate-700">{formatCurrency(s.today_cash ?? 0)}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400">Online</p>
-              <p className="text-sm font-bold text-slate-700">{(s.today_online ?? 0).toLocaleString('en-IN')}</p>
+              <p className="text-sm font-bold text-slate-700">{formatCurrency(s.today_online ?? 0)}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400">Due</p>
-              <p className="text-sm font-bold text-red-600">{(s.today_due ?? 0).toLocaleString('en-IN')}</p>
+              <p className="text-sm font-bold text-red-600">{formatCurrency(s.today_due ?? 0)}</p>
             </div>
           </div>
 
           <div className="flex gap-2 mt-auto">
-            <button className="flex-1 text-xs py-1.5 px-2 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200 transition-colors">
+            <button onClick={() => navigate('/daybook/sales')} className="flex-1 text-xs py-1.5 px-2 rounded-lg bg-slate-100 text-slate-600 font-medium hover:bg-slate-200 transition-colors">
               Day Mode
             </button>
-            <button className="flex-1 text-xs py-1.5 px-2 rounded-lg bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors">
+            <button onClick={() => toast('Cash drawer feature requires hardware setup', { icon: '🖨️' })} className="flex-1 text-xs py-1.5 px-2 rounded-lg bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors">
               Cash Drawer
             </button>
           </div>
