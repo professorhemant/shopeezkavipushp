@@ -79,6 +79,9 @@ async function startServer() {
       "UPDATE products SET tax_rate = 3 WHERE tax_rate = 0 OR tax_rate IS NULL",
       // Strip accidental "Code " prefix from bridal inventory names (one-time cleanup).
       "UPDATE bridal_inventory SET name = SUBSTRING(name, 6) WHERE name LIKE 'Code %'",
+      // Appointments: add staff_name for walk-in (non-linked) staff; allow null time.
+      "ALTER TABLE appointments ADD COLUMN staff_name VARCHAR(100) NULL",
+      "ALTER TABLE appointments MODIFY COLUMN appointment_time TIME NULL",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }

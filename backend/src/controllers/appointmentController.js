@@ -71,17 +71,28 @@ const getOne = async (req, res, next) => {
  */
 const create = async (req, res, next) => {
   try {
-    const { customer_id, staff_id, appointment_date, appointment_time, service, duration, notes } = req.body;
-    if (!appointment_date) return res.status(400).json({ success: false, message: 'appointment_date is required.' });
+    const {
+      customer_id, customer_name, customer_phone,
+      staff_id, staff_name,
+      appointment_date, date,
+      appointment_time, time,
+      service, duration_minutes, duration, notes,
+    } = req.body;
+
+    const apptDate = appointment_date || date;
+    if (!apptDate) return res.status(400).json({ success: false, message: 'appointment_date is required.' });
 
     const appointment = await Appointment.create({
       firm_id: req.firmId,
       customer_id: customer_id || null,
+      customer_name: customer_name || null,
+      customer_phone: customer_phone || null,
       staff_id: staff_id || null,
-      appointment_date,
-      appointment_time: appointment_time || null,
-      service: service || null,
-      duration: duration || 60,
+      staff_name: staff_name || null,
+      appointment_date: apptDate,
+      appointment_time: appointment_time || time || null,
+      service: service || '',
+      duration_minutes: duration_minutes || duration || 30,
       notes: notes || null,
       status: 'scheduled',
     });
@@ -104,6 +115,12 @@ const update = async (req, res, next) => {
     }
     const body = { ...req.body };
     delete body.firm_id;
+    // Accept frontend shorthand field names
+    if (body.date && !body.appointment_date) { body.appointment_date = body.date; }
+    if (body.time && !body.appointment_time) { body.appointment_time = body.time; }
+    if (body.service === undefined || body.service === null) body.service = '';
+    if (body.duration && !body.duration_minutes) { body.duration_minutes = body.duration; }
+    delete body.date; delete body.time; delete body.duration;
     await appointment.update(body);
     return res.status(200).json({ success: true, message: 'Appointment updated.', data: appointment });
   } catch (err) {
