@@ -37,7 +37,7 @@ export default function Appointments() {
       setAppointments(items)
       setSummary({
         total: data.count || items.length,
-        today: data.today_count || items.filter((a) => a.date === new Date().toISOString().split('T')[0]).length,
+        today: data.today_count || items.filter((a) => a.appointment_date === new Date().toISOString().split('T')[0]).length,
         completed: items.filter((a) => a.status === 'completed').length,
       })
     } catch {
@@ -52,7 +52,7 @@ export default function Appointments() {
   const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
   const openEdit = (a) => {
     setEditing(a.id)
-    setForm({ customer_name: a.customer_name || '', customer_phone: a.customer_phone || '', service: a.service || '', staff_name: a.staff_name || '', date: a.date?.split('T')[0] || '', time: a.time || '10:00', duration_minutes: a.duration_minutes || 30, notes: a.notes || '' })
+    setForm({ customer_name: a.customer_name || '', customer_phone: a.customer_phone || '', service: a.service || '', staff_name: a.staff_name || '', date: a.appointment_date?.split('T')[0] || '', time: a.appointment_time || '10:00', duration_minutes: a.duration_minutes || 30, notes: a.notes || '' })
     setShowModal(true)
   }
 
@@ -163,8 +163,8 @@ export default function Appointments() {
                   <p className="text-sm text-slate-500">{a.service || 'General'} · {a.customer_phone}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="flex items-center gap-1 text-sm text-slate-600"><Calendar className="h-3.5 w-3.5" />{formatDate(a.date)}</div>
-                  <div className="flex items-center gap-1 text-sm text-slate-500 mt-0.5"><Clock className="h-3.5 w-3.5" />{a.time}</div>
+                  <div className="flex items-center gap-1 text-sm text-slate-600"><Calendar className="h-3.5 w-3.5" />{formatDate(a.appointment_date)}</div>
+                  <div className="flex items-center gap-1 text-sm text-slate-500 mt-0.5"><Clock className="h-3.5 w-3.5" />{a.appointment_time}</div>
                 </div>
                 <div className="flex-shrink-0">
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[a.status] || STATUS_COLORS.scheduled}`}>{a.status || 'scheduled'}</span>
