@@ -31,9 +31,10 @@ export default function Login() {
         return
       } catch (err) {
         lastErr = err
-        // If server returned a real auth error (401/400), don't retry
-        if (err.response) break
-        // Network error = server waking up (Railway cold start) — retry silently
+        // Real auth/validation error → no point retrying
+        const status = err.response?.status
+        if (status === 401 || status === 400) break
+        // Network error or 5xx (Railway cold start / container restart) → retry
         if (attempt < 2) {
           toast.loading('Connecting to server…', { id: 'login-wake' })
           await new Promise((r) => setTimeout(r, 3000))
