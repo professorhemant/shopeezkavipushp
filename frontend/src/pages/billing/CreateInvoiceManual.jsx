@@ -905,7 +905,7 @@ export default function CreateInvoiceManual() {
                 className="w-52 h-52 rounded-lg"
               />
               <div>
-                <p className="text-xs text-slate-500 font-medium">Kavipushp Jewels</p>
+                <p className="text-xs text-slate-500 font-medium">ʰKavipushp Jewelsʰ</p>
                 <p className="text-sm font-mono text-slate-700 mt-0.5">{upiIds.upi1}</p>
                 <p className="text-lg font-bold text-green-600 mt-1">₹{netPayable.toFixed(2)}</p>
               </div>

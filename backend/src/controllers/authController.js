@@ -19,7 +19,7 @@ const sendOtpSMS = async (otp, context = '') => {
       'https://www.fast2sms.com/dev/bulkV2',
       {
         route: 'q',
-        message: `Your Kavipushp Jewels OTP is ${otp}. Valid for 10 minutes. Do not share.`,
+        message: `Your ʰKavipushp Jewelsʰ OTP is ${otp}. Valid for 10 minutes. Do not share.`,
         numbers: OWNER_PHONE,
       },
       { headers: { authorization: apiKey } }

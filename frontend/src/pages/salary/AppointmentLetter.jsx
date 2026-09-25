@@ -19,7 +19,7 @@ const AppointmentLetter = forwardRef(function AppointmentLetter({ employee, firm
   const addr = [firm?.address, firm?.city, firm?.state].filter(Boolean).join(', ')
   const phone = firm?.phone
   const email = firm?.email
-  const firmName = (firm?.name || 'Kavipushp Jewels').toUpperCase()
+  const firmName = (firm?.name || 'ʰKavipushp Jewelsʰ').toUpperCase()
   const joining = employee?.date_of_joining
   const issueDate = joining || new Date().toISOString().split('T')[0]
 
