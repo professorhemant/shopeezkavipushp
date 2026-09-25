@@ -22,10 +22,12 @@ export default function Login() {
   })
 
   const onSubmit = async (values) => {
+    const MAX = 6
     let lastErr
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < MAX; attempt++) {
       try {
         await login(values)
+        toast.dismiss('login-wake')
         toast.success('Welcome back!')
         navigate('/dashboard')
         return
@@ -34,14 +36,14 @@ export default function Login() {
         // Real auth/validation error → no point retrying
         const status = err.response?.status
         if (status === 401 || status === 400) break
-        // Network error or 5xx (Railway cold start / container restart) → retry
-        if (attempt < 2) {
-          toast.loading('Connecting to server…', { id: 'login-wake' })
-          await new Promise((r) => setTimeout(r, 3000))
-          toast.dismiss('login-wake')
+        // Network/5xx (Railway cold start) → keep retrying with countdown
+        if (attempt < MAX - 1) {
+          toast.loading(`Server starting up… (${attempt + 1}/${MAX - 1})`, { id: 'login-wake' })
+          await new Promise((r) => setTimeout(r, 4000))
         }
       }
     }
+    toast.dismiss('login-wake')
     toast.error(
       lastErr?.response?.data?.message ||
       lastErr?.response?.data?.error ||
