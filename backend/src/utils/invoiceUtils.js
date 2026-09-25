@@ -53,7 +53,7 @@ const generatePDF = (sale, firm, items) => {
       const TEAL  = '#00ACC1';
 
       // ── Firm details from Firm Settings (bank fields used lower down) ─
-      const firmName  = firm?.name || 'ʰKavipushp Jewelsʰ';
+      const firmName  = firm?.name || 'Kavipushp Jewels';
       const firmAddr  = [firm?.address, firm?.city, firm?.state].filter(Boolean).join(', ');
       const firmPhone = firm?.phone || '';
       const firmEmail = firm?.email || '';
@@ -225,7 +225,7 @@ const generatePDF = (sale, firm, items) => {
 
       // Pay To (left)
       doc.fillColor('#333').fontSize(8).font('Helvetica-Bold').text('Pay To:', ML, botY);
-      doc.fillColor('#111').fontSize(8.5).font('Helvetica-Bold').text('ʰKavipushp Jewelsʰ', ML, botY + 12);
+      doc.fillColor('#111').fontSize(8.5).font('Helvetica-Bold').text('Kavipushp Jewels', ML, botY + 12);
       doc.fillColor('#444').fontSize(7.5).font('Helvetica')
          .text(`Bank: ${bankName}`,  ML, botY + 23)
          .text(`Acc No.: ${accNo}`,  ML, botY + 33)

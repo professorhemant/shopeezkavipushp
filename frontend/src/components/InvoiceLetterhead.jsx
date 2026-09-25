@@ -14,7 +14,7 @@ export default function InvoiceLetterhead({ firm, name, legalName, gstin, pan })
   const email = firm?.email
   return (
     <div className="text-center border-b-2 border-amber-600 pb-3">
-      <h2 className="text-xl font-bold text-slate-900">{name || firm?.name || 'ʰKavipushp Jewelsʰ'}</h2>
+      <h2 className="text-xl font-bold text-slate-900">{name || firm?.name || 'Kavipushp Jewels'}</h2>
       {legalName && legalName !== (name || firm?.name) && (
         <p className="text-xs text-slate-500 mt-0.5">{legalName}</p>
       )}

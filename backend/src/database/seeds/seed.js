@@ -174,7 +174,7 @@ const DEFAULT_SETTINGS = [
 const PAYMENT_DEFAULTS = [
   { key: 'payment_upi_id',      value: 'kavipushpjewels@oksbi' },
   { key: 'payment_upi_id_2',   value: 'Kavipushpbank@okhdfcbank' },
-  { key: 'business_name',       value: 'ʰKavipushp Jewelsʰ' },
+  { key: 'business_name',       value: 'Kavipushp Jewels' },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────────

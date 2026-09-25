@@ -180,7 +180,7 @@ export default function Settings() {
               <div className="border border-green-100 rounded-xl p-5 bg-green-50/40">
                 <p className="text-xs font-semibold text-slate-600 mb-3">📱 WhatsApp Message Preview</p>
                 <pre className="text-xs text-slate-700 whitespace-pre-wrap font-sans leading-relaxed bg-white rounded-lg p-4 border border-green-100">
-{`🧿 *${s.business_name || 'ʰKavipushp Jewelsʰ'}*
+{`🧿 *${s.business_name || 'Kavipushp Jewels'}*
 ━━━━━━━━━━━━━━━━
 📋 *Invoice: INV-2026-0001*
 📅 Date: 03 Mar 2026

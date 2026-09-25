@@ -89,12 +89,6 @@ async function startServer() {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
     }
 
-    // One-time rename: add ʰ charm to existing firm name + business_name setting
-    try {
-      await sequelize.query(`UPDATE firms SET name = 'ʰKavipushp Jewelsʰ' WHERE name = 'Kavipushp Jewels'`);
-      await sequelize.query(`UPDATE settings SET value = 'ʰKavipushp Jewelsʰ' WHERE \`key\` = 'business_name' AND value = 'Kavipushp Jewels'`);
-    } catch (_) {}
-
     // Seed demo admin user if not present
     await seedFirmAndAdmin();
     console.log('✅ Demo seed checked');

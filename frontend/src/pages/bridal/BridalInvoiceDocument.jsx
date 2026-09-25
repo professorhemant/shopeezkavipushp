@@ -176,7 +176,7 @@ const BridalInvoiceDocument = forwardRef(function BridalInvoiceDocument(
 
       {/* Terms */}
       <div className="mt-5 border border-slate-200 rounded-lg p-3">
-        <p className="text-xs font-semibold text-slate-700 mb-2">ʰKavipushp Jewelsʰ – Terms &amp; Conditions</p>
+        <p className="text-xs font-semibold text-slate-700 mb-2">Kavipushp Jewels – Terms &amp; Conditions</p>
         <ol className="list-decimal pl-5 space-y-1 text-[11px] text-slate-600">
           {TERMS.map((t, i) => <li key={i}>{t}</li>)}
         </ol>

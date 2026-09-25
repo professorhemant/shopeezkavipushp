@@ -73,7 +73,7 @@ const formatInvoiceMessage = (sale, items, firm, settings) => {
   const bankIfsc   = settings.payment_bank_ifsc    || '';
   const bankName   = settings.payment_bank_name    || '';
   const bankHolder = settings.payment_bank_holder  || firm.name || '';
-  const firmName   = firm.name || settings.business_name || 'ʰKavipushp Jewelsʰ';
+  const firmName   = firm.name || settings.business_name || 'Kavipushp Jewels';
 
   // Amount to pay (balance if partial, else full total)
   const payAmount = balance > 0 ? balance.toFixed(2) : total;

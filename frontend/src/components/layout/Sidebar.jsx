@@ -242,7 +242,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
           </div>
           <div className="overflow-hidden">
             <p className="font-bold text-white truncate text-sm leading-tight">
-              {firm?.name || 'ʰKavipushp Jewelsʰ'}
+              {firm?.name || 'Kavipushp Jewels'}
             </p>
             <p className="text-xs text-slate-500 truncate">Admin Panel</p>
           </div>
