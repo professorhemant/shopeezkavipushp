@@ -89,6 +89,12 @@ async function startServer() {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
     }
 
+    // Restore original name (remove ʰ charm if still in DB)
+    try {
+      await sequelize.query(`UPDATE firms SET name = 'Kavipushp Jewels' WHERE name = 'ʰKavipushp Jewelsʰ'`);
+      await sequelize.query(`UPDATE settings SET value = 'Kavipushp Jewels' WHERE \`key\` = 'business_name' AND value = 'ʰKavipushp Jewelsʰ'`);
+    } catch (_) {}
+
     // Seed demo admin user if not present
     await seedFirmAndAdmin();
     console.log('✅ Demo seed checked');
