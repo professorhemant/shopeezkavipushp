@@ -436,50 +436,22 @@ const getSecuritySummary = async (req, res, next) => {
     const firmId = req.firmId;
     const today = new Date().toISOString().split('T')[0];
 
-    // Fetch bookings for both cases from BridalBooking (same as /bridal/saved)
+    // booking_amount on BridalBooking IS the advance/security (same as "Advance" column in /bridal/saved)
     const [receivedBookings, returnBookings] = await Promise.all([
       BridalBooking.findAll({
-        where: { firm_id: firmId, pickup_date: today },
-        attributes: ['id', 'customer_name', 'mobile_no', 'set_name', 'set_code'],
+        where: { firm_id: firmId, pickup_date: today, booking_amount: { [Op.gt]: 0 } },
+        attributes: ['id', 'customer_name', 'mobile_no', 'set_name', 'set_code', 'booking_amount'],
         raw: true,
       }),
       BridalBooking.findAll({
-        where: { firm_id: firmId, return_date: today, status: 'active' },
-        attributes: ['id', 'customer_name', 'mobile_no', 'set_name', 'set_code'],
+        where: { firm_id: firmId, return_date: today, status: 'active', booking_amount: { [Op.gt]: 0 } },
+        attributes: ['id', 'customer_name', 'mobile_no', 'set_name', 'set_code', 'booking_amount'],
         raw: true,
       }),
     ]);
 
-    // Build security map from BridalInvoice (prefer pickup invoice over booking invoice)
-    const buildSecMap = async (bookings) => {
-      if (!bookings.length) return {};
-      const ids = bookings.map(b => b.id);
-      const invRows = await BridalInvoice.findAll({
-        where: { firm_id: firmId, booking_id: { [Op.in]: ids }, type: { [Op.in]: ['booking', 'pickup'] } },
-        attributes: ['booking_id', 'security', 'type'],
-        order: [['createdAt', 'ASC']],
-        raw: true,
-      });
-      const map = {};
-      for (const inv of invRows) {
-        if (!map[inv.booking_id] || inv.type === 'pickup') {
-          map[inv.booking_id] = parseFloat(inv.security) || 0;
-        }
-      }
-      return map;
-    };
-
-    const [receivedSecMap, returnSecMap] = await Promise.all([
-      buildSecMap(receivedBookings),
-      buildSecMap(returnBookings),
-    ]);
-
-    const attach = (bookings, secMap) => bookings
-      .map(b => ({ ...b, security: secMap[b.id] || 0 }))
-      .filter(b => b.security > 0);
-
-    const receivedRows = attach(receivedBookings, receivedSecMap);
-    const returnRows   = attach(returnBookings,   returnSecMap);
+    const receivedRows = receivedBookings.map(b => ({ ...b, security: parseFloat(b.booking_amount) }));
+    const returnRows   = returnBookings.map(b => ({ ...b, security: parseFloat(b.booking_amount) }));
     const sum = (rows) => rows.reduce((acc, r) => acc + r.security, 0);
 
     return res.json({
