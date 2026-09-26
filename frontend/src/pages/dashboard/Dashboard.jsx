@@ -218,7 +218,7 @@ export default function Dashboard() {
               <p className="text-xl font-bold text-emerald-700">{formatCurrency(security?.total_security_received || 0)}</p>
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-2">All picked-up bookings</p>
+          <p className="text-xs text-slate-400 mt-2">From today onwards</p>
         </div>
 
         {/* Total Security to be Returned (all active) */}
@@ -234,7 +234,7 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-2">Active sets not yet returned</p>
+          <p className="text-xs text-slate-400 mt-2">Due today or upcoming</p>
         </div>
       </div>
 

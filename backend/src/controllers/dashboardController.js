@@ -450,15 +450,15 @@ const getSecuritySummary = async (req, res, next) => {
         attributes: ['id', 'customer_name', 'mobile_no', 'set_name', 'set_code', 'booking_amount'],
         raw: true,
       }),
-      // All-time: total security ever received (all bookings that were picked up)
+      // Total security received: only pickups from today onwards
       BridalBooking.findOne({
-        where: { firm_id: firmId, pickup_date: { [Op.ne]: null }, booking_amount: { [Op.gt]: 0 } },
+        where: { firm_id: firmId, pickup_date: { [Op.gte]: today }, booking_amount: { [Op.gt]: 0 } },
         attributes: [[fn('SUM', col('booking_amount')), 'total']],
         raw: true,
       }),
-      // All-time: total security still to return (active bookings that were picked up)
+      // Total security to return: active bookings with return_date >= today
       BridalBooking.findOne({
-        where: { firm_id: firmId, pickup_date: { [Op.ne]: null }, status: 'active', booking_amount: { [Op.gt]: 0 } },
+        where: { firm_id: firmId, return_date: { [Op.gte]: today }, status: 'active', booking_amount: { [Op.gt]: 0 } },
         attributes: [[fn('SUM', col('booking_amount')), 'total']],
         raw: true,
       }),
