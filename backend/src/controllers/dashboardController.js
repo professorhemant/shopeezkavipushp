@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op, fn, col, literal } = require('sequelize');
-const { Sale, SaleItem, Customer, Product, SalePayment, sequelize } = require('../models');
+const { Sale, SaleItem, Customer, Product, SalePayment, BridalInvoice, sequelize } = require('../models');
 
 const todayRange = () => {
   const now = new Date();
@@ -426,6 +426,46 @@ const getLatestReceipts = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /dashboard/security
+ * Security received today (pickup invoices) + security to return today (return_date = today)
+ */
+const getSecuritySummary = async (req, res, next) => {
+  try {
+    const firmId = req.firmId;
+    const today = new Date().toISOString().split('T')[0];
+
+    const [receivedRows, returnRows] = await Promise.all([
+      // Security collected today: pickup invoices issued today
+      BridalInvoice.findAll({
+        where: { firm_id: firmId, type: 'pickup', invoice_date: today, security: { [Op.gt]: 0 } },
+        attributes: ['customer_name', 'mobile_no', 'security', 'set_name', 'set_code'],
+        raw: true,
+      }),
+      // Security to return today: items whose return_date is today
+      BridalInvoice.findAll({
+        where: { firm_id: firmId, type: 'pickup', return_date: today, security: { [Op.gt]: 0 } },
+        attributes: ['customer_name', 'mobile_no', 'security', 'set_name', 'set_code'],
+        raw: true,
+      }),
+    ]);
+
+    const sum = (rows) => rows.reduce((acc, r) => acc + parseFloat(r.security || 0), 0);
+
+    return res.json({
+      success: true,
+      data: {
+        security_received_today: sum(receivedRows),
+        security_to_return_today: sum(returnRows),
+        received_customers: receivedRows,
+        return_customers: returnRows,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getStats,
   getSalesChart,
@@ -434,4 +474,5 @@ module.exports = {
   getBestSelling,
   getLeastSelling,
   getLatestReceipts,
+  getSecuritySummary,
 };

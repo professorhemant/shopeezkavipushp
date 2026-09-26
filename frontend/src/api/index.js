@@ -63,6 +63,7 @@ export const dashboardAPI = {
   getBestSelling: () => api.get('/dashboard/best-selling'),
   getLeastSelling: () => api.get('/dashboard/least-selling'),
   getLatestReceipts: () => api.get('/dashboard/latest-receipts'),
+  getSecuritySummary: () => api.get('/dashboard/security'),
 }
 
 // ─── Products ───────────────────────────────────────────────────────

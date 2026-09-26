@@ -11,5 +11,6 @@ router.get('/top-customers',    c.getTopCustomers);
 router.get('/best-selling',     c.getBestSelling);
 router.get('/least-selling',    c.getLeastSelling);
 router.get('/latest-receipts',  c.getLatestReceipts);
+router.get('/security',         c.getSecuritySummary);
 
 module.exports = router;

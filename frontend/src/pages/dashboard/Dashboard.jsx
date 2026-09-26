@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   TrendingUp, TrendingDown, AlertTriangle,
-  RefreshCw, ArrowUp, ArrowDown, Users, FileText, ReceiptText
+  RefreshCw, ArrowUp, ArrowDown, Users, FileText, ReceiptText, ShieldCheck, ShieldAlert
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -60,6 +60,7 @@ export default function Dashboard() {
   const [bestSell,   setBestSell]   = useState([])
   const [leastSell,  setLeastSell]  = useState([])
   const [receipts,   setReceipts]   = useState([])
+  const [security,   setSecurity]   = useState(null)
   const [period,     setPeriod]     = useState('last_1_month')
   const [loading,    setLoading]    = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -67,7 +68,7 @@ export default function Dashboard() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
     try {
-      const [sRes, cRes, iRes, tcRes, bsRes, lsRes, rRes] = await Promise.allSettled([
+      const [sRes, cRes, iRes, tcRes, bsRes, lsRes, rRes, secRes] = await Promise.allSettled([
         dashboardAPI.getStats(),
         dashboardAPI.getSalesChart(period),
         dashboardAPI.getLatestInvoices(),
@@ -75,21 +76,24 @@ export default function Dashboard() {
         dashboardAPI.getBestSelling(),
         dashboardAPI.getLeastSelling(),
         dashboardAPI.getLatestReceipts(),
+        dashboardAPI.getSecuritySummary(),
       ])
-      if (sRes.status === 'fulfilled')  setStats(sRes.value.data?.data || sRes.value.data || null)
+      if (sRes.status === 'fulfilled')   setStats(sRes.value.data?.data || sRes.value.data || null)
       else setStats(null)
-      if (cRes.status === 'fulfilled')  setChart(cRes.value.data?.data || [])
+      if (cRes.status === 'fulfilled')   setChart(cRes.value.data?.data || [])
       else setChart([])
-      if (iRes.status === 'fulfilled')  setInvoices(iRes.value.data?.data || [])
+      if (iRes.status === 'fulfilled')   setInvoices(iRes.value.data?.data || [])
       else setInvoices([])
-      if (tcRes.status === 'fulfilled') setTopCust(tcRes.value.data?.data || [])
+      if (tcRes.status === 'fulfilled')  setTopCust(tcRes.value.data?.data || [])
       else setTopCust([])
-      if (bsRes.status === 'fulfilled') setBestSell(bsRes.value.data?.data || [])
+      if (bsRes.status === 'fulfilled')  setBestSell(bsRes.value.data?.data || [])
       else setBestSell([])
-      if (lsRes.status === 'fulfilled') setLeastSell(lsRes.value.data?.data || [])
+      if (lsRes.status === 'fulfilled')  setLeastSell(lsRes.value.data?.data || [])
       else setLeastSell([])
-      if (rRes.status === 'fulfilled')  setReceipts(rRes.value.data?.data || [])
+      if (rRes.status === 'fulfilled')   setReceipts(rRes.value.data?.data || [])
       else setReceipts([])
+      if (secRes.status === 'fulfilled') setSecurity(secRes.value.data?.data || null)
+      else setSecurity(null)
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -145,6 +149,63 @@ export default function Dashboard() {
             <p className="text-lg font-bold text-slate-800">{s.expiring_count ?? 0} Items</p>
           </div>
         </Link>
+      </div>
+
+      {/* ── Security Summary ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Security Received Today */}
+        <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-4 w-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Security Received Today</p>
+              <p className="text-xl font-bold text-blue-700">{formatCurrency(security?.security_received_today || 0)}</p>
+            </div>
+          </div>
+          {security?.received_customers?.length > 0 && (
+            <div className="border-t border-slate-100 pt-2 space-y-1">
+              {security.received_customers.map((c, i) => (
+                <div key={i} className="flex justify-between text-xs">
+                  <span className="text-slate-600 truncate">{c.customer_name} {c.mobile_no ? `· ${c.mobile_no}` : ''}</span>
+                  <span className="font-semibold text-blue-600 shrink-0 ml-2">{formatCurrency(c.security)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {!security?.received_customers?.length && (
+            <p className="text-xs text-slate-400 mt-1">No pickups today</p>
+          )}
+        </div>
+
+        {/* Security to Return Today */}
+        <div className={`border rounded-xl px-5 py-4 shadow-sm ${security?.security_to_return_today > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${security?.security_to_return_today > 0 ? 'bg-orange-100' : 'bg-slate-100'}`}>
+              <ShieldAlert className={`h-4 w-4 ${security?.security_to_return_today > 0 ? 'text-orange-600' : 'text-slate-400'}`} />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Security to Return Today</p>
+              <p className={`text-xl font-bold ${security?.security_to_return_today > 0 ? 'text-orange-700' : 'text-slate-800'}`}>
+                {formatCurrency(security?.security_to_return_today || 0)}
+              </p>
+            </div>
+          </div>
+          {security?.return_customers?.length > 0 && (
+            <div className="border-t border-orange-100 pt-2 space-y-1">
+              {security.return_customers.map((c, i) => (
+                <div key={i} className="flex justify-between text-xs">
+                  <span className="text-slate-700 truncate font-medium">{c.customer_name} {c.mobile_no ? `· ${c.mobile_no}` : ''}</span>
+                  <span className="font-bold text-orange-600 shrink-0 ml-2">{formatCurrency(c.security)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {!security?.return_customers?.length && (
+            <p className="text-xs text-slate-400 mt-1">No returns due today</p>
+          )}
+        </div>
       </div>
 
       {/* ── Row 1: Today | Chart | Pie ───────────────────────────── */}
