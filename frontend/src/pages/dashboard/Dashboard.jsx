@@ -152,7 +152,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Security Summary ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Security Received Today */}
         <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
@@ -205,6 +205,37 @@ export default function Dashboard() {
           {!security?.return_customers?.length && (
             <p className="text-xs text-slate-400 mt-1">No returns due today</p>
           )}
+        </div>
+      </div>
+
+        {/* Total Security Received (all time) */}
+        <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Total Security Received</p>
+              <p className="text-xl font-bold text-emerald-700">{formatCurrency(security?.total_security_received || 0)}</p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">All picked-up bookings</p>
+        </div>
+
+        {/* Total Security to be Returned (all active) */}
+        <div className={`border rounded-xl px-5 py-4 shadow-sm ${(security?.total_security_pending || 0) > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${(security?.total_security_pending || 0) > 0 ? 'bg-red-100' : 'bg-slate-100'}`}>
+              <ShieldAlert className={`h-4 w-4 ${(security?.total_security_pending || 0) > 0 ? 'text-red-600' : 'text-slate-400'}`} />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Total Security to Return</p>
+              <p className={`text-xl font-bold ${(security?.total_security_pending || 0) > 0 ? 'text-red-700' : 'text-slate-800'}`}>
+                {formatCurrency(security?.total_security_pending || 0)}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">Active sets not yet returned</p>
         </div>
       </div>
 

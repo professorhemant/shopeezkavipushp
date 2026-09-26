@@ -437,15 +437,29 @@ const getSecuritySummary = async (req, res, next) => {
     const today = new Date().toISOString().split('T')[0];
 
     // booking_amount on BridalBooking IS the advance/security (same as "Advance" column in /bridal/saved)
-    const [receivedBookings, returnBookings] = await Promise.all([
+    const [receivedBookings, returnBookings, totalReceivedRaw, totalPendingRaw] = await Promise.all([
+      // Today's pickups
       BridalBooking.findAll({
         where: { firm_id: firmId, pickup_date: today, booking_amount: { [Op.gt]: 0 } },
         attributes: ['id', 'customer_name', 'mobile_no', 'set_name', 'set_code', 'booking_amount'],
         raw: true,
       }),
+      // Today's returns (still active = security not yet returned)
       BridalBooking.findAll({
         where: { firm_id: firmId, return_date: today, status: 'active', booking_amount: { [Op.gt]: 0 } },
         attributes: ['id', 'customer_name', 'mobile_no', 'set_name', 'set_code', 'booking_amount'],
+        raw: true,
+      }),
+      // All-time: total security ever received (all bookings that were picked up)
+      BridalBooking.findOne({
+        where: { firm_id: firmId, pickup_date: { [Op.ne]: null }, booking_amount: { [Op.gt]: 0 } },
+        attributes: [[fn('SUM', col('booking_amount')), 'total']],
+        raw: true,
+      }),
+      // All-time: total security still to return (active bookings that were picked up)
+      BridalBooking.findOne({
+        where: { firm_id: firmId, pickup_date: { [Op.ne]: null }, status: 'active', booking_amount: { [Op.gt]: 0 } },
+        attributes: [[fn('SUM', col('booking_amount')), 'total']],
         raw: true,
       }),
     ]);
@@ -461,6 +475,8 @@ const getSecuritySummary = async (req, res, next) => {
         security_to_return_today: sum(returnRows),
         received_customers: receivedRows,
         return_customers: returnRows,
+        total_security_received: parseFloat(totalReceivedRaw?.total || 0),
+        total_security_pending: parseFloat(totalPendingRaw?.total || 0),
       },
     });
   } catch (err) {
