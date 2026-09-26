@@ -14,6 +14,7 @@ router.post('/', appointmentController.create);
 
 router.get('/:id', appointmentController.getOne);
 router.put('/:id', appointmentController.update);
+router.delete('/:id', appointmentController.deleteOne);
 router.put('/:id/cancel', appointmentController.cancel);
 router.post('/:id/cancel', appointmentController.cancel);
 router.put('/:id/complete', appointmentController.complete);

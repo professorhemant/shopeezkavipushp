@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, Calendar, Clock, User, CheckCircle, XCircle, Pencil } from 'lucide-react'
+import { Plus, Search, Calendar, Clock, User, CheckCircle, XCircle, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { appointmentAPI } from '../../api'
 import { formatDate } from '../../utils/formatters'
@@ -18,6 +18,8 @@ const STATUS_COLORS = {
   cancelled: 'bg-red-100 text-red-800',
   no_show: 'bg-gray-100 text-slate-600',
 }
+
+const TODAY = new Date().toISOString().split('T')[0]
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState([])
@@ -39,7 +41,7 @@ export default function Appointments() {
       setAppointments(items)
       setSummary({
         total: data.pagination?.total ?? items.length,
-        today: data.today_count ?? items.filter((a) => a.appointment_date === new Date().toISOString().split('T')[0]).length,
+        today: data.today_count ?? items.filter((a) => a.appointment_date === TODAY).length,
         completed: items.filter((a) => a.status === 'completed').length,
       })
     } catch {
@@ -54,7 +56,12 @@ export default function Appointments() {
   const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true) }
   const openEdit = (a) => {
     setEditing(a.id)
-    setForm({ customer_name: a.customer_name || '', customer_phone: a.customer_phone || '', service: a.service || '', staff_name: a.staff_name || '', date: a.appointment_date?.split('T')[0] || '', time: a.appointment_time || '10:00', duration_minutes: a.duration_minutes || 30, notes: a.notes || '' })
+    setForm({
+      customer_name: a.customer_name || '', customer_phone: a.customer_phone || '',
+      service: a.service || '', staff_name: a.staff_name || '',
+      date: a.appointment_date?.split('T')[0] || '', time: a.appointment_time || '10:00',
+      duration_minutes: a.duration_minutes || 30, notes: a.notes || ''
+    })
     setShowModal(true)
   }
 
@@ -68,7 +75,7 @@ export default function Appointments() {
         toast.success('Appointment updated')
       } else {
         await appointmentAPI.create(form)
-        toast.success('Appointment created')
+        toast.success('Appointment created — WhatsApp sent to customer & owner')
       }
       setShowModal(false)
       fetchAppointments()
@@ -100,6 +107,22 @@ export default function Appointments() {
     }
   }
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Permanently delete this cancelled appointment?')) return
+    try {
+      await appointmentAPI.delete(id)
+      toast.success('Appointment deleted')
+      fetchAppointments()
+    } catch {
+      toast.error('Failed to delete')
+    }
+  }
+
+  // Today's non-cancelled appointments for the alert banner
+  const todayActive = appointments.filter(
+    (a) => a.appointment_date?.split('T')[0] === TODAY && !['cancelled', 'completed'].includes(a.status)
+  )
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -111,6 +134,28 @@ export default function Appointments() {
           <Plus className="h-4 w-4" /> New Appointment
         </button>
       </div>
+
+      {/* Today's appointment alert */}
+      {todayActive.length > 0 && (
+        <div className="bg-red-50 border border-red-300 rounded-xl px-4 py-3 flex gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-red-700">
+              {todayActive.length} appointment{todayActive.length > 1 ? 's' : ''} today
+            </p>
+            <p className="text-sm text-red-600 mt-0.5">
+              {todayActive.map((a, i) => (
+                <span key={a.id}>
+                  {i > 0 && ' · '}
+                  <span className="font-medium">{a.customer_name}</span>
+                  {a.appointment_time && <span className="text-red-500"> at {String(a.appointment_time).slice(0, 5)}</span>}
+                  {a.service && <span className="text-red-400"> ({a.service})</span>}
+                </span>
+              ))}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-4">
         {[
@@ -175,7 +220,11 @@ export default function Appointments() {
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[a.status] || STATUS_COLORS.scheduled}`}>{a.status || 'scheduled'}</span>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {!['cancelled', 'completed'].includes(a.status) && (
+                  {a.status === 'cancelled' ? (
+                    <button onClick={() => handleDelete(a.id)} title="Delete" className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  ) : !['completed'].includes(a.status) && (
                     <>
                       <button onClick={() => openEdit(a)} title="Edit" className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600"><Pencil className="h-4 w-4" /></button>
                       <button onClick={() => handleComplete(a.id)} title="Mark complete" className="p-1.5 rounded-lg hover:bg-green-50 text-slate-400 hover:text-green-600"><CheckCircle className="h-4 w-4" /></button>
@@ -232,6 +281,11 @@ export default function Appointments() {
                   <label className="block text-xs font-medium text-slate-700 mb-1">Notes</label>
                   <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500" />
                 </div>
+                {!editing && (
+                  <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                    WhatsApp confirmation will be sent to the customer and owner on booking.
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-slate-700 px-4 py-2 rounded-lg text-sm">Cancel</button>

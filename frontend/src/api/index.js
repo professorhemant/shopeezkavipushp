@@ -212,6 +212,7 @@ export const appointmentAPI = {
   update: (id, data) => api.put(`/appointments/${id}`, data),
   cancel: (id) => api.post(`/appointments/${id}/cancel`),
   complete: (id) => api.post(`/appointments/${id}/complete`),
+  delete: (id) => api.delete(`/appointments/${id}`),
   getToday: () => api.get('/appointments/today'),
 }
 

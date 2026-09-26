@@ -1,12 +1,42 @@
 'use strict';
 
-const { Op, fn, col } = require('sequelize');
+const { Op } = require('sequelize');
 const { Appointment, Customer, User } = require('../models');
+const { sendWhatsAppMessage } = require('../utils/whatsapp');
+
+const OWNER_PHONE = process.env.OWNER_WHATSAPP || '7976735339';
 
 const paginate = (q) => {
   const page = Math.max(1, parseInt(q.page) || 1);
   const limit = Math.min(500, parseInt(q.limit) || 20);
   return { limit, offset: (page - 1) * limit, page };
+};
+
+const fmtDate = (d) => {
+  if (!d) return '-';
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+// Send booking confirmation/reminder to customer + owner (fire-and-forget)
+const sendAppointmentWhatsApp = async (appt, type = 'booking') => {
+  const date = fmtDate(appt.appointment_date);
+  const time = appt.appointment_time ? String(appt.appointment_time).slice(0, 5) : '-';
+  const service = appt.service || 'Appointment';
+  const name = appt.customer_name || 'Customer';
+  const phone = appt.customer_phone;
+
+  const customerMsg = type === 'booking'
+    ? `✅ *Appointment Confirmed — Kavipushp Jewels*\n\nDear ${name}, your appointment has been booked!\n\n📅 Date: ${date}\n⏰ Time: ${time}\n💄 Service: ${service}${appt.staff_name ? `\n👩 Staff: ${appt.staff_name}` : ''}\n\nPlease arrive on time. For queries call: ${OWNER_PHONE}\nThank you! 🙏`
+    : `🔔 *Appointment Reminder — Kavipushp Jewels*\n\nDear ${name}, you have an appointment *today*!\n\n📅 Date: ${date}\n⏰ Time: ${time}\n💄 Service: ${service}${appt.staff_name ? `\n👩 Staff: ${appt.staff_name}` : ''}\n\nWe look forward to seeing you! ✨\nKavipushp Jewels — ${OWNER_PHONE}`;
+
+  const ownerMsg = type === 'booking'
+    ? `📌 *New Appointment Booked*\n👤 Customer: ${name}\n📱 Phone: ${phone || 'N/A'}\n💄 Service: ${service}\n📅 Date: ${date}\n⏰ Time: ${time}${appt.staff_name ? `\n👩 Staff: ${appt.staff_name}` : ''}`
+    : `🌅 *Appointment Reminder*\n👤 ${name} (${phone || 'N/A'})\n💄 ${service} at ${time}`;
+
+  const tasks = [sendWhatsAppMessage(OWNER_PHONE, ownerMsg)];
+  if (phone) tasks.push(sendWhatsAppMessage(phone, customerMsg));
+  await Promise.allSettled(tasks);
 };
 
 /**
@@ -113,6 +143,11 @@ const create = async (req, res, next) => {
       status: 'scheduled',
     });
 
+    // Fire-and-forget: booking confirmation to customer + owner
+    sendAppointmentWhatsApp(appointment, 'booking').catch((e) =>
+      console.error('[Appointment WA] booking notification failed:', e.message)
+    );
+
     return res.status(201).json({ success: true, message: 'Appointment created.', data: appointment });
   } catch (err) {
     next(err);
@@ -131,7 +166,6 @@ const update = async (req, res, next) => {
     }
     const body = { ...req.body };
     delete body.firm_id;
-    // Accept frontend shorthand field names
     if (body.date && !body.appointment_date) { body.appointment_date = body.date; }
     if (body.time && !body.appointment_time) { body.appointment_time = body.time; }
     if (body.service === undefined || body.service === null) body.service = '';
@@ -174,6 +208,23 @@ const complete = async (req, res, next) => {
 };
 
 /**
+ * DELETE /appointments/:id  — only for cancelled appointments
+ */
+const deleteOne = async (req, res, next) => {
+  try {
+    const appointment = await Appointment.findOne({ where: { id: req.params.id, firm_id: req.firmId } });
+    if (!appointment) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+    if (appointment.status !== 'cancelled') {
+      return res.status(400).json({ success: false, message: 'Only cancelled appointments can be deleted.' });
+    }
+    await appointment.destroy();
+    return res.status(200).json({ success: true, message: 'Appointment deleted.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * GET /appointments/today
  */
 const getTodayAppointments = async (req, res, next) => {
@@ -206,7 +257,7 @@ const getTodayAppointments = async (req, res, next) => {
  */
 const getCalendar = async (req, res, next) => {
   try {
-    const { month } = req.query; // format: YYYY-MM
+    const { month } = req.query;
     let startDate, endDate;
     if (month) {
       const [y, m] = month.split('-').map(Number);
@@ -230,7 +281,6 @@ const getCalendar = async (req, res, next) => {
       order: [['appointment_date', 'ASC'], ['appointment_time', 'ASC']],
     });
 
-    // Group by date
     const calendar = {};
     appointments.forEach((appt) => {
       const dateKey = appt.appointment_date.toISOString().split('T')[0];
@@ -244,4 +294,7 @@ const getCalendar = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, getOne, create, update, cancel, complete, getTodayAppointments, getCalendar };
+module.exports = {
+  getAll, getOne, create, update, cancel, complete, deleteOne,
+  getTodayAppointments, getCalendar, sendAppointmentWhatsApp,
+};

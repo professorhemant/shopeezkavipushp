@@ -3,6 +3,7 @@ const app = require('./src/app');
 const { sequelize, Firm, Role, Product } = require('./src/models');
 const { seedFirmAndAdmin, seedRoles } = require('./src/database/seeds/seed');
 const { startAutoSaveDayBook } = require('./src/jobs/autoSaveDayBook');
+const { startAppointmentReminder } = require('./src/jobs/appointmentReminder');
 
 const PORT = process.env.PORT || 5000;
 
@@ -117,6 +118,9 @@ async function startServer() {
 
     // End-of-day Day Book auto-save (guarded so it can never crash boot)
     try { startAutoSaveDayBook(); } catch (e) { console.warn('⚠️ Day Book auto-save not started:', e.message); }
+
+    // Daily 9 AM IST appointment reminders to customers + owner
+    try { startAppointmentReminder(); } catch (e) { console.warn('⚠️ Appointment reminder not started:', e.message); }
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
