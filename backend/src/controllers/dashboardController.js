@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op, fn, col, literal } = require('sequelize');
-const { Sale, SaleItem, Customer, Product, SalePayment, BridalInvoice, sequelize } = require('../models');
+const { Sale, SaleItem, Customer, Product, SalePayment, BridalInvoice, BridalBooking, sequelize } = require('../models');
 
 const todayRange = () => {
   const now = new Date();
@@ -428,29 +428,59 @@ const getLatestReceipts = async (req, res, next) => {
 
 /**
  * GET /dashboard/security
- * Security received today (pickup invoices) + security to return today (return_date = today)
+ * Security received today (pickup_date = today in BridalBooking) +
+ * security to return today (return_date = today, status = active) — same source as /bridal/saved
  */
 const getSecuritySummary = async (req, res, next) => {
   try {
     const firmId = req.firmId;
     const today = new Date().toISOString().split('T')[0];
 
-    const [receivedRows, returnRows] = await Promise.all([
-      // Security collected today: pickup invoices issued today
-      BridalInvoice.findAll({
-        where: { firm_id: firmId, type: 'pickup', invoice_date: today, security: { [Op.gt]: 0 } },
-        attributes: ['customer_name', 'mobile_no', 'security', 'set_name', 'set_code'],
+    // Fetch bookings for both cases from BridalBooking (same as /bridal/saved)
+    const [receivedBookings, returnBookings] = await Promise.all([
+      BridalBooking.findAll({
+        where: { firm_id: firmId, pickup_date: today },
+        attributes: ['id', 'customer_name', 'mobile_no', 'set_name', 'set_code'],
         raw: true,
       }),
-      // Security to return today: items whose return_date is today
-      BridalInvoice.findAll({
-        where: { firm_id: firmId, type: 'pickup', return_date: today, security: { [Op.gt]: 0 } },
-        attributes: ['customer_name', 'mobile_no', 'security', 'set_name', 'set_code'],
+      BridalBooking.findAll({
+        where: { firm_id: firmId, return_date: today, status: 'active' },
+        attributes: ['id', 'customer_name', 'mobile_no', 'set_name', 'set_code'],
         raw: true,
       }),
     ]);
 
-    const sum = (rows) => rows.reduce((acc, r) => acc + parseFloat(r.security || 0), 0);
+    // Build security map from BridalInvoice (prefer pickup invoice over booking invoice)
+    const buildSecMap = async (bookings) => {
+      if (!bookings.length) return {};
+      const ids = bookings.map(b => b.id);
+      const invRows = await BridalInvoice.findAll({
+        where: { firm_id: firmId, booking_id: { [Op.in]: ids }, type: { [Op.in]: ['booking', 'pickup'] } },
+        attributes: ['booking_id', 'security', 'type'],
+        order: [['createdAt', 'ASC']],
+        raw: true,
+      });
+      const map = {};
+      for (const inv of invRows) {
+        if (!map[inv.booking_id] || inv.type === 'pickup') {
+          map[inv.booking_id] = parseFloat(inv.security) || 0;
+        }
+      }
+      return map;
+    };
+
+    const [receivedSecMap, returnSecMap] = await Promise.all([
+      buildSecMap(receivedBookings),
+      buildSecMap(returnBookings),
+    ]);
+
+    const attach = (bookings, secMap) => bookings
+      .map(b => ({ ...b, security: secMap[b.id] || 0 }))
+      .filter(b => b.security > 0);
+
+    const receivedRows = attach(receivedBookings, receivedSecMap);
+    const returnRows   = attach(returnBookings,   returnSecMap);
+    const sum = (rows) => rows.reduce((acc, r) => acc + r.security, 0);
 
     return res.json({
       success: true,
