@@ -206,7 +206,6 @@ export default function Dashboard() {
             <p className="text-xs text-slate-400 mt-1">No returns due today</p>
           )}
         </div>
-      </div>
 
         {/* Total Security Received (all time) */}
         <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 shadow-sm">
