@@ -102,6 +102,59 @@ const manualAdjust = async (req, res, next) => {
   } catch (err) { await t.rollback(); next(err); }
 };
 
+// POST /loyalty/backfill-reset  — undo a previous backfill run so it can be re-run cleanly
+const backfillReset = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const fromDate = new Date(req.body.from_date || '2026-09-01');
+
+    // Find all sales that were backfill-processed (points_awarded > 0, from that date)
+    const sales = await Sale.findAll({
+      where: {
+        firm_id: req.firmId,
+        customer_id: { [Op.not]: null },
+        points_awarded: { [Op.gt]: 0 },
+        status: { [Op.notIn]: ['cancelled', 'returned'] },
+        invoice_date: { [Op.gte]: fromDate },
+      },
+      transaction: t,
+    });
+
+    // Collect unique customer IDs
+    const customerIds = [...new Set(sales.map(s => s.customer_id))];
+
+    // Zero out points_awarded on those sales
+    await Sale.update(
+      { points_awarded: 0 },
+      { where: { id: sales.map(s => s.id) }, transaction: t }
+    );
+
+    // Reset loyalty fields on affected customers
+    if (customerIds.length > 0) {
+      await Customer.update(
+        { loyalty_points: 0, points_expires_at: null, lifetime_spend: 0 },
+        { where: { id: customerIds, firm_id: req.firmId }, transaction: t }
+      );
+
+      // Remove the backfill loyalty_transaction rows
+      await LoyaltyTransaction.destroy({
+        where: {
+          firm_id: req.firmId,
+          customer_id: customerIds,
+          notes: { [Op.like]: 'Backfill:%' },
+        },
+        transaction: t,
+      });
+    }
+
+    await t.commit();
+    return res.json({
+      success: true,
+      message: `Reset ${sales.length} sales and ${customerIds.length} customers. Ready to re-run backfill.`,
+    });
+  } catch (err) { await t.rollback(); next(err); }
+};
+
 // POST /loyalty/backfill  — award points for historical sales (one-time use)
 // Body: { from_date: "2026-09-01" }   (defaults to 2026-09-01 if omitted)
 const backfillPoints = async (req, res, next) => {
