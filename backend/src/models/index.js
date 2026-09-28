@@ -49,6 +49,7 @@ const EmployeeLeave = require('./EmployeeLeave');
 const ChatbotRule = require('./ChatbotRule');
 const InstagramLead = require('./InstagramLead');
 const InstagramMessage = require('./InstagramMessage');
+const LoyaltyTransaction = require('./LoyaltyTransaction');
 
 // ─── Associations ────────────────────────────────────────────────
 // User <-> Role
@@ -120,6 +121,12 @@ EmployeeLeave.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' })
 InstagramLead.hasMany(InstagramMessage, { foreignKey: 'lead_id', as: 'messages' });
 InstagramMessage.belongsTo(InstagramLead, { foreignKey: 'lead_id', as: 'lead' });
 
+// Loyalty
+Customer.hasMany(LoyaltyTransaction, { foreignKey: 'customer_id', as: 'loyaltyTransactions' });
+LoyaltyTransaction.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
+Sale.hasMany(LoyaltyTransaction, { foreignKey: 'sale_id', as: 'loyaltyTransactions' });
+LoyaltyTransaction.belongsTo(Sale, { foreignKey: 'sale_id', as: 'sale' });
+
 module.exports = {
   sequelize,
   User,
@@ -170,4 +177,5 @@ module.exports = {
   ChatbotRule,
   InstagramLead,
   InstagramMessage,
+  LoyaltyTransaction,
 };

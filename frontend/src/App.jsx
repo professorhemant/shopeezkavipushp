@@ -99,6 +99,8 @@ const Firms = lazy(() => import('./pages/firms/Firms'))
 const Settings = lazy(() => import('./pages/settings/Settings'))
 const Profile = lazy(() => import('./pages/settings/Profile'))
 
+const LoyaltyDashboard = lazy(() => import('./pages/loyalty/LoyaltyDashboard'))
+
 // Protected route wrapper
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore()
@@ -248,6 +250,10 @@ function App() {
           <Route path="lehenga/sale" element={<LehengaSale />} />
           <Route path="lehenga/sale/view/:id" element={<LehengaSaleView />} />
           <Route path="lehenga/sales" element={<LehengaSalesList />} />
+
+          {/* Loyalty Points */}
+          <Route path="loyalty" element={<LoyaltyDashboard />} />
+          <Route path="loyalty/customers" element={<LoyaltyDashboard />} />
 
           {/* Firms & Settings */}
           <Route path="firms" element={<Firms />} />

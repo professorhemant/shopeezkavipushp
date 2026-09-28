@@ -4,6 +4,8 @@ const { Op, fn, col, literal } = require('sequelize');
 const { Sale, SaleItem, Customer, Product, Payment, Firm, sequelize } = require('../models');
 const { generateInvoiceNumber, generatePDF } = require('../utils/invoiceUtils');
 const { calculateGST } = require('../utils/gstUtils');
+const { calculatePoints, expiryDate, isExpired, MIN_REDEEM, POINT_VALUE } = require('../utils/loyaltyPoints');
+const { LoyaltyTransaction } = require('../models');
 
 const paginate = (q) => {
   const page = Math.max(1, parseInt(q.page) || 1);
@@ -112,7 +114,7 @@ const create = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
     const firmId = req.firmId;
-    const { customer_id, invoice_date, items, discount_amount, is_interstate, notes, payment, payments: paymentsArr } = req.body;
+    const { customer_id, invoice_date, items, discount_amount, is_interstate, notes, payment, payments: paymentsArr, points_to_redeem } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       await t.rollback();
@@ -189,7 +191,14 @@ const create = async (req, res, next) => {
 
     const discountAmt = parseFloat(discount_amount || 0);
     const taxTotal = totalCGST + totalSGST + totalIGST;
-    const grandTotal = subtotal + taxTotal - discountAmt;
+    let grandTotal = subtotal + taxTotal - discountAmt;
+
+    // Loyalty points redemption: validate & apply before payment math
+    let pointsRedeemedFinal = 0;
+    if (points_to_redeem && parseInt(points_to_redeem) > 0) {
+      // Will validate against actual customer balance after customer is fetched below
+      pointsRedeemedFinal = parseInt(points_to_redeem);
+    }
 
     // Support split payments (paymentsArr) or single payment
     let paymentRecords = [];
@@ -201,9 +210,7 @@ const create = async (req, res, next) => {
     const paidAmount = paymentRecords.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
     const primaryMode = paymentRecords.length > 1 ? 'split' : (paymentRecords[0]?.mode || 'cash');
 
-    const directPayment = Math.min(paidAmount, grandTotal);
-    const excessPayment = Math.max(0, paidAmount - grandTotal);
-    const balance = Math.max(0, grandTotal - directPayment);
+    // directPayment / balance computed AFTER redemption adjusts grandTotal (see below)
 
     // Fetch customer snapshot
     let customerName = null;
@@ -255,8 +262,30 @@ const create = async (req, res, next) => {
           transaction: t,
         }) || 0;
         previousBalance = parseFloat(customer.opening_balance || 0) + parseFloat(prevSalesBalance || 0);
+
+        // Validate and clamp loyalty redemption against actual balance
+        if (pointsRedeemedFinal > 0) {
+          const customerExpired = isExpired(customer);
+          const availablePoints = customerExpired ? 0 : (customer.loyalty_points || 0);
+          if (availablePoints < MIN_REDEEM) {
+            pointsRedeemedFinal = 0;
+          } else {
+            pointsRedeemedFinal = Math.min(pointsRedeemedFinal, availablePoints);
+            const pointsDiscount = pointsRedeemedFinal * POINT_VALUE;
+            grandTotal = Math.max(0, parseFloat((grandTotal - pointsDiscount).toFixed(2)));
+          }
+        }
       }
     }
+
+    // Payment math depends on final grandTotal (after any redemption discount)
+    const directPayment = Math.min(paidAmount, grandTotal);
+    const excessPayment = Math.max(0, paidAmount - grandTotal);
+    const balance = Math.max(0, grandTotal - directPayment);
+
+    // Points to award on this sale (calculated on pre-redemption subtotal so
+    // customers always earn on what they spent, not on the discounted total)
+    const pointsAwarded = linkedCustomerId ? calculatePoints(subtotal + taxTotal - discountAmt) : 0;
 
     const sale = await Sale.create({
       firm_id: firmId,
@@ -286,6 +315,8 @@ const create = async (req, res, next) => {
       status: 'confirmed',
       notes: notes || null,
       created_by: req.userId,
+      points_awarded: pointsAwarded,
+      points_redeemed: pointsRedeemedFinal,
     }, { transaction: t });
 
     // Create sale items
@@ -344,6 +375,39 @@ const create = async (req, res, next) => {
         const openingBal = parseFloat(customer.opening_balance || 0);
         const newOpeningBal = Math.max(0, parseFloat((openingBal - remaining).toFixed(2)));
         await customer.update({ opening_balance: newOpeningBal }, { transaction: t });
+      }
+    }
+
+    // ── Loyalty points update ────────────────────────────────────────
+    if (linkedCustomerId && customer && (pointsAwarded > 0 || pointsRedeemedFinal > 0)) {
+      const wasExpired = isExpired(customer);
+      const prevBalance = wasExpired ? 0 : (customer.loyalty_points || 0);
+
+      // Deduct redeemed first, then add earned
+      const afterRedeem = Math.max(0, prevBalance - pointsRedeemedFinal);
+      const newBalance = afterRedeem + pointsAwarded;
+      const newExpiry = expiryDate(new Date());
+      const newLifetimeSpend = parseFloat((parseFloat(customer.lifetime_spend || 0) + (subtotal + taxTotal - discountAmt)).toFixed(2));
+
+      await customer.update({
+        loyalty_points: newBalance,
+        points_expires_at: newExpiry,
+        lifetime_spend: newLifetimeSpend,
+      }, { transaction: t });
+
+      if (pointsRedeemedFinal > 0) {
+        await LoyaltyTransaction.create({
+          firm_id: firmId, customer_id: linkedCustomerId, sale_id: sale.id,
+          transaction_type: 'redeem', points: -pointsRedeemedFinal,
+          balance_after: afterRedeem, notes: `Redeemed on invoice ${sale.invoice_no}`,
+        }, { transaction: t });
+      }
+      if (pointsAwarded > 0) {
+        await LoyaltyTransaction.create({
+          firm_id: firmId, customer_id: linkedCustomerId, sale_id: sale.id,
+          transaction_type: 'earn', points: pointsAwarded,
+          balance_after: newBalance, notes: `Earned on invoice ${sale.invoice_no}`,
+        }, { transaction: t });
       }
     }
 

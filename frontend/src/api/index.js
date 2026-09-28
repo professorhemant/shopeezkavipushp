@@ -374,3 +374,11 @@ export const promotionAPI = {
   markReturned: (id)        => api.put(`/promotions/${id}/return`),
   remove:       (id)        => api.delete(`/promotions/${id}`),
 }
+
+// ─── Loyalty Points ──────────────────────────────────────────────────
+export const loyaltyAPI = {
+  getSummary:         ()           => api.get('/loyalty/summary'),
+  getCustomer:        (customerId) => api.get(`/loyalty/customer/${customerId}`),
+  getHistory:         (customerId) => api.get(`/loyalty/customer/${customerId}/history`),
+  adjust:             (data)       => api.post('/loyalty/adjust', data),
+}

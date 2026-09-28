@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Phone, Mail, MapPin, CreditCard, FileText, IndianRupee, Search, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, CreditCard, FileText, IndianRupee, Search, ExternalLink, Gift } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { customerAPI, saleAPI } from '../../api'
+import { customerAPI, saleAPI, loyaltyAPI } from '../../api'
 import { formatCurrency, formatDate } from '../../utils/formatters'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import StatusBadge from '../../components/common/StatusBadge'
@@ -19,6 +19,8 @@ export default function CustomerDetails() {
   const [tab, setTab] = useState('overview')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [loyalty, setLoyalty] = useState(null)
+  const [loyaltyHistory, setLoyaltyHistory] = useState([])
 
   useEffect(() => {
     setCustomer(null)
@@ -27,12 +29,16 @@ export default function CustomerDetails() {
     setTab('overview')
     const fetchData = async () => {
       try {
-        const [custRes, ledRes] = await Promise.all([
+        const [custRes, ledRes, loyaltyRes] = await Promise.all([
           customerAPI.getOne(id),
           customerAPI.getLedger(id, {}),
+          loyaltyAPI.getCustomer(id).catch(() => null),
         ])
         setCustomer(custRes.data?.data || custRes.data)
         setLedger(ledRes.data?.data?.ledger || ledRes.data?.ledger || [])
+        if (loyaltyRes?.data?.data) setLoyalty(loyaltyRes.data.data)
+        const histRes = await loyaltyAPI.getHistory(id).catch(() => null)
+        setLoyaltyHistory(histRes?.data?.data || [])
       } catch {
         toast.error('Failed to load customer details')
         navigate('/customers')
@@ -106,6 +112,43 @@ export default function CustomerDetails() {
           </div>
         ))}
       </div>
+
+      {/* Loyalty Points Card */}
+      {loyalty && (
+        <div className={`rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-4 ${loyalty.is_expired ? 'bg-red-50 border-red-200' : loyalty.balance < 50 ? 'bg-slate-50 border-slate-200' : 'bg-amber-50 border-amber-200'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${loyalty.is_expired ? 'bg-red-100' : 'bg-amber-100'}`}>
+              <Gift className={`h-5 w-5 ${loyalty.is_expired ? 'text-red-500' : 'text-amber-600'}`} />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Loyalty Points</p>
+              <p className={`text-2xl font-bold ${loyalty.is_expired ? 'text-red-500' : 'text-amber-700'}`}>{loyalty.balance} pts</p>
+            </div>
+          </div>
+          <div className="sm:ml-auto text-sm text-slate-600 space-y-0.5">
+            {loyalty.is_expired
+              ? <p className="text-red-500 font-medium">Points expired</p>
+              : <>
+                  <p>Worth <span className="font-semibold text-green-700">₹{loyalty.balance}</span> discount</p>
+                  <p className="text-xs text-slate-400">Valid till {loyalty.points_expires_at ? new Date(loyalty.points_expires_at).toLocaleDateString('en-IN') : '—'}</p>
+                  {!loyalty.can_redeem && <p className="text-xs text-amber-600">Need 50 pts to redeem</p>}
+                </>
+            }
+          </div>
+          {loyaltyHistory.length > 0 && (
+            <div className="sm:ml-4 text-xs text-slate-400">
+              {loyaltyHistory.slice(0, 3).map(tx => (
+                <div key={tx.id} className="flex gap-2">
+                  <span className={tx.transaction_type === 'earn' ? 'text-green-600' : 'text-red-500'}>
+                    {tx.transaction_type === 'earn' ? '+' : ''}{tx.points}
+                  </span>
+                  <span>{tx.notes}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">

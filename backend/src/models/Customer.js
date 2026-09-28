@@ -24,6 +24,9 @@ const Customer = sequelize.define('Customer', {
   customer_group: { type: DataTypes.STRING(100) },
   is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
   notes: { type: DataTypes.TEXT },
+  loyalty_points:    { type: DataTypes.INTEGER, defaultValue: 0 },
+  points_expires_at: { type: DataTypes.DATE },
+  lifetime_spend:    { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },
 }, { tableName: 'customers' });
 
 module.exports = Customer;

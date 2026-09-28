@@ -4,6 +4,7 @@ const { sequelize, Firm, Role, Product } = require('./src/models');
 const { seedFirmAndAdmin, seedRoles } = require('./src/database/seeds/seed');
 const { startAutoSaveDayBook } = require('./src/jobs/autoSaveDayBook');
 const { startAppointmentReminder } = require('./src/jobs/appointmentReminder');
+const { startLoyaltyExpiryNotifier } = require('./src/jobs/loyaltyExpiryNotifier');
 
 const PORT = process.env.PORT || 5000;
 
@@ -85,6 +86,13 @@ async function startServer() {
       "ALTER TABLE appointments MODIFY COLUMN appointment_time TIME NULL",
       "ALTER TABLE appointments ADD COLUMN cancel_reason VARCHAR(500) NULL",
       "ALTER TABLE appointments ADD COLUMN completed_at DATETIME NULL",
+      // Loyalty points columns on customers
+      "ALTER TABLE customers ADD COLUMN loyalty_points INT NOT NULL DEFAULT 0",
+      "ALTER TABLE customers ADD COLUMN points_expires_at DATETIME NULL",
+      "ALTER TABLE customers ADD COLUMN lifetime_spend DECIMAL(14,2) NOT NULL DEFAULT 0",
+      // Points tracking on sales
+      "ALTER TABLE sales ADD COLUMN points_awarded INT NOT NULL DEFAULT 0",
+      "ALTER TABLE sales ADD COLUMN points_redeemed INT NOT NULL DEFAULT 0",
     ];
     for (const q of alterQueries) {
       try { await sequelize.query(q); } catch (_) { /* already altered or table missing */ }
@@ -121,6 +129,9 @@ async function startServer() {
 
     // Daily 9 AM IST appointment reminders to customers + owner
     try { startAppointmentReminder(); } catch (e) { console.warn('⚠️ Appointment reminder not started:', e.message); }
+
+    // Daily 10 AM IST loyalty points expiry SMS reminders
+    try { startLoyaltyExpiryNotifier(); } catch (e) { console.warn('⚠️ Loyalty expiry notifier not started:', e.message); }
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);

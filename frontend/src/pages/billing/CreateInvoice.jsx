@@ -7,7 +7,7 @@ import {
   RefreshCw, Camera, Lock, Package
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { saleAPI, customerAPI, productAPI, whatsappAPI, settingsAPI } from '../../api'
+import { saleAPI, customerAPI, productAPI, whatsappAPI, settingsAPI, loyaltyAPI } from '../../api'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import QuickInventoryModal from '../../components/common/QuickInventoryModal'
 
@@ -104,6 +104,10 @@ export default function CreateInvoice() {
   const [showQrModal,     setShowQrModal]     = useState(false)  // QR code modal
   const [upiIds,          setUpiIds]          = useState({ upi1: 'kavipushpjewels@oksbi', upi2: 'Kavipushpbank@okhdfcbank' })
   const [showQuickInv,    setShowQuickInv]    = useState(false)
+
+  // loyalty
+  const [loyaltyInfo,     setLoyaltyInfo]     = useState(null)  // customer's current points
+  const [pointsToRedeem,  setPointsToRedeem]  = useState(0)     // how many to use on this bill
 
   // photos
   const [invoiceImages,    setInvoiceImages]    = useState([]) // [{file, preview}] for new; existing loaded from DB
@@ -206,6 +210,26 @@ export default function CreateInvoice() {
     const bal = parseFloat(preselected.outstanding_balance || preselected.opening_balance || 0)
     setPrevBalanceInput(bal > 0 ? String(bal) : '')
   }, [])
+
+  // ── fetch loyalty points when mobile is entered ──────────────
+  useEffect(() => {
+    if (!mobile || mobile.length < 10) { setLoyaltyInfo(null); setPointsToRedeem(0); return }
+    const timer = setTimeout(() => {
+      customerAPI.getAll({ search: mobile.trim(), limit: 1 })
+        .then(({ data }) => {
+          const c = (data.data || data.customers || [])[0]
+          if (c?.id) {
+            loyaltyAPI.getCustomer(c.id)
+              .then(r => setLoyaltyInfo(r.data?.data || null))
+              .catch(() => setLoyaltyInfo(null))
+          } else {
+            setLoyaltyInfo(null)
+          }
+        })
+        .catch(() => setLoyaltyInfo(null))
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [mobile])
 
   // ── row product search ───────────────────────────────────────
   useEffect(() => {
@@ -418,6 +442,7 @@ export default function CreateInvoice() {
         discount_amount: parseFloat((subTotal + totalTax - (grandTotal - shippingAmt)).toFixed(2)),
         grand_total: grandTotal,
         status: 'confirmed',
+        points_to_redeem: pointsToRedeem > 0 ? pointsToRedeem : undefined,
         // Payments are only submitted when raising the bill. On edit the server
         // recomputes paid_amount from the existing payment rows and ignores
         // these, so sending them would imply a change that never happens.
@@ -976,6 +1001,31 @@ export default function CreateInvoice() {
               </>
             )}
           </div>
+
+          {/* Loyalty Points Redemption */}
+          {loyaltyInfo && !loyaltyInfo.is_expired && loyaltyInfo.balance >= 50 && (
+            <div className="px-4 py-3 bg-amber-50 border-b-2 border-amber-200 shrink-0">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-1.5 h-4 rounded-full bg-amber-400 shrink-0" />
+                <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">Loyalty Points</span>
+                <span className="text-xs text-amber-600 ml-auto font-semibold">{loyaltyInfo.balance} pts available (₹{loyaltyInfo.balance} value)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number" min="0" max={loyaltyInfo.balance} step="50"
+                  placeholder={`Use up to ${loyaltyInfo.balance} pts`}
+                  value={pointsToRedeem || ''}
+                  onChange={e => setPointsToRedeem(Math.min(loyaltyInfo.balance, Math.max(0, parseInt(e.target.value) || 0)))}
+                  className="flex-1 border-2 border-amber-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                />
+                <button onClick={() => setPointsToRedeem(loyaltyInfo.balance)} className="px-3 py-1 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-bold whitespace-nowrap shadow">Use All</button>
+                {pointsToRedeem > 0 && <button onClick={() => setPointsToRedeem(0)} className="px-2 py-1 text-xs bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300">Clear</button>}
+              </div>
+              {pointsToRedeem > 0 && (
+                <p className="text-xs text-green-700 font-bold mt-1">− ₹{pointsToRedeem} loyalty discount applied!</p>
+              )}
+            </div>
+          )}
 
           {/* Coupon Section */}
           <div className="px-4 py-3 bg-purple-50 border-b-2 border-purple-200 shrink-0">
