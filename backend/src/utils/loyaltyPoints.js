@@ -5,8 +5,8 @@
 const RATE = 0.04;
 const MIN_SPEND = 500;
 
-// Points valid for 12 rolling months from last purchase date.
-const VALIDITY_MONTHS = 12;
+// Points valid for 3 rolling months from last purchase date.
+const VALIDITY_MONTHS = 3;
 
 // Minimum balance needed before redemption is allowed.
 const MIN_REDEEM = 50;

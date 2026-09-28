@@ -76,7 +76,7 @@ export default function LoyaltyDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2"><Gift className="h-6 w-6 text-amber-400" /> Loyalty Points</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Manage customer reward points — 1 pt = ₹1 discount · 12-month rolling validity</p>
+          <p className="text-slate-400 text-sm mt-0.5">Manage customer reward points — 1 pt = ₹1 discount · 3-month rolling validity</p>
         </div>
       </div>
 
