@@ -775,6 +775,7 @@ const generatePDFRoute = async (req, res, next) => {
     const payment = sale.payments?.[0] || null;
 
     // Map model fields to PDF generator expected shape
+    const customer = sale.customer;
     const saleForPDF = {
       ...sale.toJSON(),
       grand_total: sale.total,
@@ -784,6 +785,11 @@ const generatePDFRoute = async (req, res, next) => {
       payment_bank_name: payment?.bank_name || null,
       payment_cheque_date: payment?.cheque_date || null,
       payment_notes: payment?.notes || null,
+      // Loyalty points info for PDF footer
+      points_awarded:      parseInt(sale.points_awarded  || 0),
+      points_redeemed:     parseInt(sale.points_redeemed || 0),
+      loyalty_balance:     customer ? parseInt(customer.loyalty_points || 0) : 0,
+      loyalty_expires_at:  customer?.points_expires_at || null,
     };
     const itemsForPDF = (sale.items || []).map((i) => ({
       ...i.toJSON(),

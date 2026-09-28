@@ -320,8 +320,55 @@ const generatePDF = (sale, firm, items) => {
       doc.fillColor(TEAL).fontSize(7.5).font('Helvetica-Oblique')
          .text(numberToWords(Math.round(grandTot)), sumX, sy + 2, { width: sumW });
 
+      // ── LOYALTY POINTS STRIP ───────────────────────────────────────
+      const ptEarned   = parseInt(sale.points_awarded  || 0);
+      const ptRedeemed = parseInt(sale.points_redeemed || 0);
+      const ptBalance  = parseInt(sale.loyalty_balance || 0);
+      const ptExpiry   = sale.loyalty_expires_at;
+
+      if (ptEarned > 0 || ptRedeemed > 0 || ptBalance > 0) {
+        const lpY  = sy + 8;
+        const lpH  = ptRedeemed > 0 ? 38 : 28;
+
+        // Background strip
+        doc.rect(ML, lpY, CW, lpH).fill('#FFFBEB').stroke();
+        doc.rect(ML, lpY, CW, lpH).lineWidth(0.5).strokeColor(GOLD).stroke();
+
+        // Gift icon substitute — small filled circle with "★"
+        doc.fillColor(GOLD).fontSize(10).font('Helvetica-Bold')
+           .text('★ Loyalty Points', ML + 8, lpY + 5, { width: 120 });
+
+        // Earned / Redeemed info
+        let lpTx = lpY + 5;
+        if (ptEarned > 0) {
+          doc.fillColor('#166534').fontSize(8).font('Helvetica-Bold')
+             .text(`+${ptEarned} pts earned on this purchase`, ML + 8, lpTx + 13, { width: CW * 0.55 });
+        }
+        if (ptRedeemed > 0) {
+          doc.fillColor('#9a3412').fontSize(8).font('Helvetica')
+             .text(`−${ptRedeemed} pts redeemed (₹${ptRedeemed} discount applied)`, ML + 8, lpTx + 24, { width: CW * 0.55 });
+        }
+
+        // Balance + expiry (right side)
+        const balX = ML + CW * 0.62;
+        const balW = CW * 0.36;
+        doc.fillColor('#92400e').fontSize(8).font('Helvetica-Bold')
+           .text(`Total Balance: ${ptBalance} pts  (worth ₹${ptBalance})`, balX, lpY + 5, { width: balW, align: 'right' });
+        if (ptExpiry) {
+          const expStr = new Date(ptExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+          doc.fillColor('#b45309').fontSize(7).font('Helvetica')
+             .text(`Valid till: ${expStr}`, balX, lpY + 17, { width: balW, align: 'right' });
+        }
+        if (ptBalance >= 50) {
+          doc.fillColor('#166534').fontSize(7).font('Helvetica-Oblique')
+             .text('Redeem at your next purchase for instant discount!', balX, lpY + 27, { width: balW, align: 'right' });
+        }
+
+        sy = lpY + lpH + 6;
+      }
+
       // ── SIGNATURE ──────────────────────────────────────────────────
-      const sigY = sy + 35;
+      const sigY = sy + 10;
       doc.fillColor('#111').fontSize(9).font('Helvetica-Bold')
          .text(`For, ${firmName}`, ML, sigY, { width: CW, align: 'right' });
 
