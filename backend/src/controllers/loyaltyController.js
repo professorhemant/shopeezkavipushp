@@ -102,4 +102,89 @@ const manualAdjust = async (req, res, next) => {
   } catch (err) { await t.rollback(); next(err); }
 };
 
-module.exports = { getCustomerPoints, getCustomerHistory, getSummary, manualAdjust };
+// POST /loyalty/backfill  — award points for historical sales (one-time use)
+// Body: { from_date: "2026-09-01" }   (defaults to 2026-09-01 if omitted)
+const backfillPoints = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const fromDate = new Date(req.body.from_date || '2026-09-01');
+
+    // All confirmed sales in this firm from that date with a linked customer
+    // that haven't had points awarded yet (points_awarded = 0)
+    const sales = await Sale.findAll({
+      where: {
+        firm_id: req.firmId,
+        customer_id: { [Op.not]: null },
+        points_awarded: 0,
+        status: { [Op.notIn]: ['cancelled', 'returned'] },
+        invoice_date: { [Op.gte]: fromDate },
+      },
+      order: [['invoice_date', 'ASC']],
+      transaction: t,
+    });
+
+    const summary = { processed: 0, skipped: 0, customers_updated: 0, total_points_issued: 0 };
+    const customerCache = {};  // id → customer instance
+
+    for (const sale of sales) {
+      // Spend amount = subtotal(ex-GST) + all tax - discount  ≈ grand total
+      const spendAmt = parseFloat(sale.subtotal || 0)
+        + parseFloat(sale.cgst || 0)
+        + parseFloat(sale.sgst || 0)
+        + parseFloat(sale.igst || 0)
+        - parseFloat(sale.discount_amount || 0);
+
+      const pts = calculatePoints(spendAmt);
+      if (pts === 0) { summary.skipped++; continue; }
+
+      // Load customer (cached)
+      if (!customerCache[sale.customer_id]) {
+        customerCache[sale.customer_id] = await Customer.findByPk(sale.customer_id, { transaction: t });
+      }
+      const customer = customerCache[sale.customer_id];
+      if (!customer) { summary.skipped++; continue; }
+
+      const prevBalance = isExpired(customer) ? 0 : (customer.loyalty_points || 0);
+      const newBalance  = prevBalance + pts;
+      const newExpiry   = expiryDate(new Date(sale.invoice_date));
+      const newSpend    = parseFloat((parseFloat(customer.lifetime_spend || 0) + spendAmt).toFixed(2));
+
+      await customer.update({
+        loyalty_points: newBalance,
+        points_expires_at: newExpiry,
+        lifetime_spend: newSpend,
+      }, { transaction: t });
+
+      // Update cached instance for next iteration
+      customer.loyalty_points = newBalance;
+      customer.points_expires_at = newExpiry;
+      customer.lifetime_spend = newSpend;
+
+      await sale.update({ points_awarded: pts }, { transaction: t });
+
+      await LoyaltyTransaction.create({
+        firm_id: req.firmId,
+        customer_id: sale.customer_id,
+        sale_id: sale.id,
+        transaction_type: 'earn',
+        points: pts,
+        balance_after: newBalance,
+        notes: `Backfill: earned on invoice ${sale.invoice_no}`,
+      }, { transaction: t });
+
+      summary.processed++;
+      summary.total_points_issued += pts;
+    }
+
+    summary.customers_updated = Object.keys(customerCache).length;
+    await t.commit();
+
+    return res.json({
+      success: true,
+      message: `Backfill complete. ${summary.processed} sales processed, ${summary.total_points_issued} pts issued to ${summary.customers_updated} customers. ${summary.skipped} sales skipped (below ₹500 or no customer).`,
+      data: summary,
+    });
+  } catch (err) { await t.rollback(); next(err); }
+};
+
+module.exports = { getCustomerPoints, getCustomerHistory, getSummary, manualAdjust, backfillPoints };
