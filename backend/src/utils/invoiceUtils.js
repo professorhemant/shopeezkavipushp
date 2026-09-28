@@ -336,9 +336,9 @@ const generatePDF = (sale, firm, items) => {
         doc.rect(ML, lpY, CW, lpH).fill('#FFFBEB').stroke();
         doc.rect(ML, lpY, CW, lpH).lineWidth(0.5).strokeColor(GOLD).stroke();
 
-        // Gift icon substitute — small filled circle with "★"
+        // Header — use ASCII "*" because Helvetica lacks the star glyph (U+2605)
         doc.fillColor(GOLD).fontSize(10).font('Helvetica-Bold')
-           .text('★ Loyalty Points', ML + 8, lpY + 5, { width: 120 });
+           .text('* Loyalty Points', ML + 8, lpY + 5, { width: 120 });
 
         // Earned / Redeemed info
         let lpTx = lpY + 5;
@@ -347,15 +347,16 @@ const generatePDF = (sale, firm, items) => {
              .text(`+${ptEarned} pts earned on this purchase`, ML + 8, lpTx + 13, { width: CW * 0.55 });
         }
         if (ptRedeemed > 0) {
+          // Use plain "-" and "Rs." — Helvetica lacks U+2212 (minus) and U+20B9 (rupee)
           doc.fillColor('#9a3412').fontSize(8).font('Helvetica')
-             .text(`−${ptRedeemed} pts redeemed (₹${ptRedeemed} discount applied)`, ML + 8, lpTx + 24, { width: CW * 0.55 });
+             .text(`-${ptRedeemed} pts redeemed (Rs.${ptRedeemed} discount applied)`, ML + 8, lpTx + 24, { width: CW * 0.55 });
         }
 
-        // Balance + expiry (right side)
+        // Balance + expiry (right side) — Rs. instead of ₹ for font compatibility
         const balX = ML + CW * 0.62;
         const balW = CW * 0.36;
         doc.fillColor('#92400e').fontSize(8).font('Helvetica-Bold')
-           .text(`Total Balance: ${ptBalance} pts  (worth ₹${ptBalance})`, balX, lpY + 5, { width: balW, align: 'right' });
+           .text(`Total Balance: ${ptBalance} pts  (worth Rs.${ptBalance})`, balX, lpY + 5, { width: balW, align: 'right' });
         if (ptExpiry) {
           const expStr = new Date(ptExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
           doc.fillColor('#b45309').fontSize(7).font('Helvetica')

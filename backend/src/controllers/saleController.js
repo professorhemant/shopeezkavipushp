@@ -278,6 +278,9 @@ const create = async (req, res, next) => {
       }
     }
 
+    // If no customer was found, points cannot be redeemed — discard the request
+    if (!linkedCustomerId) pointsRedeemedFinal = 0;
+
     // Payment math depends on final grandTotal (after any redemption discount)
     const directPayment = Math.min(paidAmount, grandTotal);
     const excessPayment = Math.max(0, paidAmount - grandTotal);
