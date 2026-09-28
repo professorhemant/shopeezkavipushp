@@ -292,6 +292,8 @@ const generatePDF = (sale, firm, items) => {
       // Shown only when there is one, so the customer can see why Grand Total is
       // lower than Sub Total + Tax.
       if (discountAmt > 0) drawSumRow('Discount', `-${discountAmt.toFixed(0)}`, false, false, '#16a34a');
+      const ptRedeemedSum = parseInt(sale.points_redeemed || 0);
+      if (ptRedeemedSum > 0) drawSumRow('Points Redeemed', `-${ptRedeemedSum}`, false, false, '#d97706');
       drawSumRow('Round Off',  roundOff.toFixed(1));
 
       // Bold line before Grand Total
