@@ -240,4 +240,4 @@ const backfillPoints = async (req, res, next) => {
   } catch (err) { await t.rollback(); next(err); }
 };
 
-module.exports = { getCustomerPoints, getCustomerHistory, getSummary, manualAdjust, backfillPoints };
+module.exports = { getCustomerPoints, getCustomerHistory, getSummary, manualAdjust, backfillPoints, backfillReset };
