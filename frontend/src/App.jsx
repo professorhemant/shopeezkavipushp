@@ -100,6 +100,7 @@ const Settings = lazy(() => import('./pages/settings/Settings'))
 const Profile = lazy(() => import('./pages/settings/Profile'))
 
 const LoyaltyDashboard = lazy(() => import('./pages/loyalty/LoyaltyDashboard'))
+const SocialMediaManager = lazy(() => import('./pages/social/SocialMediaManager'))
 
 // Protected route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -254,6 +255,9 @@ function App() {
           {/* Loyalty Points */}
           <Route path="loyalty" element={<LoyaltyDashboard />} />
           <Route path="loyalty/customers" element={<LoyaltyDashboard />} />
+
+          {/* Social Media Manager */}
+          <Route path="social" element={<SocialMediaManager />} />
 
           {/* Firms & Settings */}
           <Route path="firms" element={<Firms />} />

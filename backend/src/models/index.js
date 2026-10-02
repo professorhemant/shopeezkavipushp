@@ -50,6 +50,8 @@ const ChatbotRule = require('./ChatbotRule');
 const InstagramLead = require('./InstagramLead');
 const InstagramMessage = require('./InstagramMessage');
 const LoyaltyTransaction = require('./LoyaltyTransaction');
+const SocialSetting = require('./SocialSetting');
+const SocialPost = require('./SocialPost');
 
 // ─── Associations ────────────────────────────────────────────────
 // User <-> Role
@@ -178,4 +180,6 @@ module.exports = {
   InstagramLead,
   InstagramMessage,
   LoyaltyTransaction,
+  SocialSetting,
+  SocialPost,
 };

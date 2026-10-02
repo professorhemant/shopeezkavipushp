@@ -10,7 +10,7 @@ import {
   Landmark, Wrench, Store, Hammer, Warehouse, BookOpen,
   ClipboardList, Factory, MessageSquare, Calendar,
   BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone, Bell, BadgeIndianRupee,
-  Shirt, ShoppingBag, Bot, Instagram, GraduationCap, Gift
+  Shirt, ShoppingBag, Bot, Instagram, GraduationCap, Gift, Share2
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { bridalAPI } from '../../api'
@@ -100,6 +100,7 @@ const MENU = [
       { label: 'Chatbot Learning', path: '/chatbot/learning', icon: GraduationCap },
     ],
   },
+  { id: 'social', label: 'Social Media', icon: Share2, path: '/social' },
   { id: 'urgent-alerts', label: 'Urgent Alerts', icon: Bell, path: '/bridal/urgent-alerts', urgent: true },
   {
     id: 'loyalty', label: 'Loyalty & Points', icon: Gift,

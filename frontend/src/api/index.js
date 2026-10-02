@@ -382,3 +382,13 @@ export const loyaltyAPI = {
   getHistory:         (customerId) => api.get(`/loyalty/customer/${customerId}/history`),
   adjust:             (data)       => api.post('/loyalty/adjust', data),
 }
+
+// ─── Social Media ────────────────────────────────────────────────────
+export const socialMediaAPI = {
+  getSettings:  ()           => api.get('/social/settings'),
+  saveSettings: (data)       => api.post('/social/settings', data),
+  listPosts:    ()           => api.get('/social/posts'),
+  uploadImage:  (formData)   => api.post('/social/upload', formData, { headers: { 'Content-Type': undefined } }),
+  createPost:   (data)       => api.post('/social/posts', data),
+  deletePost:   (id)         => api.delete(`/social/posts/${id}`),
+}
