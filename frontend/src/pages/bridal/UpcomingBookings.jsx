@@ -110,6 +110,7 @@ export default function UpcomingBookings() {
                   <th className="px-4 py-3 text-left">Set Code</th>
                   <th className="px-4 py-3 text-left">Customer</th>
                   <th className="px-4 py-3 text-left">Booking Date</th>
+                  <th className="px-4 py-3 text-left">Pickup Date</th>
                   <th className="px-4 py-3 text-left">Function Date</th>
                   <th className="px-4 py-3 text-left">Return Date</th>
                   <th className="px-4 py-3 text-center">Action</th>
@@ -118,7 +119,7 @@ export default function UpcomingBookings() {
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-16 text-slate-400">
+                    <td colSpan={7} className="text-center py-16 text-slate-400">
                       <CalendarClock className="h-10 w-10 mx-auto mb-2 opacity-30" />
                       No upcoming bookings
                     </td>
@@ -137,6 +138,7 @@ export default function UpcomingBookings() {
                         {r.mobile_no && <div className="text-xs text-slate-400">{r.mobile_no}</div>}
                       </td>
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{fmtDate(r.booking_date)}</td>
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{fmtDate(r.pickup_date)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-slate-700">{fmtDate(r.function_date)}</div>
                         {fBadge && (
