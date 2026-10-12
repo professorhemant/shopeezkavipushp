@@ -9,7 +9,7 @@ import {
   Calculator, FileSpreadsheet, Zap, User, DollarSign,
   Landmark, Wrench, Store, Hammer, Warehouse, BookOpen,
   ClipboardList, Factory, MessageSquare, Calendar,
-  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone, Bell, BadgeIndianRupee,
+  BarChart2, Bookmark, Plus, LayoutGrid, Upload, PenLine, Megaphone, Bell, BadgeIndianRupee, CalendarClock,
   Shirt, ShoppingBag, Bot, Instagram, GraduationCap, Gift, Share2
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
@@ -72,6 +72,7 @@ const MENU = [
     id: 'rental', label: 'Bridal Module', icon: Store,
     children: [
       { label: 'Bridal Bookings',     path: '/daybook/bridal-bookings', icon: Calendar },
+      { label: 'Upcoming Bookings',   path: '/bridal/upcoming',         icon: CalendarClock },
       { label: 'Saved Booking',       path: '/bridal/saved',            icon: Bookmark },
       { label: 'Bridal Invoices',     path: '/bridal/invoices',         icon: Receipt },
       { label: 'Bridal Dispatch',     path: '/daybook/bridal-dispatch', icon: Truck },

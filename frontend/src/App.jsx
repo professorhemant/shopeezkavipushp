@@ -81,6 +81,7 @@ const BridalInvoice = lazy(() => import('./pages/bridal/BridalInvoice'))
 const BridalInvoicesList = lazy(() => import('./pages/bridal/BridalInvoicesList'))
 const BridalInvoiceView = lazy(() => import('./pages/bridal/BridalInvoiceView'))
 const UrgentAlerts = lazy(() => import('./pages/bridal/UrgentAlerts'))
+const UpcomingBookings = lazy(() => import('./pages/bridal/UpcomingBookings'))
 
 const LehengaInventory = lazy(() => import('./pages/lehenga/LehengaInventory'))
 const LehengaRental = lazy(() => import('./pages/lehenga/LehengaRental'))
@@ -240,6 +241,7 @@ function App() {
           <Route path="bridal/invoice/view/:id" element={<BridalInvoiceView />} />
           <Route path="bridal/invoices" element={<BridalInvoicesList />} />
           <Route path="bridal/urgent-alerts" element={<UrgentAlerts />} />
+          <Route path="bridal/upcoming" element={<UpcomingBookings />} />
 
           {/* Bridal Lehenga — Rental & Sale */}
           <Route path="lehenga/inventory" element={<LehengaInventory />} />

@@ -314,6 +314,26 @@ const markReturned = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// GET /bridal/bookings/upcoming — active bookings not yet past their return date
+const listUpcomingBookings = async (req, res, next) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const rows = await BridalBooking.findAll({
+      where: {
+        firm_id: req.firmId,
+        status: 'active',
+        [Op.or]: [
+          { return_date: { [Op.gte]: today } },
+          { return_date: null, function_date: { [Op.gte]: today } },
+          { return_date: null, function_date: null },
+        ],
+      },
+      order: [['function_date', 'ASC']],
+    });
+    res.json({ success: true, data: rows });
+  } catch (err) { next(err); }
+};
+
 // GET /bridal/bookings/urgent-alerts — sets due back today + overdue
 const getUrgentAlerts = async (req, res, next) => {
   try {
@@ -503,6 +523,7 @@ const importXlsx = async (req, res, next) => {
 
 module.exports = {
   uploadImage,
+  listUpcomingBookings,
   listInvoices,
   getInvoice,
   createInvoice,

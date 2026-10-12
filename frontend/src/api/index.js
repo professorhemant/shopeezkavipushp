@@ -298,6 +298,7 @@ export const bridalAPI = {
   bulkImportInventory: (items) => api.post('/bridal/inventory/bulk-import', { items }),
   bulkUpdateInventory: (ids, updates) => api.put('/bridal/inventory/bulk-update', { ids, updates }),
   // Bookings
+  listUpcomingBookings: () => api.get('/bridal/bookings/upcoming'),
   listBookings: () => api.get('/bridal/bookings'),
   createBooking: (data) => api.post('/bridal/bookings', data),
   updateBooking: (id, data) => api.put(`/bridal/bookings/${id}`, data),
